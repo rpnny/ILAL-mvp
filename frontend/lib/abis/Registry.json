@@ -1,0 +1,27 @@
+[
+  {
+    "type": "function",
+    "name": "registerIssuer",
+    "inputs": [
+      {"name": "issuerId", "type": "bytes32"},
+      {"name": "attester", "type": "address"},
+      {"name": "verifier", "type": "address"}
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "isRouterApproved",
+    "inputs": [{"name": "router", "type": "address"}],
+    "outputs": [{"name": "", "type": "bool"}],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "emergencyPaused",
+    "inputs": [],
+    "outputs": [{"name": "", "type": "bool"}],
+    "stateMutability": "view"
+  }
+]

@@ -1,0 +1,12 @@
+[
+  {
+    "type": "function",
+    "name": "verifyComplianceProof",
+    "inputs": [
+      {"name": "proof", "type": "bytes"},
+      {"name": "publicInputs", "type": "uint256[]"}
+    ],
+    "outputs": [{"name": "", "type": "bool"}],
+    "stateMutability": "view"
+  }
+]

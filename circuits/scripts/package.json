@@ -1,0 +1,17 @@
+{
+  "name": "ilal-circuits",
+  "version": "0.1.0",
+  "description": "ILAL ZK 电路脚本",
+  "scripts": {
+    "compile": "./compile.sh",
+    "setup": "./setup.sh",
+    "prove": "node generate-proof.js",
+    "test": "node generate-proof.js input-example.json"
+  },
+  "dependencies": {
+    "snarkjs": "^0.7.0"
+  },
+  "devDependencies": {},
+  "author": "ILAL Team",
+  "license": "MIT"
+}

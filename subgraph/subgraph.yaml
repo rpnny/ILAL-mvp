@@ -1,0 +1,88 @@
+specVersion: 0.0.5
+schema:
+  file: ./schema.graphql
+dataSources:
+  # Registry 合约
+  - kind: ethereum/contract
+    name: Registry
+    network: base
+    source:
+      address: "0x0000000000000000000000000000000000000000" # TODO: 部署后更新
+      abi: Registry
+      startBlock: 0 # TODO: 更新为部署区块
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Issuer
+        - Router
+        - EmergencyEvent
+        - GlobalStats
+      abis:
+        - name: Registry
+          file: ./abis/Registry.json
+      eventHandlers:
+        - event: IssuerRegistered(indexed bytes32,indexed address,indexed address)
+          handler: handleIssuerRegistered
+        - event: IssuerUpdated(indexed bytes32,address)
+          handler: handleIssuerUpdated
+        - event: IssuerRevoked(indexed bytes32)
+          handler: handleIssuerRevoked
+        - event: RouterApproved(indexed address,bool)
+          handler: handleRouterApproved
+        - event: EmergencyPauseToggled(bool)
+          handler: handleEmergencyPauseToggled
+      file: ./src/registry.ts
+
+  # SessionManager 合约
+  - kind: ethereum/contract
+    name: SessionManager
+    network: base
+    source:
+      address: "0x0000000000000000000000000000000000000000" # TODO: 部署后更新
+      abi: SessionManager
+      startBlock: 0 # TODO: 更新为部署区块
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Session
+        - GlobalStats
+        - DailyStats
+      abis:
+        - name: SessionManager
+          file: ./abis/SessionManager.json
+      eventHandlers:
+        - event: SessionStarted(indexed address,uint256)
+          handler: handleSessionStarted
+        - event: SessionEnded(indexed address)
+          handler: handleSessionEnded
+      file: ./src/session.ts
+
+  # ComplianceHook 合约
+  - kind: ethereum/contract
+    name: ComplianceHook
+    network: base
+    source:
+      address: "0x0000000000000000000000000000000000000000" # TODO: 部署后更新
+      abi: ComplianceHook
+      startBlock: 0 # TODO: 更新为部署区块
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Swap
+        - GlobalStats
+        - DailyStats
+      abis:
+        - name: ComplianceHook
+          file: ./abis/ComplianceHook.json
+      eventHandlers:
+        - event: SwapAttempt(indexed address,bool)
+          handler: handleSwapAttempt
+        - event: LiquidityAttempt(indexed address,bool,bool)
+          handler: handleLiquidityAttempt
+      file: ./src/hook.ts

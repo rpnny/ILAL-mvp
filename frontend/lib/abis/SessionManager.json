@@ -1,0 +1,33 @@
+[
+  {
+    "type": "function",
+    "name": "isSessionActive",
+    "inputs": [{"name": "user", "type": "address"}],
+    "outputs": [{"name": "", "type": "bool"}],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "sessionExpiry",
+    "inputs": [{"name": "user", "type": "address"}],
+    "outputs": [{"name": "", "type": "uint256"}],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getRemainingTime",
+    "inputs": [{"name": "user", "type": "address"}],
+    "outputs": [{"name": "", "type": "uint256"}],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "startSession",
+    "inputs": [
+      {"name": "user", "type": "address"},
+      {"name": "expiry", "type": "uint256"}
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  }
+]

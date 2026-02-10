@@ -1,0 +1,56 @@
+# Foundry
+cache/
+out/
+broadcast/
+*.sol.log
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+
+# ZK artifacts
+circuits/*.r1cs
+circuits/*.wasm
+circuits/*.zkey
+circuits/*.ptau
+circuits/verification_key.json
+
+# Frontend
+frontend/.next/
+frontend/out/
+
+# Subgraph
+subgraph/build/
+subgraph/generated/
+
+# Keys (NEVER commit!)
+*.key
+*.pem
+private_keys/
+
+# Logs
+logs/
+*.log
