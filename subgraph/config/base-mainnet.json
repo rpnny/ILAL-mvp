@@ -1,0 +1,18 @@
+{
+  "network": "base",
+  "contracts": {
+    "Registry": {
+      "address": "0x0000000000000000000000000000000000000001",
+      "startBlock": 0
+    },
+    "SessionManager": {
+      "address": "0x0000000000000000000000000000000000000002",
+      "startBlock": 0
+    },
+    "ComplianceHook": {
+      "address": "0x0000000000000000000000000000000000000003",
+      "startBlock": 0
+    }
+  },
+  "notes": "Base Mainnet 部署配置 - 部署后更新地址和 startBlock"
+}

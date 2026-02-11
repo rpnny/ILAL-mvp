@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ILAL 系统测试报告 - 2026/2/11</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #f1f5f9; color: #1e293b; line-height: 1.6; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 40px 20px; }
+    .header { background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%); border-radius: 16px; padding: 48px 40px; margin-bottom: 32px; position: relative; overflow: hidden; }
+    .header::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 50%); }
+    .header h1 { color: white; font-size: 32px; font-weight: 700; margin-bottom: 8px; position: relative; }
+    .header p { color: #94a3b8; font-size: 16px; position: relative; }
+    .stat-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 32px; }
+    .stat-card { background: white; border-radius: 12px; padding: 24px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .stat-card .value { font-size: 36px; font-weight: 700; margin-bottom: 4px; }
+    .stat-card .label { font-size: 13px; color: #64748b; font-weight: 500; }
+    .progress-bar { height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin-top: 24px; }
+    .progress-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
+    @media (max-width: 768px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+    .footer { text-align: center; padding: 32px; color: #94a3b8; font-size: 13px; }
+    a:hover { text-decoration: underline !important; }
+    .test-row:hover { background: #f8fafc; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 报告头部 -->
+    <div class="header">
+      <h1>&#x1F6E1;&#xFE0F; ILAL 系统集成测试报告</h1>
+      <p>Institutional Liquidity Access Layer - Uniswap v4 合规层</p>
+      <div style="display: flex; gap: 24px; margin-top: 20px; position: relative;">
+        <span style="color: #94a3b8; font-size: 13px;">&#x1F4C5; 2026年2月11日 15:52:40</span>
+        <span style="color: #94a3b8; font-size: 13px;">&#x1F517; Base Sepolia (Chain ID: 84532)</span>
+        <span style="color: #94a3b8; font-size: 13px;">&#x23F1; 总耗时: 22.02s</span>
+      </div>
+      <div class="progress-bar" style="margin-top: 24px;">
+        <div class="progress-fill" style="width: 98.2%; background: linear-gradient(90deg, #10b981, #34d399);"></div>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-top: 8px; position: relative;">
+        <span style="color: #94a3b8; font-size: 12px;">通过率</span>
+        <span style="color: #10b981; font-size: 14px; font-weight: 600;">98.2%</span>
+      </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="value" style="color: #1e293b;">56</div>
+        <div class="label">总测试数</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" style="color: #10b981;">55</div>
+        <div class="label">通过</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" style="color: #ef4444;">0</div>
+        <div class="label">失败</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" style="color: #f59e0b;">1</div>
+        <div class="label">警告</div>
+      </div>
+      <div class="stat-card">
+        <div class="value" style="color: #6366f1;">22.0s</div>
+        <div class="label">总耗时</div>
+      </div>
+    </div>
+
+    <!-- 合约地址表 -->
+    <div style="background: white; border-radius: 12px; margin-bottom: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden;">
+      <div style="padding: 20px 24px; border-bottom: 1px solid #f1f5f9;">
+        <h3 style="font-size: 18px; font-weight: 600;">&#x1F4DD; 合约部署清单</h3>
+      </div>
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: #f8fafc;">
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600;">合约名称</th>
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600;">地址</th>
+          </tr>
+        </thead>
+        <tbody>
+    <tr>
+      <td style="padding: 8px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; font-weight: 500; color: #334155;">Registry (Proxy)</td>
+      <td style="padding: 8px 16px; border-bottom: 1px solid #f1f5f9; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #6366f1;">
+        <a href="https://sepolia.basescan.org/address/0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD" target="_blank" style="color: #6366f1; text-decoration: none;">0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD</a>
+      </td>
+    </tr>
+  
+    <tr>
+      <td style="padding: 8px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; font-weight: 500; color: #334155;">Registry (Impl)</td>
+      <td style="padding: 8px 16px; border-bottom: 1px solid #f1f5f9; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #6366f1;">
+        <a href="https://sepolia.basescan.org/address/0xdbd5e1F35b825838b4e7dBEEdFa228BA4dC0628E" target="_blank" style="color: #6366f1; text-decoration: none;">0xdbd5e1F35b825838b4e7dBEEdFa228BA4dC0628E</a>
+      </td>
+    </tr>
+  
+    <tr>
+      <td style="padding: 8px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; font-weight: 500; color: #334155;">SessionManager (Proxy)</td>
+      <td style="padding: 8px 16px; border-bottom: 1px solid #f1f5f9; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #6366f1;">
+        <a href="https://sepolia.basescan.org/address/0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2" target="_blank" style="color: #6366f1; text-decoration: none;">0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2</a>
+      </td>
+    </tr>
+  
+    <tr>
+      <td style="padding: 8px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; font-weight: 500; color: #334155;">SessionManager (Impl)</td>
+      <td style="padding: 8px 16px; border-bottom: 1px solid #f1f5f9; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #6366f1;">
+        <a href="https://sepolia.basescan.org/address/0x807814E5f95C6Dfbaa00573D0E407EB166566511" target="_blank" style="color: #6366f1; text-decoration: none;">0x807814E5f95C6Dfbaa00573D0E407EB166566511</a>
+      </td>
+    </tr>
+  
+    <tr>
+      <td style="padding: 8px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; font-weight: 500; color: #334155;">ComplianceHook</td>
+      <td style="padding: 8px 16px; border-bottom: 1px solid #f1f5f9; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #6366f1;">
+        <a href="https://sepolia.basescan.org/address/0x3407E999DD5d96CD53f8ce17731d4B16C9429cE2" target="_blank" style="color: #6366f1; text-decoration: none;">0x3407E999DD5d96CD53f8ce17731d4B16C9429cE2</a>
+      </td>
+    </tr>
+  
+    <tr>
+      <td style="padding: 8px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; font-weight: 500; color: #334155;">PositionManager</td>
+      <td style="padding: 8px 16px; border-bottom: 1px solid #f1f5f9; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #6366f1;">
+        <a href="https://sepolia.basescan.org/address/0x5b460c8Bd32951183a721bdaa3043495D8861f31" target="_blank" style="color: #6366f1; text-decoration: none;">0x5b460c8Bd32951183a721bdaa3043495D8861f31</a>
+      </td>
+    </tr>
+  
+    <tr>
+      <td style="padding: 8px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; font-weight: 500; color: #334155;">SimpleSwapRouter</td>
+      <td style="padding: 8px 16px; border-bottom: 1px solid #f1f5f9; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #6366f1;">
+        <a href="https://sepolia.basescan.org/address/0x2AAF6C551168DCF22804c04DdA2c08c82031F289" target="_blank" style="color: #6366f1; text-decoration: none;">0x2AAF6C551168DCF22804c04DdA2c08c82031F289</a>
+      </td>
+    </tr>
+  
+    <tr>
+      <td style="padding: 8px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; font-weight: 500; color: #334155;">PlonkVerifier</td>
+      <td style="padding: 8px 16px; border-bottom: 1px solid #f1f5f9; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #6366f1;">
+        <a href="https://sepolia.basescan.org/address/0x2645C48A7DB734C9179A195C51Ea5F022B86261f" target="_blank" style="color: #6366f1; text-decoration: none;">0x2645C48A7DB734C9179A195C51Ea5F022B86261f</a>
+      </td>
+    </tr>
+  
+    <tr>
+      <td style="padding: 8px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; font-weight: 500; color: #334155;">PlonkVerifierAdapter</td>
+      <td style="padding: 8px 16px; border-bottom: 1px solid #f1f5f9; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #6366f1;">
+        <a href="https://sepolia.basescan.org/address/0x0cDcD82E5efba9De4aCc255402968397F323AFBB" target="_blank" style="color: #6366f1; text-decoration: none;">0x0cDcD82E5efba9De4aCc255402968397F323AFBB</a>
+      </td>
+    </tr>
+  
+    <tr>
+      <td style="padding: 8px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; font-weight: 500; color: #334155;">PoolManager (Uniswap v4)</td>
+      <td style="padding: 8px 16px; border-bottom: 1px solid #f1f5f9; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #6366f1;">
+        <a href="https://sepolia.basescan.org/address/0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408" target="_blank" style="color: #6366f1; text-decoration: none;">0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408</a>
+      </td>
+    </tr>
+  </tbody>
+      </table>
+    </div>
+
+    <!-- 测试套件详情 -->
+    <h2 style="font-size: 22px; font-weight: 600; margin-bottom: 20px; color: #1e293b;">&#x1F9EA; 测试详情</h2>
+    
+    <div class="suite-card" style="background: white; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden;">
+      <div style="background: linear-gradient(135deg, #1e293b, #334155); padding: 20px 24px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h3 style="margin: 0; color: white; font-size: 18px; font-weight: 600;">合约部署验证</h3>
+          <p style="margin: 4px 0 0; color: #94a3b8; font-size: 13px;">验证所有核心合约在 Base Sepolia 上的部署状态</p>
+        </div>
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <span style="color: #10b981; font-size: 14px;">&#x2705; 10</span>
+          
+          
+          <span style="color: #94a3b8; font-size: 13px;">3.83s</span>
+        </div>
+      </div>
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: #f8fafc;">
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600; width: 80px;">状态</th>
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600; width: 280px;">测试项</th>
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600;">结果</th>
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600; width: 80px;">耗时</th>
+          </tr>
+        </thead>
+        <tbody>
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">Registry (Proxy) 合约部署检查</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">已部署 (0x4C4e91B9...A129BD)</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">524ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; 字节码大小: 130 bytes</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">Registry (Implementation) 合约部署检查</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">已部署 (0xdbd5e1F3...C0628E)</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">309ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; 字节码大小: 3585 bytes</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">SessionManager (Proxy) 合约部署检查</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">已部署 (0x53fA67Db...b850e2)</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">281ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; 字节码大小: 130 bytes</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">SessionManager (Implementation) 合约部署检查</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">已部署 (0x807814E5...566511)</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">313ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; 字节码大小: 4434 bytes</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">ComplianceHook 合约部署检查</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">已部署 (0x3407E999...429cE2)</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">314ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; 字节码大小: 5236 bytes</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">PositionManager 合约部署检查</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">已部署 (0x5b460c8B...861f31)</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">308ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; 字节码大小: 6644 bytes</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">SimpleSwapRouter 合约部署检查</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">已部署 (0x2AAF6C55...31F289)</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">308ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; 字节码大小: 3043 bytes</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">PlonkVerifier 合约部署检查</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">已部署 (0x2645C48A...86261f)</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">315ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; 字节码大小: 5612 bytes</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">PlonkVerifierAdapter 合约部署检查</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">已部署 (0x0cDcD82E...23AFBB)</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">311ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; 字节码大小: 1329 bytes</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">PoolManager (Uniswap v4) 合约部署检查</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">已部署 (0x05E73354...A03408)</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">843ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; 字节码大小: 24009 bytes</td></tr>
+    </tbody>
+      </table>
+    </div>
+    <div class="suite-card" style="background: white; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden;">
+      <div style="background: linear-gradient(135deg, #1e293b, #334155); padding: 20px 24px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h3 style="margin: 0; color: white; font-size: 18px; font-weight: 600;">Registry 配置验证</h3>
+          <p style="margin: 4px 0 0; color: #94a3b8; font-size: 13px;">验证 Registry 合约的核心配置和治理参数</p>
+        </div>
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <span style="color: #10b981; font-size: 14px;">&#x2705; 5</span>
+          
+          <span style="color: #f59e0b; font-size: 14px;">&#x26A0; 1</span>
+          <span style="color: #94a3b8; font-size: 13px;">1.88s</span>
+        </div>
+      </div>
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: #f8fafc;">
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600; width: 80px;">状态</th>
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600; width: 280px;">测试项</th>
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600;">结果</th>
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600; width: 80px;">耗时</th>
+          </tr>
+        </thead>
+        <tbody>
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">Registry 所有者检查</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">Owner: 0x1b869CaC69Df23Ad9D727932496AEb3605538c8D</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">294ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; 所有者为预期的治理地址</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">Registry 版本检查</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">版本: 1.0.0</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">322ms</td>
+      </tr>
+      
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">Session TTL 配置</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">TTL: 86400s (24h)</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">323ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; 有效范围: 1h ~ 7d</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">紧急暂停状态</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">系统正常运行</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">314ms</td>
+      </tr>
+      
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#f59e0b20; color:#f59e0b; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">WARN</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">SimpleSwapRouter 路由授权</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">路由未授权</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">341ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; Router: 0x2AAF6C551168DCF22804c04DdA2c08c82031F289</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">UUPS 升级接口版本</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">UUPS 版本: 5.0.0</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">283ms</td>
+      </tr>
+      
+    </tbody>
+      </table>
+    </div>
+    <div class="suite-card" style="background: white; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden;">
+      <div style="background: linear-gradient(135deg, #1e293b, #334155); padding: 20px 24px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h3 style="margin: 0; color: white; font-size: 18px; font-weight: 600;">SessionManager 功能测试</h3>
+          <p style="margin: 4px 0 0; color: #94a3b8; font-size: 13px;">模拟客户会话管理的完整生命周期验证</p>
+        </div>
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <span style="color: #10b981; font-size: 14px;">&#x2705; 7</span>
+          
+          
+          <span style="color: #94a3b8; font-size: 13px;">2.39s</span>
+        </div>
+      </div>
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: #f8fafc;">
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600; width: 80px;">状态</th>
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600; width: 280px;">测试项</th>
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600;">结果</th>
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600; width: 80px;">耗时</th>
+          </tr>
+        </thead>
+        <tbody>
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">SessionManager 版本</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">版本: 1.0.0</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">288ms</td>
+      </tr>
+      
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">Registry 引用一致性</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">Registry 引用一致</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">287ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; 期望: 0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">治理地址会话状态查询</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">会话不活跃, 剩余: 0s</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">640ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; 无活跃会话</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">未验证用户会话状态</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">未验证用户无会话 (预期)</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">304ms</td>
+      </tr>
+      
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">批量会话查询</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">批量查询 3 个地址成功</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">289ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; 结果: [false, false, false]</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">VERIFIER_ROLE 检查</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">VERIFIER_ROLE: 0x0ce23c3e399818cf...</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">293ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; 完整: 0x0ce23c3e399818cfee81a7ab0880f714e53d7672b08df0fa62f2843416e1ea09</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">会话过期时间查询</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">过期时间: N/A</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">292ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; Unix 时间戳: 0</td></tr>
+    </tbody>
+      </table>
+    </div>
+    <div class="suite-card" style="background: white; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden;">
+      <div style="background: linear-gradient(135deg, #1e293b, #334155); padding: 20px 24px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h3 style="margin: 0; color: white; font-size: 18px; font-weight: 600;">ComplianceHook 合规验证</h3>
+          <p style="margin: 4px 0 0; color: #94a3b8; font-size: 13px;">验证 Uniswap v4 合规钩子的访问控制和 EIP-712 配置</p>
+        </div>
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <span style="color: #10b981; font-size: 14px;">&#x2705; 9</span>
+          
+          
+          <span style="color: #94a3b8; font-size: 13px;">3.02s</span>
+        </div>
+      </div>
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: #f8fafc;">
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600; width: 80px;">状态</th>
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600; width: 280px;">测试项</th>
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600;">结果</th>
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600; width: 80px;">耗时</th>
+          </tr>
+        </thead>
+        <tbody>
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">Hook 引用一致性 - Registry</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">Registry 引用一致</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">305ms</td>
+      </tr>
+      
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">Hook 引用一致性 - SessionManager</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">SessionManager 引用一致</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">278ms</td>
+      </tr>
+      
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">EIP-712 Domain 配置</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">Domain: ILAL ComplianceHook v1</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">302ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; ChainId: 84532, Contract: 0x3407E999DD5d96CD53f8ce17731d4B16C9429cE2</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">Domain Separator 计算</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">Separator: 0x5bbaad7d5fc9af13...</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">288ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; 完整: 0x5bbaad7d5fc9af130d284e450447e694a3ebc28ae4f3422e7dc9afedcacf6cc5</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">SWAP_PERMIT_TYPEHASH</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">TypeHash: 0xe22ab481fbfc0787...</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">302ms</td>
+      </tr>
+      
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">LIQUIDITY_PERMIT_TYPEHASH</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">TypeHash: 0x153048bea40dcaec...</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">290ms</td>
+      </tr>
+      
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">新用户访问控制查询</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">未验证用户被正确拒绝</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">279ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; 新用户在完成 KYC 验证前不应被允许访问</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">用户 Nonce 查询</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">Nonce: 0</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">570ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; Nonce 用于防重放攻击</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">批量用户访问查询</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">批量查询 3 地址: [false, false, false]</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">405ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; 批量查询可节省 gas 成本</td></tr>
+    </tbody>
+      </table>
+    </div>
+    <div class="suite-card" style="background: white; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden;">
+      <div style="background: linear-gradient(135deg, #1e293b, #334155); padding: 20px 24px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h3 style="margin: 0; color: white; font-size: 18px; font-weight: 600;">ZK 证明系统验证</h3>
+          <p style="margin: 4px 0 0; color: #94a3b8; font-size: 13px;">验证 PLONK 验证器和适配器的配置与状态</p>
+        </div>
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <span style="color: #10b981; font-size: 14px;">&#x2705; 3</span>
+          
+          
+          <span style="color: #94a3b8; font-size: 13px;">0.95s</span>
+        </div>
+      </div>
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: #f8fafc;">
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600; width: 80px;">状态</th>
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600; width: 280px;">测试项</th>
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600;">结果</th>
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600; width: 80px;">耗时</th>
+          </tr>
+        </thead>
+        <tbody>
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">PlonkVerifier 部署检查</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">已部署, 大小: 5.5 KB</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">340ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; PLONK 验证器通常 > 5KB</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">PlonkVerifierAdapter 版本</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">版本: PlonkVerifierAdapter v1.0.0 - PLONK + BN254</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">312ms</td>
+      </tr>
+      
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">Adapter -> Verifier 链接</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">Verifier 引用一致</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">297ms</td>
+      </tr>
+      
+    </tbody>
+      </table>
+    </div>
+    <div class="suite-card" style="background: white; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden;">
+      <div style="background: linear-gradient(135deg, #1e293b, #334155); padding: 20px 24px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h3 style="margin: 0; color: white; font-size: 18px; font-weight: 600;">PositionManager LP 管理</h3>
+          <p style="margin: 4px 0 0; color: #94a3b8; font-size: 13px;">验证受限 LP 头寸管理器的配置和安全性</p>
+        </div>
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <span style="color: #10b981; font-size: 14px;">&#x2705; 4</span>
+          
+          
+          <span style="color: #94a3b8; font-size: 13px;">1.44s</span>
+        </div>
+      </div>
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: #f8fafc;">
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600; width: 80px;">状态</th>
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600; width: 280px;">测试项</th>
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600;">结果</th>
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600; width: 80px;">耗时</th>
+          </tr>
+        </thead>
+        <tbody>
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">PoolManager 引用检查</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">PoolManager 引用一致</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">293ms</td>
+      </tr>
+      
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">Registry 引用检查</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">Registry 引用一致</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">566ms</td>
+      </tr>
+      
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">SessionManager 引用检查</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">SessionManager 引用一致</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">286ms</td>
+      </tr>
+      
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">Token ID 计数器</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">已铸造 0 个 LP NFT (下一个 ID: 1)</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">296ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; NFT 不可转让，确保合规性</td></tr>
+    </tbody>
+      </table>
+    </div>
+    <div class="suite-card" style="background: white; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden;">
+      <div style="background: linear-gradient(135deg, #1e293b, #334155); padding: 20px 24px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h3 style="margin: 0; color: white; font-size: 18px; font-weight: 600;">客户操作模拟</h3>
+          <p style="margin: 4px 0 0; color: #94a3b8; font-size: 13px;">模拟完整的客户使用流程：连接钱包 → KYC → 获取会话 → 交易 → 提供流动性</p>
+        </div>
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <span style="color: #10b981; font-size: 14px;">&#x2705; 9</span>
+          
+          
+          <span style="color: #94a3b8; font-size: 13px;">3.28s</span>
+        </div>
+      </div>
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: #f8fafc;">
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600; width: 80px;">状态</th>
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600; width: 280px;">测试项</th>
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600;">结果</th>
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600; width: 80px;">耗时</th>
+          </tr>
+        </thead>
+        <tbody>
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">步骤 1: 客户连接钱包 → 查询链 ID</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">Chain ID: 84532 (Base Sepolia)</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">292ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; 客户通过 RainbowKit 连接钱包并确认网络</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">步骤 2: 网络健康检查</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">当前区块: #37514032</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">544ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; Base Sepolia 网络正常出块</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">步骤 3: 客户查询系统暂停状态</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">系统正常，客户可继续</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">305ms</td>
+      </tr>
+      
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">步骤 4: 客户查询验证状态</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">客户未验证，需完成 KYC</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">360ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; 需跳转到验证流程</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">步骤 5: 客户查询会话状态</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">无活跃会话</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">607ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; 客户需生成 ZK 证明并激活新会话</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">步骤 6: 客户获取 Nonce (防重放)</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">当前 Nonce: 0</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">286ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; EIP-712 签名包含 nonce，防止交易重放</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">步骤 7: 客户获取 EIP-712 签名域</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">域: ILAL ComplianceHook v1, ChainID: 84532</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">316ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; 客户使用此信息构建 EIP-712 签名请求</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">步骤 8: 安全检查 - 未验证用户被拒绝</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">未验证用户被正确拒绝</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">282ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; ComplianceHook 在 beforeSwap/beforeAddLiquidity 中强制执行</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">步骤 9: 客户查询 LP 头寸数量</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">总共 0 个 LP 头寸</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">287ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; LP NFT 不可转让，确保所有 LP 持有者经过合规验证</td></tr>
+    </tbody>
+      </table>
+    </div>
+    <div class="suite-card" style="background: white; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden;">
+      <div style="background: linear-gradient(135deg, #1e293b, #334155); padding: 20px 24px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h3 style="margin: 0; color: white; font-size: 18px; font-weight: 600;">性能基准测试</h3>
+          <p style="margin: 4px 0 0; color: #94a3b8; font-size: 13px;">RPC 响应时间和批量操作性能基准</p>
+        </div>
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <span style="color: #10b981; font-size: 14px;">&#x2705; 3</span>
+          
+          
+          <span style="color: #94a3b8; font-size: 13px;">2.11s</span>
+        </div>
+      </div>
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: #f8fafc;">
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600; width: 80px;">状态</th>
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600; width: 280px;">测试项</th>
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600;">结果</th>
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600; width: 80px;">耗时</th>
+          </tr>
+        </thead>
+        <tbody>
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">RPC 延迟 - getBlockNumber</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">平均: 66ms, 最小: 0ms, 最大: 332ms</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">332ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; 5 次测量: [332, 0, 0, 0, 0]ms</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">单次会话查询 vs 批量查询</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">单次: 962ms, 批量: 296ms (节省 69.2%)</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">1258ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; 查询 3 个地址</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">多合约并行读取</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">4 个合约并行读取: 524ms</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">524ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; Registry + SessionManager + ComplianceHook + PositionManager</td></tr>
+    </tbody>
+      </table>
+    </div>
+    <div class="suite-card" style="background: white; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden;">
+      <div style="background: linear-gradient(135deg, #1e293b, #334155); padding: 20px 24px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h3 style="margin: 0; color: white; font-size: 18px; font-weight: 600;">安全性检查</h3>
+          <p style="margin: 4px 0 0; color: #94a3b8; font-size: 13px;">验证系统的访问控制、权限和安全机制</p>
+        </div>
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <span style="color: #10b981; font-size: 14px;">&#x2705; 5</span>
+          
+          
+          <span style="color: #94a3b8; font-size: 13px;">3.12s</span>
+        </div>
+      </div>
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: #f8fafc;">
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600; width: 80px;">状态</th>
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600; width: 280px;">测试项</th>
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600;">结果</th>
+            <th style="padding: 10px 16px; text-align: left; font-size: 12px; color: #64748b; font-weight: 600; width: 80px;">耗时</th>
+          </tr>
+        </thead>
+        <tbody>
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">代理合约存储隔离 (Registry)</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">Proxy: 130B, Impl: 3585B</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">885ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; 代理合约应比实现合约小（仅含委托逻辑）</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">代理合约存储隔离 (SessionManager)</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">Proxy: 130B, Impl: 4434B</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">582ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; UUPS 代理模式确保存储安全隔离</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">ComplianceHook 合约引用不可变</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">所有引用正确</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">605ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; 构造函数设置，不可篡改</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">LP NFT 不可转让机制</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">LP NFT 转移函数已实现为 revert</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">308ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; transferFrom / safeTransferFrom 调用会被拒绝</td></tr>
+    
+      <tr class="test-row">
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9;">
+          <span style="background:#10b98120; color:#10b981; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">PASS</span>
+        </td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155;">Nonce 防重放机制</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #64748b;">治理 Nonce: 0, 随机用户 Nonce: 0</td>
+        <td style="padding: 10px 16px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">735ms</td>
+      </tr>
+      <tr><td></td><td colspan="3" style="padding: 2px 16px 10px; font-size: 12px; color: #94a3b8; border-bottom: 1px solid #f1f5f9;">&#x1F4DD; 每次交易后 nonce 递增，防止签名重放</td></tr>
+    </tbody>
+      </table>
+    </div>
+
+    <!-- 系统架构概览 -->
+    <div style="background: white; border-radius: 12px; margin-bottom: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden;">
+      <div style="padding: 20px 24px; border-bottom: 1px solid #f1f5f9;">
+        <h3 style="font-size: 18px; font-weight: 600;">&#x1F3D7;&#xFE0F; 系统架构</h3>
+      </div>
+      <div style="padding: 24px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #334155; line-height: 1.8; background: #f8fafc;">
+<pre style="margin: 0; white-space: pre-wrap;">
+┌─────────────────────────────────────────────────────────────┐
+│                     ILAL 系统架构                            │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  用户 (DApp / Bot)                                          │
+│    │                                                        │
+│    ├── 1. 生成 ZK Proof (浏览器端, ~4秒)                     │
+│    │       └── circom 电路 → PLONK 证明                     │
+│    │                                                        │
+│    ├── 2. 验证 & 激活会话                                    │
+│    │       ├── PlonkVerifier → 验证 ZK 证明                  │
+│    │       └── SessionManager → 缓存验证状态 (24h TTL)       │
+│    │                                                        │
+│    ├── 3. 签名交易 (EIP-712)                                │
+│    │       └── ComplianceHook → 验证签名 + 检查会话          │
+│    │                                                        │
+│    └── 4. 执行交易                                          │
+│            ├── SimpleSwapRouter → 代币交换                   │
+│            └── PositionManager → LP 头寸管理 (不可转让 NFT)  │
+│                    │                                        │
+│                    └── Uniswap v4 PoolManager               │
+│                                                             │
+├─────────────────────────────────────────────────────────────┤
+│  治理层                                                      │
+│    ├── Registry (UUPS) → 系统配置中心                        │
+│    └── 紧急暂停 → 全局安全开关                               │
+└─────────────────────────────────────────────────────────────┘
+</pre>
+      </div>
+    </div>
+
+    <!-- 页脚 -->
+    <div class="footer">
+      <p style="margin-bottom: 8px;">ILAL System Integration Test Report v1.0</p>
+      <p>Generated by ILAL Test Framework &bull; 2026-02-11T07:52:40.393Z</p>
+      <p style="margin-top: 4px;">Network: Base Sepolia &bull; RPC: https://sepolia.base.org</p>
+    </div>
+  </div>
+</body>
+</html>

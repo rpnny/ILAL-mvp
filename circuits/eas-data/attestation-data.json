@@ -1,0 +1,28 @@
+{
+  "attestation": {
+    "uid": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+    "schema": "0xf8b05c79f090979bf4a80270aba232dff11a10d9ca55c4f88de95317970f0de9",
+    "attester": "0x357458739F90461b99789350868CD7CF330Dd7EE",
+    "recipient": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "time": "1770693131",
+    "expirationTime": "0",
+    "revocationTime": "0",
+    "data": "0x0000000000000000000000000000000000000000000000000000000000000001",
+    "parsed": {
+      "type": "VERIFIED_ACCOUNT",
+      "verifiedAccount": true
+    },
+    "isReal": false,
+    "isMock": true
+  },
+  "circuitInput": {
+    "userAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "issuerAddress": "0x357458739F90461b99789350868CD7CF330Dd7EE",
+    "kycStatus": 1,
+    "countryCode": 840,
+    "timestamp": 1770693131,
+    "attestationUID": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+    "schemaUID": "0xf8b05c79f090979bf4a80270aba232dff11a10d9ca55c4f88de95317970f0de9",
+    "isMock": true
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "network": "84532",
+  "networkName": "Base Sepolia",
+  "deployer": "0x1b869CaC69Df23Ad9D727932496AEb3605538c8D",
+  "governance": "0x1b869CaC69Df23Ad9D727932496AEb3605538c8D",
+  "deploymentDate": "2026-02-11",
+  "deploymentTimestamp": 1739243060,
+  "contracts": {
+    "registry": "0x104DA869aDd4f1598127F03763a755e7dDE4f988",
+    "sessionManager": "0x4CB61d41E8D4ceCFb8C477ed069adFF309fB6d0e",
+    "plonkVerifier": "0x92eF7F6440466eb2138F7d179Cf2031902eF94be",
+    "verifierAdapter": "0x428aC1E38197bf37A42abEbA5f35B080438Ada22",
+    "complianceHook": "0xc2eD8e6F4C3a29275cC43e435795c5528BC9CF6A",
+    "positionManager": "0x2A1046A6d0EBdbfe4e45072CAf25833f4FAaEAB4"
+  },
+  "implementations": {
+    "registry": "0x6BEaDb3369e50d9Cd6aD4c31cb5c1A84F644cD3c",
+    "sessionManager": "0x9075BCb6352F61A9BEEC77B4805C70e94dB09B2b"
+  },
+  "configuration": {
+    "sessionTTL": 86400,
+    "verifierType": "PLONK",
+    "curve": "BN254",
+    "proxyPattern": "UUPS"
+  },
+  "explorer": {
+    "base": "https://sepolia.basescan.org",
+    "registry": "https://sepolia.basescan.org/address/0x104DA869aDd4f1598127F03763a755e7dDE4f988",
+    "sessionManager": "https://sepolia.basescan.org/address/0x4CB61d41E8D4ceCFb8C477ed069adFF309fB6d0e",
+    "plonkVerifier": "https://sepolia.basescan.org/address/0x92eF7F6440466eb2138F7d179Cf2031902eF94be",
+    "verifierAdapter": "https://sepolia.basescan.org/address/0x428aC1E38197bf37A42abEbA5f35B080438Ada22",
+    "complianceHook": "https://sepolia.basescan.org/address/0xc2eD8e6F4C3a29275cC43e435795c5528BC9CF6A",
+    "positionManager": "https://sepolia.basescan.org/address/0x2A1046A6d0EBdbfe4e45072CAf25833f4FAaEAB4"
+  }
+}

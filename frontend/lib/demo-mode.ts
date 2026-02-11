@@ -1,98 +1,90 @@
 /**
- * Demo 演示模式
- * 
- * 在合约未部署时，使用 Mock 数据演示完整流程
+ * 本地 Session 管理
+ *
+ * ZK 证明在浏览器中生成、链上只读验证通过后，
+ * 在 localStorage 保存 Session 状态。
+ *
+ * 这是因为链上 Session 激活需要 VERIFIER_ROLE 权限（后端服务负责），
+ * 前端暂时使用 localStorage 作为本地 Session 存储。
  */
 
-export const DEMO_MODE = process.env.NEXT_PUBLIC_ENABLE_MOCK === 'true';
+const SESSION_KEY = 'ilal_session';
 
-/**
- * 模拟 ZK Proof 生成
- */
-export async function mockGenerateProof(address: string): Promise<{
-  proof: any;
-  publicSignals: string[];
-}> {
-  // 模拟不同阶段的延迟
-  await sleep(1000); // 10%
-  await sleep(2000); // 30%
-  await sleep(3000); // 60%
-  await sleep(2000); // 100%
-
-  return {
-    proof: {
-      pi_a: ['mock_proof_a'],
-      pi_b: [['mock_proof_b']],
-      pi_c: ['mock_proof_c'],
-    },
-    publicSignals: [
-      BigInt(address).toString(),
-      '987654321098765432109876543210',
-      '111111111111111111111111111111',
-    ],
-  };
+export interface LocalSession {
+  isActive: boolean;
+  expiry: number;
+  timeRemaining: number;
+  activatedAt?: number;
 }
 
-/**
- * 模拟 Session 状态
- */
-export const mockSessionData = {
-  isActive: false, // 初始未激活
+const emptySession: LocalSession = {
+  isActive: false,
   expiry: 0,
   timeRemaining: 0,
 };
 
 /**
- * 激活 Demo Session
+ * 激活本地 Session（验证通过后调用）
  */
-export function activateDemoSession() {
+export function activateDemoSession(): void {
   const now = Math.floor(Date.now() / 1000);
-  mockSessionData.isActive = true;
-  mockSessionData.expiry = now + 24 * 60 * 60; // 24 小时
-  mockSessionData.timeRemaining = 24 * 60 * 60;
-
-  // 保存到 localStorage
-  localStorage.setItem('demo_session', JSON.stringify(mockSessionData));
-}
-
-/**
- * 检查 Demo Session 状态
- */
-export function getDemoSessionStatus() {
-  if (!DEMO_MODE) return null;
+  const session: LocalSession = {
+    isActive: true,
+    expiry: now + 24 * 60 * 60, // 24 小时
+    timeRemaining: 24 * 60 * 60,
+    activatedAt: now,
+  };
 
   try {
-    const stored = localStorage.getItem('demo_session');
-    if (!stored) return mockSessionData;
-
-    const data = JSON.parse(stored);
-    const now = Math.floor(Date.now() / 1000);
-
-    if (data.expiry > now) {
-      data.isActive = true;
-      data.timeRemaining = data.expiry - now;
-      return data;
-    } else {
-      data.isActive = false;
-      data.timeRemaining = 0;
-      return data;
-    }
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
   } catch {
-    return mockSessionData;
+    // localStorage 不可用时静默失败
   }
 }
 
 /**
- * 清除 Demo Session
+ * 获取本地 Session 状态
+ * 始终可用，不依赖任何环境变量
  */
-export function clearDemoSession() {
-  mockSessionData.isActive = false;
-  mockSessionData.expiry = 0;
-  mockSessionData.timeRemaining = 0;
-  localStorage.removeItem('demo_session');
+export function getLocalSessionStatus(): LocalSession {
+  try {
+    const stored = localStorage.getItem(SESSION_KEY);
+    if (!stored) return emptySession;
+
+    const data: LocalSession = JSON.parse(stored);
+    const now = Math.floor(Date.now() / 1000);
+
+    if (data.expiry > now) {
+      return {
+        ...data,
+        isActive: true,
+        timeRemaining: data.expiry - now,
+      };
+    } else {
+      // 已过期，清除
+      localStorage.removeItem(SESSION_KEY);
+      return emptySession;
+    }
+  } catch {
+    return emptySession;
+  }
 }
 
-// 工具函数
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+/**
+ * 清除本地 Session
+ */
+export function clearDemoSession(): void {
+  try {
+    localStorage.removeItem(SESSION_KEY);
+  } catch {
+    // ignore
+  }
 }
+
+// ============ 兼容旧代码的导出 ============
+
+/** @deprecated 使用 getLocalSessionStatus */
+export const getDemoSessionStatus = getLocalSessionStatus;
+
+/** 是否启用了完全 Mock 模式（环境变量控制） */
+export const DEMO_MODE = process.env.NEXT_PUBLIC_ENABLE_MOCK === 'true';

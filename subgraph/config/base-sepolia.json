@@ -1,0 +1,18 @@
+{
+  "network": "base-sepolia",
+  "contracts": {
+    "Registry": {
+      "address": "0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD",
+      "startBlock": 21000000
+    },
+    "SessionManager": {
+      "address": "0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2",
+      "startBlock": 21000000
+    },
+    "ComplianceHook": {
+      "address": "0xDeDcFDF10b03AB45eEbefD2D91EDE66D9E5c8a80",
+      "startBlock": 21000000
+    }
+  },
+  "notes": "部署于 2026-02-11"
+}

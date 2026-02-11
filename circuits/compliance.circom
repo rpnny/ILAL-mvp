@@ -1,8 +1,8 @@
 pragma circom 2.1.0;
 
-include "circomlib/circuits/poseidon.circom";
-include "circomlib/circuits/comparators.circom";
-include "circomlib/circuits/bitify.circom";
+include "poseidon.circom";
+include "comparators.circom";
+include "bitify.circom";
 
 /**
  * ILAL 合规验证电路 (PLONK)

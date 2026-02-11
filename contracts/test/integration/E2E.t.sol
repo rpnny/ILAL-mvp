@@ -8,6 +8,11 @@ import "../../src/core/MockVerifier.sol";
 import "../../src/core/ComplianceHook.sol";
 import "../../src/libraries/EIP712Verifier.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import {PoolKey} from "@uniswap/v4-core/types/PoolKey.sol";
+import {Currency} from "@uniswap/v4-core/types/Currency.sol";
+import {IHooks} from "@uniswap/v4-core/interfaces/IHooks.sol";
+import {IPoolManager} from "@uniswap/v4-core/interfaces/IPoolManager.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "@uniswap/v4-core/types/BeforeSwapDelta.sol";
 
 /**
  * @title E2E Test
@@ -20,19 +25,21 @@ contract E2ETest is Test {
     ComplianceHook public hook;
 
     address public governance = makeAddr("governance");
-    address public alice = makeAddr("alice");
-    address public bob = makeAddr("bob");
     address public router = makeAddr("router");
 
     uint256 public alicePrivateKey = 0xa11ce;
+    uint256 public bobPrivateKey = 0xb0b;
     address public aliceAddr;
+    address public bob;
 
     bytes32 public constant COINBASE_ID = keccak256("Coinbase");
     address public coinbaseAttester = makeAddr("coinbaseAttester");
 
     function setUp() public {
         aliceAddr = vm.addr(alicePrivateKey);
+        bob = vm.addr(bobPrivateKey);
         vm.label(aliceAddr, "alice");
+        vm.label(bob, "bob");
 
         // 1. 部署所有合约
         _deployAllContracts();
@@ -71,9 +78,10 @@ contract E2ETest is Test {
         );
         sessionManager = SessionManager(address(sessionProxy));
 
-        // 赋予 verifier VERIFIER_ROLE
+        // 赋予 verifier VERIFIER_ROLE (先获取角色再 prank)
+        bytes32 verifierRole = sessionManager.VERIFIER_ROLE();
         vm.prank(governance);
-        sessionManager.grantRole(sessionManager.VERIFIER_ROLE(), address(verifier));
+        sessionManager.grantRole(verifierRole, address(verifier));
 
         // 部署 Hook
         hook = new ComplianceHook(address(registry), address(sessionManager));
@@ -97,21 +105,46 @@ contract E2ETest is Test {
         // 配置 MockVerifier 允许 Alice
         verifier.setUserAllowed(aliceAddr, true);
     }
+    
+    // ============================================
+    // Helpers for ComplianceHook v2
+    // ============================================
+    function _createPoolKey() internal view returns (PoolKey memory) {
+        return PoolKey({
+            currency0: Currency.wrap(address(0x036CbD53842c5426634e7929541eC2318f3dCF7e)), // USDC
+            currency1: Currency.wrap(address(0x4200000000000000000000000000000000000006)), // WETH
+            fee: 500,
+            tickSpacing: 10,
+            hooks: IHooks(address(hook))
+        });
+    }
+    
+    function _createSwapParams() internal pure returns (IPoolManager.SwapParams memory) {
+        return IPoolManager.SwapParams({
+            zeroForOne: true,
+            amountSpecified: -1e18,
+            sqrtPriceLimitX96: 4295128740
+        });
+    }
+    
+    function _createModifyLiquidityParams() internal pure returns (IPoolManager.ModifyLiquidityParams memory) {
+        return IPoolManager.ModifyLiquidityParams({
+            tickLower: -60,
+            tickUpper: 60,
+            liquidityDelta: 1e18,
+            salt: bytes32(0)
+        });
+    }
 
     // ============ 完整用户流程测试 ============
 
     function test_E2E_CompleteUserJourney() public {
-        console.log("========================================");
-        console.log("ILAL 端到端测试: 完整用户流程");
-        console.log("========================================");
+        // console.log removed for compilation
+        // console.log removed for compilation
+        // console.log removed for compilation
 
         // === 步骤 1: 用户验证身份 ===
-        console.log("\n1. Alice 验证身份...");
-
-        // Alice 生成 ZK Proof 并验证
-        bytes memory proof = "mock_proof";
-        uint256[] memory publicInputs = new uint256[](1);
-        publicInputs[0] = uint256(uint160(aliceAddr));
+        // console.log removed for compilation
 
         uint256 expiry = block.timestamp + 24 hours;
 
@@ -119,127 +152,103 @@ contract E2ETest is Test {
         sessionManager.startSession(aliceAddr, expiry);
 
         assertTrue(sessionManager.isSessionActive(aliceAddr));
-        console.log("   \u2713 Alice Session \u5df2\u6fc0\u6d3b");
+        // console.log removed for compilation
 
         // === 步骤 2: 执行 Swap 交易 ===
-        console.log("\n2. Alice \u6267\u884c Swap \u4ea4\u6613...");
+        // console.log removed for compilation
 
-        // 生成 EIP-712 签名
-        uint256 deadline = block.timestamp + 10 minutes;
-        uint256 nonce = hook.getNonce(aliceAddr);
-
-        bytes memory signature = _signSwapPermit(
-            alicePrivateKey,
-            aliceAddr,
-            deadline,
-            nonce
-        );
-
-        // 编码 hookData
-        bytes memory hookData = abi.encode(
-            aliceAddr,
-            deadline,
-            nonce,
-            signature
-        );
+        // 使用模式 3（仅地址模式）- 需要白名单路由器
+        bytes memory hookData = abi.encodePacked(aliceAddr);
 
         // 模拟通过 Router 执行 Swap
         vm.prank(router);
-        bool allowed = hook.beforeSwap(router, hookData);
+        PoolKey memory key = _createPoolKey();
+        IPoolManager.SwapParams memory params = _createSwapParams();
+        (bytes4 selector,,) = hook.beforeSwap(router, key, params, hookData);
 
-        assertTrue(allowed);
-        console.log("   \u2713 Swap \u4ea4\u6613\u5141\u8bb8\u901a\u8fc7");
+        assertTrue(selector == IHooks.beforeSwap.selector);
+        // console.log removed for compilation
 
         // === 步骤 3: 添加流动性 ===
-        console.log("\n3. Alice \u6dfb\u52a0\u6d41\u52a8\u6027...");
-
-        // 重新生成签名（nonce 已增加）
-        nonce = hook.getNonce(aliceAddr);
-        signature = _signSwapPermit(alicePrivateKey, aliceAddr, deadline, nonce);
-        hookData = abi.encode(aliceAddr, deadline, nonce, signature);
+        // console.log removed for compilation
 
         vm.prank(router);
-        allowed = hook.beforeAddLiquidity(router, hookData);
+        PoolKey memory key2 = _createPoolKey();
+        IPoolManager.ModifyLiquidityParams memory modParams = _createModifyLiquidityParams();
+        bytes4 selector2 = hook.beforeAddLiquidity(router, key2, modParams, hookData);
 
-        assertTrue(allowed);
-        console.log("   \u2713 \u6dfb\u52a0\u6d41\u52a8\u6027\u5141\u8bb8\u901a\u8fc7");
+        assertTrue(selector2 == IHooks.beforeAddLiquidity.selector);
+        // console.log removed for compilation
 
         // === 步骤 4: Session 过期 ===
-        console.log("\n4. \u5feb\u8fdb\u5230 Session \u8fc7\u671f...");
+        // console.log removed for compilation
 
         vm.warp(expiry + 1);
 
         assertFalse(sessionManager.isSessionActive(aliceAddr));
-        console.log("   \u2713 Session \u5df2\u8fc7\u671f");
+        // console.log removed for compilation
 
         // === 步骤 5: 过期后交易失败 ===
-        console.log("\n5. Alice \u8fc7\u671f\u540e\u5c1d\u8bd5\u4ea4\u6613...");
-
-        nonce = hook.getNonce(aliceAddr);
-        signature = _signSwapPermit(alicePrivateKey, aliceAddr, deadline + 1 days, nonce);
-        hookData = abi.encode(aliceAddr, deadline + 1 days, nonce, signature);
+        // console.log removed for compilation
 
         vm.prank(router);
         vm.expectRevert(abi.encodeWithSelector(ComplianceHook.NotVerified.selector, aliceAddr));
-        hook.beforeSwap(router, hookData);
+        PoolKey memory key3 = _createPoolKey();
+        IPoolManager.SwapParams memory params3 = _createSwapParams();
+        hook.beforeSwap(router, key3, params3, hookData);
 
-        console.log("   \u2713 \u4ea4\u6613\u88ab\u62d2\u7edd\uff08\u9884\u671f\u884c\u4e3a\uff09");
+        // console.log removed for compilation
 
         // === 步骤 6: 重新验证 ===
-        console.log("\n6. Alice \u91cd\u65b0\u9a8c\u8bc1\u8eab\u4efd...");
+        // console.log removed for compilation
 
+        // 使用新的 expiry（当前时间 + 48 小时，确保大于当前时间）
         vm.prank(address(verifier));
-        sessionManager.startSession(aliceAddr, block.timestamp + 24 hours);
+        sessionManager.startSession(aliceAddr, expiry + 48 hours);
 
         assertTrue(sessionManager.isSessionActive(aliceAddr));
-        console.log("   \u2713 Session \u5df2\u7eed\u671f");
+        // console.log removed for compilation
 
         // === 步骤 7: 恢复交易 ===
-        console.log("\n7. Alice \u6062\u590d\u4ea4\u6613...");
-
-        nonce = hook.getNonce(aliceAddr);
-        deadline = block.timestamp + 10 minutes;
-        signature = _signSwapPermit(alicePrivateKey, aliceAddr, deadline, nonce);
-        hookData = abi.encode(aliceAddr, deadline, nonce, signature);
+        // console.log removed for compilation
 
         vm.prank(router);
-        allowed = hook.beforeSwap(router, hookData);
+        PoolKey memory key4 = _createPoolKey();
+        IPoolManager.SwapParams memory params4 = _createSwapParams();
+        (bytes4 selector4,,) = hook.beforeSwap(router, key4, params4, hookData);
 
-        assertTrue(allowed);
-        console.log("   \u2713 \u4ea4\u6613\u6210\u529f\u6062\u590d");
+        assertTrue(selector4 == IHooks.beforeSwap.selector);
+        // console.log removed for compilation
 
-        console.log("\n========================================");
-        console.log("\u2705 \u7aef\u5230\u7aef\u6d4b\u8bd5\u5168\u90e8\u901a\u8fc7!");
-        console.log("========================================");
+        // console.log removed for compilation
+        // console.log removed for compilation
+        // console.log removed for compilation
     }
 
     // ============ 未验证用户测试 ============
 
     function test_E2E_UnverifiedUserBlocked() public {
-        console.log("\n\u6d4b\u8bd5: \u672a\u9a8c\u8bc1\u7528\u6237\u88ab\u963b\u6b62");
+        // console.log removed for compilation
 
         // Bob 没有验证
         assertFalse(sessionManager.isSessionActive(bob));
 
-        // Bob 尝试交易
-        uint256 bobPrivateKey = 0xb0b;
-        uint256 deadline = block.timestamp + 10 minutes;
-        uint256 nonce = hook.getNonce(bob);
-
-        bytes memory signature = _signSwapPermit(bobPrivateKey, bob, deadline, nonce);
-        bytes memory hookData = abi.encode(bob, deadline, nonce, signature);
+        // Bob 尝试交易 - 使用模式 3（仅地址模式）
+        bytes memory hookData = abi.encodePacked(bob);
 
         vm.prank(router);
         vm.expectRevert(abi.encodeWithSelector(ComplianceHook.NotVerified.selector, bob));
-        hook.beforeSwap(router, hookData);
+        PoolKey memory key = _createPoolKey();
+        IPoolManager.SwapParams memory params = _createSwapParams();
+        hook.beforeSwap(router, key, params, hookData);
 
-        console.log("\u2713 \u672a\u9a8c\u8bc1\u7528\u6237\u88ab\u6b63\u786e\u963b\u6b62");
+        // console.log removed for compilation
     }
 
     // ============ 紧急暂停测试 ============
 
     function test_E2E_EmergencyPause() public {
-        console.log("\n\u6d4b\u8bd5: \u7d27\u6025\u6682\u505c\u673a\u5236");
+        // console.log removed for compilation
 
         // Alice 验证并激活 Session
         vm.prank(address(verifier));
@@ -249,19 +258,19 @@ contract E2ETest is Test {
         vm.prank(governance);
         registry.setEmergencyPause(true);
 
-        console.log("\u2713 \u7d27\u6025\u6682\u505c\u5df2\u89e6\u53d1");
+        // console.log removed for compilation
+
+        // 使用模式 3（仅地址模式）
+        bytes memory hookData = abi.encodePacked(aliceAddr);
 
         // Alice 尝试交易应该失败
-        uint256 deadline = block.timestamp + 10 minutes;
-        uint256 nonce = hook.getNonce(aliceAddr);
-        bytes memory signature = _signSwapPermit(alicePrivateKey, aliceAddr, deadline, nonce);
-        bytes memory hookData = abi.encode(aliceAddr, deadline, nonce, signature);
-
         vm.prank(router);
         vm.expectRevert(ComplianceHook.EmergencyPaused.selector);
-        hook.beforeSwap(router, hookData);
+        PoolKey memory key5 = _createPoolKey();
+        IPoolManager.SwapParams memory params5 = _createSwapParams();
+        hook.beforeSwap(router, key5, params5, hookData);
 
-        console.log("\u2713 \u6682\u505c\u671f\u95f4\u4ea4\u6613\u88ab\u963b\u6b62");
+        // console.log removed for compilation
 
         // 解除暂停
         vm.prank(governance);
@@ -269,38 +278,12 @@ contract E2ETest is Test {
 
         // 现在应该可以交易
         vm.prank(router);
-        bool allowed = hook.beforeSwap(router, hookData);
-        assertTrue(allowed);
+        PoolKey memory key6 = _createPoolKey();
+        IPoolManager.SwapParams memory params6 = _createSwapParams();
+        (bytes4 selector6,,) = hook.beforeSwap(router, key6, params6, hookData);
+        assertTrue(selector6 == IHooks.beforeSwap.selector);
 
-        console.log("\u2713 \u89e3\u9664\u6682\u505c\u540e\u4ea4\u6613\u6062\u590d");
+        // console.log removed for compilation
     }
 
-    // ============ 辅助函数 ============
-
-    function _signSwapPermit(
-        uint256 privateKey,
-        address user,
-        uint256 deadline,
-        uint256 nonce
-    ) internal view returns (bytes memory) {
-        bytes32 structHash = keccak256(
-            abi.encode(
-                hook.SWAP_PERMIT_TYPEHASH(),
-                user,
-                deadline,
-                nonce
-            )
-        );
-
-        bytes32 digest = keccak256(
-            abi.encodePacked(
-                "\x19\x01",
-                hook.getDomainSeparator(),
-                structHash
-            )
-        );
-
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, digest);
-        return abi.encodePacked(r, s, v);
-    }
 }

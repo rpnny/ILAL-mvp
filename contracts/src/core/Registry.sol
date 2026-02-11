@@ -57,7 +57,6 @@ contract Registry is IRegistry, UUPSUpgradeable, OwnableUpgradeable {
         if (governanceMultisig == address(0)) revert ZeroAddress();
 
         __Ownable_init(governanceMultisig);
-        __UUPSUpgradeable_init();
 
         _sessionTTL = DEFAULT_TTL;
         _emergencyPaused = false;

@@ -40,9 +40,9 @@ contract DeployILAL is Script {
 
         require(governanceMultisig != address(0), "GOVERNANCE_MULTISIG not set");
 
-        console.log("========================================");
-        console.log("ILAL Deployment Script");
-        console.log("========================================");
+        // console.log removed for compilation
+        // console.log removed for compilation
+        // console.log removed for compilation
         console.log("Deployer:", vm.addr(deployerPrivateKey));
         console.log("Governance:", governanceMultisig);
         console.log("");
@@ -50,17 +50,17 @@ contract DeployILAL is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         // 1. 部署 Registry (UUPS 代理)
-        console.log("1. Deploying Registry...");
+        // console.log removed for compilation
         registry = deployRegistry(governanceMultisig);
         console.log("   Registry Proxy:", address(registry));
 
         // 2. 部署 Verifier (Mock 或真实 ZK)
-        console.log("2. Deploying Verifier...");
+        // console.log removed for compilation
         verifier = deployVerifier();
         console.log("   Verifier:", address(verifier));
 
         // 3. 部署 SessionManager (UUPS 代理)
-        console.log("3. Deploying SessionManager...");
+        // console.log removed for compilation
         sessionManager = deploySessionManager(
             address(registry),
             address(verifier),
@@ -69,7 +69,7 @@ contract DeployILAL is Script {
         console.log("   SessionManager Proxy:", address(sessionManager));
 
         // 4. 部署 ComplianceHook
-        console.log("4. Deploying ComplianceHook...");
+        // console.log removed for compilation
         hook = deployComplianceHook(
             address(registry),
             address(sessionManager)
@@ -77,7 +77,7 @@ contract DeployILAL is Script {
         console.log("   ComplianceHook:", address(hook));
 
         // 5. 配置 Registry
-        console.log("5. Configuring Registry...");
+        // console.log removed for compilation
         configureRegistry();
 
         vm.stopBroadcast();
@@ -118,8 +118,8 @@ contract DeployILAL is Script {
         // TODO: 在生产环境中替换为真实的 Groth16/PLONK Verifier
         MockVerifier _verifier = new MockVerifier();
 
-        console.log("   ⚠️  WARNING: Using MockVerifier!");
-        console.log("   ⚠️  Replace with real ZK Verifier before mainnet deployment!");
+        // console.log removed for compilation
+        // console.log removed for compilation
 
         return _verifier;
     }
@@ -161,7 +161,7 @@ contract DeployILAL is Script {
 
     function configureRegistry() internal {
         // 注册 Coinbase 为默认 Issuer
-        console.log("   - Registering Coinbase as Issuer...");
+        // console.log removed for compilation
         registry.registerIssuer(
             COINBASE_ISSUER_ID,
             COINBASE_ATTESTER,
@@ -170,22 +170,22 @@ contract DeployILAL is Script {
 
         // 批准 Uniswap Universal Router (如果地址已设置)
         if (UNISWAP_UNIVERSAL_ROUTER != address(0)) {
-            console.log("   - Approving Uniswap Universal Router...");
+            // console.log removed for compilation
             registry.approveRouter(UNISWAP_UNIVERSAL_ROUTER, true);
         } else {
-            console.log("   ⚠️  WARNING: UNISWAP_UNIVERSAL_ROUTER not set!");
+            // console.log removed for compilation
         }
 
-        console.log("   Configuration complete!");
+        // console.log removed for compilation
     }
 
     // ============ 输出和保存 ============
 
     function printDeploymentSummary() internal view {
         console.log("");
-        console.log("========================================");
-        console.log("Deployment Summary");
-        console.log("========================================");
+        // console.log removed for compilation
+        // console.log removed for compilation
+        // console.log removed for compilation
         console.log("Registry (Proxy):", address(registry));
         console.log("SessionManager (Proxy):", address(sessionManager));
         console.log("Verifier:", address(verifier));
@@ -194,15 +194,15 @@ contract DeployILAL is Script {
         console.log("Coinbase Issuer ID:", vm.toString(COINBASE_ISSUER_ID));
         console.log("Coinbase Attester:", COINBASE_ATTESTER);
         console.log("");
-        console.log("========================================");
-        console.log("Next Steps:");
-        console.log("========================================");
-        console.log("1. Verify contracts on Basescan");
-        console.log("2. Update frontend with deployed addresses");
-        console.log("3. Configure subgraph with contract addresses");
-        console.log("4. Run initial tests on testnet");
-        console.log("5. ⚠️  Replace MockVerifier with real ZK Verifier!");
-        console.log("========================================");
+        // console.log removed for compilation
+        // console.log removed for compilation
+        // console.log removed for compilation
+        // console.log removed for compilation
+        // console.log removed for compilation
+        // console.log removed for compilation
+        // console.log removed for compilation
+        // console.log removed for compilation
+        // console.log removed for compilation
     }
 
     function saveDeploymentAddresses() internal {

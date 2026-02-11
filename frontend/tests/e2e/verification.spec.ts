@@ -45,9 +45,9 @@ test.describe('验证流程测试', () => {
     await expect(page.locator('[role="progressbar"]')).toBeVisible();
     
     // 6. 等待验证完成（最多 60 秒）
-    await expect(page.locator('text=身份验证成功'), {
+    await expect(page.locator('text=身份验证成功')).toBeVisible({
       timeout: 60000
-    }).toBeVisible();
+    });
     
     // 7. 检查 Session 状态组件
     await expect(page.locator('text=已验证')).toBeVisible();

@@ -3,118 +3,152 @@ pragma solidity ^0.8.26;
 
 import "forge-std/Test.sol";
 import "../../src/core/ComplianceHook.sol";
+import "../../src/core/Registry.sol";
+import "../../src/core/SessionManager.sol";
+import "../../src/core/VerifiedPoolsPositionManager.sol";
+import "../../src/helpers/SimpleSwapRouter.sol";
 
 /**
  * @title ForkTest
- * @notice 🌐 Fork 测试 - 在 Base 主网环境测试
+ * @notice Base Sepolia Fork 测试 - 验证已部署合约的状态和集成
  * 
  * 运行方式:
- *   forge test --fork-url https://mainnet.base.org --match-contract ForkTest -vvv
- * 
- * 需要环境变量:
- *   export BASE_RPC_URL="https://mainnet.base.org"
+ *   forge test --fork-url https://sepolia.base.org --match-contract ForkTest -vvv
  */
 contract ForkTest is Test {
-    // Base 主网地址（需要在部署后更新）
-    address constant BASE_UNIVERSAL_ROUTER = 0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD;
+    // ============ 已部署的合约地址 (Base Sepolia) ============
     
-    // ILAL 合约地址（部署后更新）
-    address public registryAddress;
-    address public sessionManagerAddress;
-    address public hookAddress;
+    address constant REGISTRY = 0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD;
+    address constant SESSION_MANAGER = 0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2;
+    address constant COMPLIANCE_HOOK = 0xDeDcFDF10b03AB45eEbefD2D91EDE66D9E5c8a80;
+    address constant POSITION_MANAGER = 0x5b460c8Bd32951183a721bdaa3043495D8861f31;
+    address constant SIMPLE_SWAP_ROUTER = 0x2AAF6C551168DCF22804c04DdA2c08c82031F289;
+    address constant UNISWAP_V4_POOL_MANAGER = 0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408;
+
+    // 合约接口
+    Registry public registry;
+    SessionManager public sessionManager;
+    ComplianceHook public hook;
+    VerifiedPoolsPositionManager public positionManager;
+    SimpleSwapRouter public swapRouter;
 
     function setUp() public {
-        // 检查是否在 Fork 环境
-        require(block.chainid == 8453, "Must fork Base Mainnet");
-        
-        // TODO: 从部署文件加载地址
-        // registryAddress = ...
-        // sessionManagerAddress = ...
-        // hookAddress = ...
-        
-        console.log("🌐 Fork 测试环境已启动");
-        console.log("Chain ID:", block.chainid);
-        console.log("Block Number:", block.number);
+        // 检查是否在 Base Sepolia Fork 环境
+        if (block.chainid != 84532) {
+            // 非 fork 环境跳过
+            return;
+        }
+
+        registry = Registry(REGISTRY);
+        sessionManager = SessionManager(SESSION_MANAGER);
+        hook = ComplianceHook(COMPLIANCE_HOOK);
+        positionManager = VerifiedPoolsPositionManager(payable(POSITION_MANAGER));
+        swapRouter = SimpleSwapRouter(payable(SIMPLE_SWAP_ROUTER));
+    }
+
+    modifier onlyFork() {
+        if (block.chainid != 84532) {
+            console.log("SKIP: Not Base Sepolia fork - run with --fork-url https://sepolia.base.org");
+            return;
+        }
+        _;
     }
 
     // ============================================
-    // 🔥 TEST: 真实 Universal Router 交互
+    // TEST: 验证合约部署状态
     // ============================================
 
-    function test_Hell_RealRouterIntegration() public {
-        console.log("🔥 TEST: 真实 Universal Router 集成");
+    function test_Fork_ContractsDeployed() public onlyFork {
+        // 验证所有合约都有代码
+        assertTrue(_hasCode(REGISTRY), "Registry not deployed");
+        assertTrue(_hasCode(SESSION_MANAGER), "SessionManager not deployed");
+        assertTrue(_hasCode(COMPLIANCE_HOOK), "ComplianceHook not deployed");
+        assertTrue(_hasCode(POSITION_MANAGER), "PositionManager not deployed");
+        assertTrue(_hasCode(SIMPLE_SWAP_ROUTER), "SimpleSwapRouter not deployed");
+        assertTrue(_hasCode(UNISWAP_V4_POOL_MANAGER), "Uniswap V4 PoolManager not deployed");
 
-        // 检查 Universal Router 是否存在
+        console.log("All 6 contracts verified on Base Sepolia");
+    }
+
+    function test_Fork_ContractLinkages() public onlyFork {
+        // 验证合约间的引用正确
+        assertEq(address(hook.registry()), REGISTRY, "Hook->Registry mismatch");
+        assertEq(address(hook.sessionManager()), SESSION_MANAGER, "Hook->SessionManager mismatch");
+        assertEq(address(positionManager.poolManager()), UNISWAP_V4_POOL_MANAGER, "PM->PoolManager mismatch");
+        assertEq(address(positionManager.registry()), REGISTRY, "PM->Registry mismatch");
+        assertEq(address(positionManager.sessionManager()), SESSION_MANAGER, "PM->SessionManager mismatch");
+        assertEq(address(swapRouter.poolManager()), UNISWAP_V4_POOL_MANAGER, "Router->PoolManager mismatch");
+
+        console.log("All contract linkages verified");
+    }
+
+    // ============================================
+    // TEST: Registry 状态
+    // ============================================
+
+    function test_Fork_RegistryState() public onlyFork {
+        // 检查紧急暂停状态
+        bool paused = registry.emergencyPaused();
+        console.log("Registry emergency paused:", paused);
+        assertFalse(paused, "Registry should not be paused");
+    }
+
+    // ============================================
+    // TEST: SessionManager 状态
+    // ============================================
+
+    function test_Fork_SessionManagerState() public onlyFork {
+        // 检查一个随机地址是否有 Session（不应该有）
+        address randomUser = makeAddr("random_user_test");
+        bool active = sessionManager.isSessionActive(randomUser);
+        assertFalse(active, "Random user should not have active session");
+
+        console.log("SessionManager state verified");
+    }
+
+    // ============================================
+    // TEST: PositionManager 状态
+    // ============================================
+
+    function test_Fork_PositionManagerState() public onlyFork {
+        uint256 nextTokenId = positionManager.nextTokenId();
+        console.log("Next Token ID:", nextTokenId);
+        assertTrue(nextTokenId >= 1, "Next token ID should be >= 1");
+    }
+
+    // ============================================
+    // TEST: SimpleSwapRouter 基本功能
+    // ============================================
+
+    function test_Fork_SwapRouterAcceptsETH() public onlyFork {
+        (bool success,) = address(swapRouter).call{value: 0.001 ether}("");
+        assertTrue(success, "SwapRouter should accept ETH");
+    }
+
+    // ============================================
+    // TEST: Uniswap V4 PoolManager 存在
+    // ============================================
+
+    function test_Fork_PoolManagerExists() public onlyFork {
+        assertTrue(_hasCode(UNISWAP_V4_POOL_MANAGER), "PoolManager should exist");
+        
+        // 尝试调用 PoolManager 的接口
+        // (只检查合约存在和可调用)
+        (bool success,) = UNISWAP_V4_POOL_MANAGER.staticcall(
+            abi.encodeWithSignature("protocolFeeController()")
+        );
+        console.log("PoolManager protocolFeeController() callable:", success);
+    }
+
+    // ============================================
+    // 辅助函数
+    // ============================================
+
+    function _hasCode(address addr) internal view returns (bool) {
         uint256 codeSize;
         assembly {
-            codeSize := extcodesize(BASE_UNIVERSAL_ROUTER)
+            codeSize := extcodesize(addr)
         }
-        assertGt(codeSize, 0, "Universal Router not found on Base");
-        console.log("✅ Universal Router 已找到:", BASE_UNIVERSAL_ROUTER);
-
-        // TODO: 构造真实的 Universal Router 调用
-        // 1. 准备 hookData
-        // 2. 编码 Universal Router commands
-        // 3. 调用 router.execute(commands, inputs)
-        // 4. 验证 Hook 被正确触发
-
-        console.log("⚠️  需要真实部署后才能完整测试");
-    }
-
-    // ============================================
-    // 🔥 TEST: Coinbase Verifications 集成
-    // ============================================
-
-    function test_Hell_CoinbaseVerificationsIntegration() public {
-        console.log("🔥 TEST: Coinbase Verifications 集成");
-
-        // Coinbase Attester 地址 (Base 主网)
-        address COINBASE_ATTESTER = 0x357458739F90461b99789350868CD7CF330Dd7EE;
-
-        // 检查 Attester 是否存在
-        uint256 codeSize;
-        assembly {
-            codeSize := extcodesize(COINBASE_ATTESTER)
-        }
-        assertGt(codeSize, 0, "Coinbase Attester not found");
-        console.log("✅ Coinbase Attester 已找到:", COINBASE_ATTESTER);
-
-        // TODO: 查询 EAS 获取真实的 Attestation
-        // 1. 连接到 EAS 合约
-        // 2. 查询用户的 Coinbase Verification
-        // 3. 验证 attestation 有效性
-
-        console.log("⚠️  需要真实用户 attestation 才能完整测试");
-    }
-
-    // ============================================
-    // 🔥 TEST: Gas 在主网环境的实际消耗
-    // ============================================
-
-    function test_Hell_MainnetGasConsumption() public {
-        console.log("🔥 TEST: 主网环境 Gas 消耗");
-
-        // TODO: 在 Fork 环境执行完整交易
-        // 1. 用户验证并激活 Session
-        // 2. 执行 Swap
-        // 3. 记录 Gas 消耗
-        // 4. 与普通 Swap 对比
-
-        console.log("⚠️  需要部署后测试");
-    }
-
-    // ============================================
-    // 🔥 TEST: 与其他 DeFi 协议的兼容性
-    // ============================================
-
-    function test_Hell_DeFiComposability() public {
-        console.log("🔥 TEST: DeFi 可组合性");
-
-        // 测试与其他协议的交互：
-        // - Aave: 抵押 ILAL LP NFT（应该失败，因为不可转让）
-        // - 1inch: 通过聚合器交易（应该成功）
-        // - Curve: 跨协议套利（应该成功）
-
-        console.log("⚠️  需要部署后测试");
+        return codeSize > 0;
     }
 }

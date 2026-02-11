@@ -1,0 +1,107 @@
+[
+  {
+    "type": "constructor",
+    "inputs": [
+      {
+        "name": "_plonkVerifier",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "plonkVerifier",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract PlonkVerifier"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "verifyAndExtractUser",
+    "inputs": [
+      {
+        "name": "proof",
+        "type": "bytes",
+        "internalType": "bytes"
+      },
+      {
+        "name": "publicInputs",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "user",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "isValid",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "verifyComplianceProof",
+    "inputs": [
+      {
+        "name": "proof",
+        "type": "bytes",
+        "internalType": "bytes"
+      },
+      {
+        "name": "publicInputs",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "version",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "error",
+    "name": "InvalidProofLength",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidPublicInputsLength",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ProofVerificationFailed",
+    "inputs": []
+  }
+]

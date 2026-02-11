@@ -5,7 +5,7 @@ libs = ["lib"]
 solc_version = "0.8.26"
 optimizer = true
 optimizer_runs = 200
-via_ir = false
+via_ir = true
 
 # 测试配置
 [profile.default.fuzz]
@@ -45,5 +45,6 @@ remappings = [
     "@uniswap/v4-core/=lib/v4-core/src/",
     "@uniswap/v4-periphery/=lib/v4-periphery/src/",
     "@eas/=lib/eas-contracts/contracts/",
-    "forge-std/=lib/forge-std/src/"
+    "forge-std/=lib/forge-std/src/",
+    "openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/"
 ]

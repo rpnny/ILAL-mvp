@@ -18,9 +18,9 @@ export function VerificationFlow() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-8 pt-20">
         <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
-          <h1 className="text-2xl font-bold mb-4">欢迎使用 ILAL</h1>
+          <h1 className="text-2xl font-bold mb-4">Welcome to ILAL</h1>
           <p className="text-gray-600 mb-6">
-            请先连接您的钱包以继续
+            Please connect your wallet to continue
           </p>
           <div className="flex justify-center">
             <ConnectButton />
@@ -42,18 +42,18 @@ export function VerificationFlow() {
             </div>
           </div>
 
-          <h2 className="text-xl font-bold text-center mb-2">身份验证成功</h2>
+          <h2 className="text-xl font-bold text-center mb-2">Verification Successful</h2>
           <p className="text-gray-600 text-center mb-6">
-            您已通过验证，可以开始交易
+            You have passed verification and can start trading
           </p>
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
             <p className="text-sm text-gray-700">
-              <span className="font-semibold">会话剩余时间：</span>
+              <span className="font-semibold">Session time remaining: </span>
               <span className="text-blue-600">{timeRemainingFormatted}</span>
             </p>
             <p className="text-sm text-gray-500 mt-2">
-              过期后需要重新验证
+              Re-verification required after expiration
             </p>
           </div>
 
@@ -62,13 +62,13 @@ export function VerificationFlow() {
               onClick={refresh}
               className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 px-4 rounded-lg transition"
             >
-              刷新状态
+              Refresh Status
             </button>
             <button
               onClick={() => window.location.href = '/trade'}
               className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition"
             >
-              开始交易
+              Start Trading
             </button>
           </div>
         </div>
@@ -79,28 +79,28 @@ export function VerificationFlow() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-8 pt-20">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
-        <h2 className="text-xl font-bold mb-4">验证您的身份</h2>
+        <h2 className="text-xl font-bold mb-4">Verify Your Identity</h2>
 
         <div className="mb-6">
           <div className="flex items-center mb-3">
             <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
               <span className="text-blue-600 font-bold">1</span>
             </div>
-            <p className="text-gray-700">检查 Coinbase 验证状态</p>
+            <p className="text-gray-700">Check Coinbase verification status</p>
           </div>
 
           <div className="flex items-center mb-3">
             <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
               <span className="text-blue-600 font-bold">2</span>
             </div>
-            <p className="text-gray-700">生成零知识证明</p>
+            <p className="text-gray-700">Generate zero-knowledge proof</p>
           </div>
 
           <div className="flex items-center">
             <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
               <span className="text-blue-600 font-bold">3</span>
             </div>
-            <p className="text-gray-700">提交链上验证</p>
+            <p className="text-gray-700">Submit on-chain verification</p>
           </div>
         </div>
 
@@ -115,7 +115,7 @@ export function VerificationFlow() {
           disabled={isVerifying}
           className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white py-3 px-4 rounded-lg transition font-semibold"
         >
-          {isVerifying ? `验证中... ${progress}%` : '开始验证'}
+          {isVerifying ? `Verifying... ${progress}%` : 'Start Verification'}
         </button>
 
         {isVerifying && (
@@ -130,7 +130,7 @@ export function VerificationFlow() {
         )}
 
         <p className="text-xs text-gray-500 mt-4 text-center">
-          验证通过后，会话将在 24 小时内有效
+          After verification passes, the session will be valid for 24 hours
         </p>
       </div>
     </div>

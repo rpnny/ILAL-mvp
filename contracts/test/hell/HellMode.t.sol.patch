@@ -1,0 +1,72 @@
+// ComplianceHook v2 test fix patch
+
+// Add these imports at the top (after existing imports around line 14)
+import {IPoolManager} from "@uniswap/v4-core/interfaces/IPoolManager.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "@uniswap/v4-core/types/BeforeSwapDelta.sol";
+
+// Add this helper function after _configureSystem() (around line 111)
+    
+    // ============================================
+    // Helper: Create PoolKey for testing
+    // ============================================
+    function _createPoolKey() internal view returns (PoolKey memory) {
+        return PoolKey({
+            currency0: Currency.wrap(makeAddr("token0")),
+            currency1: Currency.wrap(makeAddr("token1")),
+            fee: 500,
+            tickSpacing: 10,
+            hooks: IHooks(address(hook))
+        });
+    }
+    
+    // Helper: Create SwapParams
+    function _createSwapParams() internal pure returns (IPoolManager.SwapParams memory) {
+        return IPoolManager.SwapParams({
+            zeroForOne: true,
+            amountSpecified: -1e18,  // exactInput 1 token
+            sqrtPriceLimitX96: 4295128740  // MIN_SQRT_PRICE + 1
+        });
+    }
+    
+    // Helper: Create ModifyLiquidityParams
+    function _createModifyLiquidityParams() internal pure returns (IPoolManager.ModifyLiquidityParams memory) {
+        return IPoolManager.ModifyLiquidityParams({
+            tickLower: -60,
+            tickUpper: 60,
+            liquidityDelta: 1e18,
+            salt: bytes32(0)
+        });
+    }
+
+// Update test calls:
+
+// Line 145: hook.beforeSwap(router, hookData);
+// Change to:
+        PoolKey memory key = _createPoolKey();
+        IPoolManager.SwapParams memory params = _createSwapParams();
+        (bytes4 selector,,) = hook.beforeSwap(router, key, params, hookData);
+
+// Line 166: hook.beforeAddLiquidity(router, hookData);
+// Change to:
+        PoolKey memory key = _createPoolKey();
+        IPoolManager.ModifyLiquidityParams memory params = _createModifyLiquidityParams();
+        bytes4 selector = hook.beforeAddLiquidity(router, key, params, hookData);
+
+// Line 177: hook.beforeSwap(router, hookData);
+// Change to:
+        PoolKey memory key = _createPoolKey();
+        IPoolManager.SwapParams memory swapParams = _createSwapParams();
+        (bytes4 selector,,) = hook.beforeSwap(router, key, swapParams, hookData);
+
+// Line 183: bool allowed = hook.beforeRemoveLiquidity(router, hookData);
+// Change to:
+        PoolKey memory key = _createPoolKey();
+        IPoolManager.ModifyLiquidityParams memory params = _createModifyLiquidityParams();
+        bytes4 selector = hook.beforeRemoveLiquidity(router, key, params, hookData);
+        bool allowed = (selector == IHooks.beforeRemoveLiquidity.selector);
+
+// Line 371: hook.beforeSwap(router, hookData);
+// Change to:
+        PoolKey memory key = _createPoolKey();
+        IPoolManager.SwapParams memory params = _createSwapParams();
+        (bytes4 selector,,) = hook.beforeSwap(router, key, params, hookData);

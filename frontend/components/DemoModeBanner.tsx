@@ -11,7 +11,7 @@ export function DemoModeBanner() {
   return (
     <div className="fixed top-0 left-0 right-0 bg-yellow-500 text-white py-2 px-4 text-center z-50 shadow-md">
       <p className="text-sm font-semibold">
-        🎭 Demo 演示模式 - 合约尚未部署，使用模拟数据展示功能
+        🎭 Demo Mode - Contracts not deployed, using mock data to showcase features
       </p>
     </div>
   );

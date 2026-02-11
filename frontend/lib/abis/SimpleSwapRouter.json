@@ -1,0 +1,180 @@
+[
+  {
+    "type": "constructor",
+    "inputs": [
+      {
+        "name": "_poolManager",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "receive",
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "poolManager",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract IPoolManager"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "swap",
+    "inputs": [
+      {
+        "name": "key",
+        "type": "tuple",
+        "internalType": "struct PoolKey",
+        "components": [
+          {
+            "name": "currency0",
+            "type": "address",
+            "internalType": "Currency"
+          },
+          {
+            "name": "currency1",
+            "type": "address",
+            "internalType": "Currency"
+          },
+          {
+            "name": "fee",
+            "type": "uint24",
+            "internalType": "uint24"
+          },
+          {
+            "name": "tickSpacing",
+            "type": "int24",
+            "internalType": "int24"
+          },
+          {
+            "name": "hooks",
+            "type": "address",
+            "internalType": "contract IHooks"
+          }
+        ]
+      },
+      {
+        "name": "params",
+        "type": "tuple",
+        "internalType": "struct IPoolManager.SwapParams",
+        "components": [
+          {
+            "name": "zeroForOne",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "amountSpecified",
+            "type": "int256",
+            "internalType": "int256"
+          },
+          {
+            "name": "sqrtPriceLimitX96",
+            "type": "uint160",
+            "internalType": "uint160"
+          }
+        ]
+      },
+      {
+        "name": "hookData",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "delta",
+        "type": "int256",
+        "internalType": "BalanceDelta"
+      }
+    ],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "unlockCallback",
+    "inputs": [
+      {
+        "name": "data",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "SwapExecuted",
+    "inputs": [
+      {
+        "name": "sender",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "currency0",
+        "type": "address",
+        "indexed": false,
+        "internalType": "Currency"
+      },
+      {
+        "name": "currency1",
+        "type": "address",
+        "indexed": false,
+        "internalType": "Currency"
+      },
+      {
+        "name": "amount0",
+        "type": "int256",
+        "indexed": false,
+        "internalType": "int256"
+      },
+      {
+        "name": "amount1",
+        "type": "int256",
+        "indexed": false,
+        "internalType": "int256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "InsufficientOutput",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SafeERC20FailedOperation",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "UnauthorizedCallback",
+    "inputs": []
+  }
+]

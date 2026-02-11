@@ -1,0 +1,31 @@
+{
+  "name": "ilal-subgraph",
+  "version": "0.1.0",
+  "description": "ILAL (Institutional Liquidity Access Layer) Subgraph",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/ilal"
+  },
+  "license": "MIT",
+  "scripts": {
+    "prepare:base-sepolia": "node scripts/prepare.js base-sepolia",
+    "prepare:base-mainnet": "node scripts/prepare.js base-mainnet",
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "deploy": "graph deploy --node https://api.studio.thegraph.com/deploy/ ilal-subgraph",
+    "deploy:hosted": "graph deploy --product hosted-service your-org/ilal-subgraph",
+    "create-local": "graph create --node http://localhost:8020/ ilal-subgraph",
+    "remove-local": "graph remove --node http://localhost:8020/ ilal-subgraph",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 ilal-subgraph",
+    "test": "graph test",
+    "all:sepolia": "npm run prepare:base-sepolia && npm run codegen && npm run build"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "^0.68.0",
+    "@graphprotocol/graph-ts": "^0.32.0",
+    "yaml": "^2.3.4"
+  },
+  "devDependencies": {
+    "matchstick-as": "^0.6.0"
+  }
+}

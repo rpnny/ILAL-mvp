@@ -47,7 +47,8 @@ contract RegistryTest is Test {
         assertEq(registry.owner(), owner);
     }
 
-    function testFail_InitializeTwice() public {
+    function test_RevertWhen_InitializeTwice() public {
+        vm.expectRevert();
         registry.initialize(owner);
     }
 
@@ -71,19 +72,22 @@ contract RegistryTest is Test {
         registry.registerIssuer(COINBASE_ID, coinbaseAttester, coinbaseVerifier);
     }
 
-    function testFail_RegisterIssuer_NotOwner() public {
+    function test_RevertWhen_RegisterIssuer_NotOwner() public {
         vm.prank(alice);
+        vm.expectRevert();
         registry.registerIssuer(COINBASE_ID, coinbaseAttester, coinbaseVerifier);
     }
 
-    function testFail_RegisterIssuer_ZeroAddress() public {
+    function test_RevertWhen_RegisterIssuer_ZeroAddress() public {
         vm.prank(owner);
+        vm.expectRevert();
         registry.registerIssuer(COINBASE_ID, address(0), coinbaseVerifier);
     }
 
-    function testFail_RegisterIssuer_Duplicate() public {
+    function test_RevertWhen_RegisterIssuer_Duplicate() public {
         vm.startPrank(owner);
         registry.registerIssuer(COINBASE_ID, coinbaseAttester, coinbaseVerifier);
+        vm.expectRevert();
         registry.registerIssuer(COINBASE_ID, coinbaseAttester, coinbaseVerifier);
         vm.stopPrank();
     }
@@ -152,13 +156,15 @@ contract RegistryTest is Test {
         assertEq(registry.getSessionTTL(), 12 hours);
     }
 
-    function testFail_SetSessionTTL_TooSmall() public {
+    function test_RevertWhen_SetSessionTTL_TooSmall() public {
         vm.prank(owner);
+        vm.expectRevert();
         registry.setSessionTTL(30 minutes);
     }
 
-    function testFail_SetSessionTTL_TooLarge() public {
+    function test_RevertWhen_SetSessionTTL_TooLarge() public {
         vm.prank(owner);
+        vm.expectRevert();
         registry.setSessionTTL(8 days);
     }
 
@@ -192,10 +198,11 @@ contract RegistryTest is Test {
         assertEq(registry.owner(), owner);
     }
 
-    function testFail_UpgradeByNonOwner() public {
+    function test_RevertWhen_UpgradeByNonOwner() public {
         Registry newImplementation = new Registry();
 
         vm.prank(alice);
+        vm.expectRevert();
         registry.upgradeToAndCall(address(newImplementation), "");
     }
 

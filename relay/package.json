@@ -1,0 +1,15 @@
+{
+  "name": "ilal-verifier-relay",
+  "version": "1.0.0",
+  "description": "ILAL Verifier Relay — 验证 ZK Proof 并代理激活链上 Session",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch index.ts",
+    "start": "tsx index.ts"
+  },
+  "dependencies": {
+    "viem": "^2.21.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

@@ -46,9 +46,10 @@ contract SessionManagerTest is Test {
         );
         sessionManager = SessionManager(address(sessionProxy));
 
-        // 赋予 verifier VERIFIER_ROLE
+        // 赋予 verifier VERIFIER_ROLE (先获取角色再 prank)
+        bytes32 verifierRole = sessionManager.VERIFIER_ROLE();
         vm.prank(admin);
-        sessionManager.grantRole(sessionManager.VERIFIER_ROLE(), address(verifier));
+        sessionManager.grantRole(verifierRole, address(verifier));
     }
 
     // ============ 初始化测试 ============
@@ -80,17 +81,21 @@ contract SessionManagerTest is Test {
         sessionManager.startSession(alice, expiry);
     }
 
-    function testFail_StartSession_NotVerifier() public {
+    function test_RevertWhen_StartSession_NotVerifier() public {
         uint256 expiry = block.timestamp + 24 hours;
 
         vm.prank(alice);
+        vm.expectRevert();
         sessionManager.startSession(alice, expiry);
     }
 
-    function testFail_StartSession_InvalidExpiry() public {
+    function test_RevertWhen_StartSession_InvalidExpiry() public {
+        // 先设置一个合理的时间戳，避免下溢
+        vm.warp(1000000);
         uint256 expiry = block.timestamp - 1 hours;
 
         vm.prank(address(verifier));
+        vm.expectRevert();
         sessionManager.startSession(alice, expiry);
     }
 
@@ -122,8 +127,9 @@ contract SessionManagerTest is Test {
         assertFalse(sessionManager.isSessionActive(alice));
     }
 
-    function testFail_EndSession_NotActive() public {
+    function test_RevertWhen_EndSession_NotActive() public {
         vm.prank(admin);
+        vm.expectRevert();
         sessionManager.endSession(alice);
     }
 

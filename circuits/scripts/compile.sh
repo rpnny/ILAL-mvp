@@ -27,7 +27,7 @@ circom ../compliance.circom \
     --sym \
     --c \
     -o ../build \
-    -l /usr/local/lib/node_modules/circomlib/circuits
+    -l ../circuits-lib/circuits
 
 echo ""
 echo "✅ 编译完成!"

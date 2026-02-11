@@ -1,0 +1,65 @@
+{
+  "network": "base-sepolia",
+  "chainId": 84532,
+  "deployedAt": "2026-02-11T08:28:00Z",
+  "description": "使用 CREATE2 重新部署符合 Uniswap v4 位掩码要求的 ComplianceHook",
+  "deployer": "0x1b869CaC69Df23Ad9D727932496AEb3605538c8D",
+  "governance": "0x1b869CaC69Df23Ad9D727932496AEb3605538c8D",
+  "contracts": {
+    "registry": {
+      "proxy": "0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD",
+      "implementation": "0xdbd5e1F35b825838b4e7dBEEdFa228BA4dC0628E"
+    },
+    "sessionManager": {
+      "proxy": "0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2",
+      "implementation": "0x807814E5f95C6Dfbaa00573D0E407EB166566511"
+    },
+    "complianceHook": "0xba90d5Fe45b84b2b99e9C5A1A36C72695c514A80",
+    "complianceHookSalt": "0x0000000000000000000000000000000000000000000000000000000000000cfc",
+    "complianceHookOld": "0x3407E999DD5d96CD53f8ce17731d4B16C9429cE2",
+    "positionManager": "0x5b460c8Bd32951183a721bdaa3043495D8861f31",
+    "simpleSwapRouter": "0x2AAF6C551168DCF22804c04DdA2c08c82031F289",
+    "plonkVerifier": "0x2645C48A7DB734C9179A195C51Ea5F022B86261f",
+    "plonkVerifierAdapter": "0x0cDcD82E5efba9De4aCc255402968397F323AFBB"
+  },
+  "externalContracts": {
+    "uniswapV4PoolManager": "0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408"
+  },
+  "poolConfiguration": {
+    "currency0": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "currency0Symbol": "USDC",
+    "currency1": "0x4200000000000000000000000000000000000006",
+    "currency1Symbol": "WETH",
+    "fee": 3000,
+    "tickSpacing": 60,
+    "initialTick": -276325,
+    "note": "currency0 < currency1 (地址排序)"
+  },
+  "hookAddressBitMask": {
+    "required": "0x0A80",
+    "breakdown": {
+      "beforeSwap": "bit 7 (0x80)",
+      "beforeAddLiquidity": "bit 11 (0x800)",
+      "beforeRemoveLiquidity": "bit 9 (0x200)"
+    },
+    "verified": true
+  },
+  "configuration": {
+    "sessionTTL": 86400
+  },
+  "explorerLinks": {
+    "registry": "https://sepolia.basescan.org/address/0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD",
+    "sessionManager": "https://sepolia.basescan.org/address/0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2",
+    "complianceHook": "https://sepolia.basescan.org/address/0xba90d5Fe45b84b2b99e9C5A1A36C72695c514A80",
+    "positionManager": "https://sepolia.basescan.org/address/0x5b460c8Bd32951183a721bdaa3043495D8861f31",
+    "plonkVerifier": "https://sepolia.basescan.org/address/0x2645C48A7DB734C9179A195C51Ea5F022B86261f"
+  },
+  "fixSummary": {
+    "issue": "原 ComplianceHook 地址不满足 Uniswap v4 Hook 地址位掩码要求",
+    "solution": "使用 CREATE2 + salt 挖掘找到符合要求的地址并重新部署",
+    "saltMiningAttempts": 3325,
+    "saltMiningTime": "0.02s",
+    "saltMiningRate": "151136 attempts/s",
+    "result": "成功部署到 0xba90d5Fe45b84b2b99e9C5A1A36C72695c514A80，满足所有位掩码要求"
+  }
+}

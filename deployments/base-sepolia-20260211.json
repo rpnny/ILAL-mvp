@@ -1,0 +1,35 @@
+{
+  "network": "base-sepolia",
+  "chainId": 84532,
+  "deployedAt": "2026-02-11T06:50:00Z",
+  "deployer": "0x1b869CaC69Df23Ad9D727932496AEb3605538c8D",
+  "governance": "0x1b869CaC69Df23Ad9D727932496AEb3605538c8D",
+  "contracts": {
+    "registry": {
+      "proxy": "0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD",
+      "implementation": "0xdbd5e1F35b825838b4e7dBEEdFa228BA4dC0628E"
+    },
+    "sessionManager": {
+      "proxy": "0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2",
+      "implementation": "0x807814E5f95C6Dfbaa00573D0E407EB166566511"
+    },
+    "complianceHook": "0x3407E999DD5d96CD53f8ce17731d4B16C9429cE2",
+    "positionManager": "0x5b460c8Bd32951183a721bdaa3043495D8861f31",
+    "simpleSwapRouter": "0x2AAF6C551168DCF22804c04DdA2c08c82031F289",
+    "plonkVerifier": "0x2645C48A7DB734C9179A195C51Ea5F022B86261f",
+    "plonkVerifierAdapter": "0x0cDcD82E5efba9De4aCc255402968397F323AFBB"
+  },
+  "externalContracts": {
+    "uniswapV4PoolManager": "0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408"
+  },
+  "configuration": {
+    "sessionTTL": 86400
+  },
+  "explorerLinks": {
+    "registry": "https://sepolia.basescan.org/address/0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD",
+    "sessionManager": "https://sepolia.basescan.org/address/0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2",
+    "complianceHook": "https://sepolia.basescan.org/address/0x3407E999DD5d96CD53f8ce17731d4B16C9429cE2",
+    "positionManager": "https://sepolia.basescan.org/address/0x5b460c8Bd32951183a721bdaa3043495D8861f31",
+    "plonkVerifier": "https://sepolia.basescan.org/address/0x2645C48A7DB734C9179A195C51Ea5F022B86261f"
+  }
+}

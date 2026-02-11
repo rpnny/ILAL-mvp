@@ -1,0 +1,87 @@
+# ILAL Market Maker Bot 配置
+# 复制此文件为 config.local.yaml 并填入真实值
+
+# 网络配置
+network:
+  chainId: 84532  # Base Sepolia
+  rpcUrl: "${RPC_URL}"
+  
+# 合约地址 (Base Sepolia - ComplianceHook 使用 CREATE2 重新部署于 2026-02-11)
+contracts:
+  registry: "0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD"
+  sessionManager: "0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2"
+  complianceHook: "0xDeDcFDF10b03AB45eEbefD2D91EDE66D9E5c8a80"  # v2 Hook (IHooks 完整实现, CREATE2 部署)
+  positionManager: "0x5b460c8Bd32951183a721bdaa3043495D8861f31"
+  poolManager: "0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408"
+  simpleSwapRouter: "0x2AAF6C551168DCF22804c04DdA2c08c82031F289"
+  verifier: "0x0cDcD82E5efba9De4aCc255402968397F323AFBB"
+
+# 钱包配置
+wallet:
+  # 私钥从环境变量读取
+  privateKey: "${PRIVATE_KEY}"
+
+# 做市策略配置
+strategy:
+  # 目标池子 (注意：token0 < token1 按地址排序)
+  pools:
+    - id: "usdc-eth-500"
+      token0: "0x036CbD53842c5426634e7929541eC2318f3dCF7e"  # USDC (小地址)
+      token1: "0x4200000000000000000000000000000000000006"  # WETH (大地址)
+      fee: 500   # 0.05% (旧 3000 池已废弃 — MAX_TICK)
+      tickSpacing: 10
+      
+  # 价格范围 (相对于当前价格的百分比)
+  priceRange:
+    lower: 0.95  # -5%
+    upper: 1.05  # +5%
+    
+  # 再平衡触发条件
+  rebalance:
+    # 当价格偏离中心超过此百分比时触发
+    priceDeviationThreshold: 0.03  # 3%
+    # 最小再平衡间隔 (秒)
+    minInterval: 3600  # 1 小时
+    
+  # 流动性配置
+  liquidity:
+    # 每个池子的目标流动性 (USD)
+    targetPerPool: 10000
+    # 最大单次操作金额
+    maxSingleOperation: 1000
+
+  # 参考价格 (用于套利检测)
+  referencePrice:
+    eth-usdc-3000: 2500  # ETH/USDC 参考价格
+
+  # 套利阈值（1% 价差触发）
+  arbitrageThreshold: 0.01
+    
+# Session 管理
+session:
+  # 自动续期阈值 (剩余时间少于此值时续期)
+  renewThreshold: 3600  # 1 小时
+  # 默认 Session 时长
+  duration: 86400  # 24 小时
+
+# 监控配置
+monitoring:
+  # 健康检查间隔 (秒)
+  healthCheckInterval: 60
+  # 价格检查间隔 (秒)
+  priceCheckInterval: 30
+  
+# Telegram 告警配置
+telegram:
+  enabled: false
+  botToken: "${TELEGRAM_BOT_TOKEN}"
+  chatId: "${TELEGRAM_CHAT_ID}"
+  # 告警级别: error, warning, info
+  alertLevel: "warning"
+
+# 日志配置
+logging:
+  level: "info"  # debug, info, warn, error
+  file: "./logs/bot.log"
+  maxSize: "10m"
+  maxFiles: 5

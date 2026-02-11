@@ -1,134 +1,132 @@
 'use client';
 
 import { useAccount, useReadContract } from 'wagmi';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { getContractAddresses, sessionManagerABI } from '@/lib/contracts';
-import { DEMO_MODE, getDemoSessionStatus } from '@/lib/demo-mode';
+import { getLocalSessionStatus, clearDemoSession } from '@/lib/demo-mode';
 
 /**
  * useSession Hook - 管理用户验证会话状态
+ *
+ * 检查顺序：
+ * 1. 链上 SessionManager.isSessionActive（如果在支持的网络上）
+ * 2. 本地 localStorage Session（ZK 验证通过后存储）
+ *
+ * 任一返回 true 则认为 Session 有效
  */
 export function useSession() {
   const { address, chainId } = useAccount();
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
-  const [demoSession, setDemoSession] = useState<any>(null);
+  const [localSession, setLocalSession] = useState<ReturnType<typeof getLocalSessionStatus> | null>(null);
 
   const addresses = chainId ? getContractAddresses(chainId) : null;
 
-  // 🎭 Demo 模式
-  useEffect(() => {
-    if (DEMO_MODE && address) {
-      const session = getDemoSessionStatus();
-      setDemoSession(session);
-      if (session?.timeRemaining) {
-        setTimeRemaining(session.timeRemaining);
-      }
-    }
-  }, [address]);
+  // ============ 本地 Session（始终检查） ============
 
-  // 读取会话是否激活
-  const { data: isActive, refetch: refetchActive } = useReadContract({
+  const refreshLocal = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    const session = getLocalSessionStatus();
+    setLocalSession(session);
+    if (session.isActive && session.timeRemaining > 0) {
+      setTimeRemaining(session.timeRemaining);
+    }
+  }, []);
+
+  // 初始加载 + address 变化时刷新
+  useEffect(() => {
+    refreshLocal();
+  }, [address, refreshLocal]);
+
+  // ============ 链上 Session ============
+
+  const { data: onChainIsActive, refetch: refetchActive } = useReadContract({
     address: addresses?.sessionManager as `0x${string}`,
     abi: sessionManagerABI,
     functionName: 'isSessionActive',
     args: address ? [address] : undefined,
     query: {
-      enabled: !!address && !!addresses && !DEMO_MODE,
+      enabled: !!address && !!addresses,
     },
   });
 
-  // 读取会话过期时间
-  const { data: expiry, refetch: refetchExpiry } = useReadContract({
-    address: addresses?.sessionManager as `0x${string}`,
-    abi: sessionManagerABI,
-    functionName: 'sessionExpiry',
-    args: address ? [address] : undefined,
-    query: {
-      enabled: !!address && !!addresses && !DEMO_MODE,
-    },
-  });
-
-  // 读取剩余时间
-  const { data: remaining, refetch: refetchRemaining } = useReadContract({
+  const { data: onChainRemaining, refetch: refetchRemaining } = useReadContract({
     address: addresses?.sessionManager as `0x${string}`,
     abi: sessionManagerABI,
     functionName: 'getRemainingTime',
     args: address ? [address] : undefined,
     query: {
-      enabled: !!address && !!addresses && !DEMO_MODE,
+      enabled: !!address && !!addresses,
     },
   });
 
-  // 更新剩余时间（每秒）
+  // ============ 合并判断 ============
+
+  // 链上 active 或本地 active 都算有效
+  const isActive = !!(onChainIsActive) || !!(localSession?.isActive);
+
+  // 更新 timeRemaining
   useEffect(() => {
-    const time = DEMO_MODE ? demoSession?.timeRemaining : remaining;
-    
-    if (time) {
-      setTimeRemaining(Number(time));
+    let time = 0;
+
+    if (onChainIsActive && onChainRemaining) {
+      time = Number(onChainRemaining);
+    } else if (localSession?.isActive && localSession.timeRemaining > 0) {
+      time = localSession.timeRemaining;
+    }
+
+    if (time > 0) {
+      setTimeRemaining(time);
 
       const interval = setInterval(() => {
-        setTimeRemaining((prev) => Math.max(0, prev - 1));
+        setTimeRemaining((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
       }, 1000);
 
       return () => clearInterval(interval);
     }
-  }, [remaining, demoSession, DEMO_MODE]);
+  }, [onChainIsActive, onChainRemaining, localSession]);
 
-  // 格式化剩余时间
+  // ============ 格式化 ============
+
   const formatTimeRemaining = (): string => {
-    if (timeRemaining <= 0) return '已过期';
+    if (timeRemaining <= 0) return 'Expired';
 
     const hours = Math.floor(timeRemaining / 3600);
     const minutes = Math.floor((timeRemaining % 3600) / 60);
 
     if (hours > 0) {
-      return `${hours} 小时 ${minutes} 分钟`;
+      return `${hours}h ${minutes}m`;
     }
-    return `${minutes} 分钟`;
+    return `${minutes}m`;
   };
 
-  // 刷新所有状态
-  const refresh = () => {
-    if (DEMO_MODE) {
-      const session = getDemoSessionStatus();
-      setDemoSession(session);
-    } else {
+  // ============ 刷新 ============
+
+  const refresh = useCallback(() => {
+    refreshLocal();
+    if (addresses) {
       refetchActive();
-      refetchExpiry();
       refetchRemaining();
     }
-  };
+  }, [refreshLocal, addresses, refetchActive, refetchRemaining]);
 
-  // 返回值（Demo 模式优先）
-  const finalIsActive = DEMO_MODE ? demoSession?.isActive : (isActive as boolean);
-  const finalExpiry = DEMO_MODE ? demoSession?.expiry : (expiry ? Number(expiry) : 0);
+  // ============ 清除 Session ============
+
+  const clearSession = useCallback(() => {
+    clearDemoSession();
+    refreshLocal();
+  }, [refreshLocal]);
 
   return {
-    isActive: finalIsActive,
-    expiry: finalExpiry,
+    isActive,
     timeRemaining,
     timeRemainingFormatted: formatTimeRemaining(),
     refresh,
+    clearSession,
   };
 }
-
-/**
- * 示例使用:
- * 
- * ```tsx
- * function SessionStatus() {
- *   const { isActive, timeRemainingFormatted, refresh } = useSession();
- * 
- *   if (!isActive) {
- *     return <div>请先验证身份</div>;
- *   }
- * 
- *   return (
- *     <div>
- *       会话剩余时间: {timeRemainingFormatted}
- *       <button onClick={refresh}>刷新</button>
- *     </div>
- *   );
- * }
- * ```
- */

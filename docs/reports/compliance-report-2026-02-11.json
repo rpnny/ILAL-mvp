@@ -1,0 +1,35 @@
+{
+  "generatedAt": "2026-02-11T09:48:30.688Z",
+  "network": "Base Sepolia (84532)",
+  "contracts": {
+    "registry": "0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD",
+    "sessionManager": "0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2",
+    "verifier": "0x0cDcD82E5efba9De4aCc255402968397F323AFBB",
+    "complianceHook": "0xDeDcFDF10b03AB45eEbefD2D91EDE66D9E5c8a80"
+  },
+  "sessionHistory": {
+    "totalStarted": 3,
+    "totalEnded": 0,
+    "sessions": [
+      {
+        "user": "0xd2C47Df9b9237fC2A01927cf940b36D571031CfF",
+        "expiry": "1770883851",
+        "blockNumber": "37514584",
+        "txHash": "0x69d3559a5ff9cf87bdd688134f231b19d38d81d21845bed32c7fdff0564ba736"
+      },
+      {
+        "user": "0x8d5c8709922Cc5d4B5EB195FE595Bf0641AdcE92",
+        "expiry": "1770883905",
+        "blockNumber": "37514611",
+        "txHash": "0x51080de236e6b9e07d2d4d691853db4e17963e014688ff1d8de1ddbe8a26eeeb"
+      },
+      {
+        "user": "0x0F7AD0aB9fFCD375aF35AcB2fEaf01133e30396e",
+        "expiry": "1770885066",
+        "blockNumber": "37515192",
+        "txHash": "0x1d83aa40fa514266acc00895ceafad6de7c1078dacc208ac50bcb27b7a610ed7"
+      }
+    ],
+    "revocations": []
+  }
+}

@@ -2,102 +2,105 @@ import { SessionStarted, SessionEnded } from '../generated/SessionManager/Sessio
 import { Session, GlobalStats, DailyStats } from '../generated/schema';
 import { Bytes, BigInt } from '@graphprotocol/graph-ts';
 
-// ============ 会话事件处理 ============
+let GLOBAL_STATS_ID = Bytes.fromHexString('0x00');
 
-export function handleSessionStarted(event: SessionStarted): void {
-  let session = Session.load(event.params.user);
-  
-  if (!session) {
-    session = new Session(event.params.user);
-    session.user = event.params.user;
-    
-    // 更新全局计数
-    incrementTotalSessions();
-  }
-  
-  session.expiry = event.params.expiry;
-  session.startedAt = event.block.timestamp;
-  session.isActive = true;
-  session.endedAt = null;
-  
-  session.save();
+// ============ 全局统计辅助 ============
 
-  // 更新统计
-  updateGlobalStats(event.block.timestamp);
-  updateDailyStats(event.block.timestamp, 'newSession');
-}
+function getOrCreateGlobalStats(): GlobalStats {
+  let stats = GlobalStats.load(GLOBAL_STATS_ID);
 
-export function handleSessionEnded(event: SessionEnded): void {
-  let session = Session.load(event.params.user);
-  
-  if (session) {
-    session.isActive = false;
-    session.endedAt = event.block.timestamp;
-    session.save();
-
-    // 更新统计
-    updateGlobalStats(event.block.timestamp);
-  }
-}
-
-// ============ 辅助函数 ============
-
-function incrementTotalSessions(): void {
-  let stats = GlobalStats.load(Bytes.fromHexString('0x00'));
-  
-  if (!stats) {
-    stats = new GlobalStats(Bytes.fromHexString('0x00'));
+  if (stats == null) {
+    stats = new GlobalStats(GLOBAL_STATS_ID);
     stats.totalIssuers = 0;
     stats.activeIssuers = 0;
     stats.totalSessions = 0;
     stats.activeSessions = 0;
-    stats.totalSwaps = 0;
-    stats.totalLiquidityPositions = 0;
-    stats.totalVolumeUSD = BigDecimal.zero();
-    stats.totalLiquidityUSD = BigDecimal.zero();
+    stats.totalSwapAttempts = 0;
+    stats.totalLiquidityAttempts = 0;
+    stats.allowedSwaps = 0;
+    stats.allowedLiquidityOps = 0;
     stats.lastUpdated = BigInt.zero();
-  }
-  
-  stats.totalSessions += 1;
-  stats.save();
-}
-
-function updateGlobalStats(timestamp: BigInt): void {
-  let stats = GlobalStats.load(Bytes.fromHexString('0x00'));
-  
-  if (stats) {
-    // TODO: 重新计算活跃会话数
-    stats.lastUpdated = timestamp;
     stats.save();
   }
+
+  return stats;
 }
 
-function updateDailyStats(timestamp: BigInt, eventType: string): void {
-  // 获取日期字符串 (YYYY-MM-DD)
+// ============ 日统计辅助 ============
+
+function getOrCreateDailyStats(timestamp: BigInt): DailyStats {
   let dayId = timestamp.toI32() / 86400;
   let id = Bytes.fromI32(dayId);
-  
+
   let daily = DailyStats.load(id);
-  
-  if (!daily) {
+
+  if (daily == null) {
     daily = new DailyStats(id);
-    daily.date = getDateString(timestamp);
-    daily.dailySwaps = 0;
-    daily.dailyVolumeUSD = BigDecimal.zero();
+    daily.date = 'day-' + dayId.toString();
+    daily.dailySwapAttempts = 0;
+    daily.dailyLiquidityAttempts = 0;
     daily.newSessions = 0;
     daily.expiredSessions = 0;
-    daily.timestamp = timestamp;
+    daily.timestamp = BigInt.fromI32(dayId * 86400);
+    daily.save();
   }
-  
-  if (eventType === 'newSession') {
-    daily.newSessions += 1;
+
+  return daily;
+}
+
+// ============ 会话事件处理 ============
+
+export function handleSessionStarted(event: SessionStarted): void {
+  let session = Session.load(event.params.user);
+
+  let isNewSession = session == null;
+
+  if (session == null) {
+    session = new Session(event.params.user);
+    session.user = event.params.user;
   }
-  
+
+  session.expiry = event.params.expiry;
+  session.startedAt = event.block.timestamp;
+  session.isActive = true;
+  session.endedAt = null;
+
+  session.save();
+
+  // 更新全局统计
+  let stats = getOrCreateGlobalStats();
+  if (isNewSession) {
+    stats.totalSessions = stats.totalSessions + 1;
+  }
+  stats.activeSessions = stats.activeSessions + 1;
+  stats.lastUpdated = event.block.timestamp;
+  stats.save();
+
+  // 更新日统计
+  let daily = getOrCreateDailyStats(event.block.timestamp);
+  daily.newSessions = daily.newSessions + 1;
   daily.save();
 }
 
-function getDateString(timestamp: BigInt): string {
-  // 简化实现，实际应该正确格式化日期
-  let daysSinceEpoch = timestamp.toI32() / 86400;
-  return 'day-' + daysSinceEpoch.toString();
+export function handleSessionEnded(event: SessionEnded): void {
+  let session = Session.load(event.params.user);
+
+  if (session != null) {
+    session.isActive = false;
+    session.endedAt = event.block.timestamp;
+    session.save();
+
+    // 更新全局统计
+    let stats = getOrCreateGlobalStats();
+    if (stats.activeSessions > 0) {
+      stats.activeSessions = stats.activeSessions - 1;
+    }
+    stats.lastUpdated = event.block.timestamp;
+    stats.save();
+
+    // 更新日统计
+    let daily = getOrCreateDailyStats(event.block.timestamp);
+    daily.expiredSessions = daily.expiredSessions + 1;
+    daily.save();
+  }
 }

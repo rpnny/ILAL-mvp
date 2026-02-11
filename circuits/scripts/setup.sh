@@ -22,8 +22,8 @@ if [ ! -f "$POT_FILE" ]; then
     echo "⬇️  下载 Powers of Tau..."
     mkdir -p ../keys
     cd ../keys
-    wget https://hermez.s3-eu-west-1.amazonaws.com/powersOfTau28_hez_final_20.ptau \
-         -O pot20_final.ptau
+    curl -L https://hermez.s3-eu-west-1.amazonaws.com/powersOfTau28_hez_final_20.ptau \
+         -o pot20_final.ptau
     cd ../scripts
     echo "✅ 下载完成!"
 fi

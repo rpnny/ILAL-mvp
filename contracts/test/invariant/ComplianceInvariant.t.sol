@@ -65,8 +65,10 @@ contract ComplianceInvariantTest is StdInvariant, Test {
         );
         sessionManager = SessionManager(address(sessionProxy));
 
+        // 赋予 verifier VERIFIER_ROLE (先获取角色再 prank)
+        bytes32 verifierRole = sessionManager.VERIFIER_ROLE();
         vm.prank(governance);
-        sessionManager.grantRole(sessionManager.VERIFIER_ROLE(), address(verifier));
+        sessionManager.grantRole(verifierRole, address(verifier));
 
         hook = new ComplianceHook(address(registry), address(sessionManager));
 

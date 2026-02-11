@@ -12,12 +12,6 @@ interface IComplianceHook {
 
     event AccessDenied(address indexed user, string reason);
 
-    // ============ Configuration ============
-
-    function registry() external view returns (address);
-
-    function sessionManager() external view returns (address);
-
     // ============ Hook 状态 ============
 
     function isUserAllowed(address user) external view returns (bool);

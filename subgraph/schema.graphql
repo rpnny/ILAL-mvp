@@ -1,23 +1,24 @@
-# ILAL 子图 Schema 定义
+# ILAL Subgraph Schema (简化版)
+# 只记录验证事件，不记录详细的交易信息
 
 """
-发行方实体 - 管理可信的身份验证提供者
+发行者实体
 """
 type Issuer @entity {
-  id: Bytes!                    # issuerId
-  attester: Bytes!              # Attester 地址
-  verifier: Bytes!              # Verifier 合约地址
-  active: Boolean!              # 是否启用
-  registeredAt: BigInt!         # 注册时间戳
-  updatedAt: BigInt!            # 最后更新时间
-  revokedAt: BigInt             # 撤销时间（如果被撤销）
+  id: Bytes!                    # issuerHash (keccak256)
+  admin: Bytes!                 # 管理员地址
+  easAddress: Bytes!            # EAS 合约地址
+  schemaId: Bytes!              # Schema ID
+  isActive: Boolean!            # 是否活跃
+  registeredAt: BigInt!         # 注册时间
+  revokedAt: BigInt             # 吊销时间
   
   # 关系
   sessions: [Session!]! @derivedFrom(field: "issuer")
 }
 
 """
-用户会话实体 - 记录验证状态
+用户会话实体
 """
 type Session @entity {
   id: Bytes!                    # user address
@@ -28,90 +29,85 @@ type Session @entity {
   isActive: Boolean!            # 当前是否有效
   
   # 关系
-  issuer: Issuer                # 使用的 Issuer
-  swaps: [Swap!]! @derivedFrom(field: "user")
-  liquidityPositions: [LiquidityPosition!]! @derivedFrom(field: "owner")
+  issuer: Issuer                # 验证发行者
+  swapAttempts: [SwapAttempt!]! @derivedFrom(field: "session")
+  liquidityAttempts: [LiquidityAttempt!]! @derivedFrom(field: "session")
 }
 
 """
-交换交易实体
+Swap 尝试记录（简化版）
+只记录 ComplianceHook 的验证事件
 """
-type Swap @entity {
-  id: Bytes!                    # 交易哈希 + logIndex
+type SwapAttempt @entity {
+  id: ID!                       # txHash + logIndex
   user: Bytes!                  # 用户地址
-  pool: Bytes!                  # 池子地址
-  tokenIn: Bytes!               # 输入代币
-  tokenOut: Bytes!              # 输出代币
-  amountIn: BigInt!             # 输入数量
-  amountOut: BigInt!            # 输出数量
-  timestamp: BigInt!            # 交易时间戳
-  blockNumber: BigInt!          # 区块号
-  txHash: Bytes!                # 交易哈希
-  
-  # 关系
-  session: Session              # 关联的会话
-}
-
-"""
-流动性头寸实体
-"""
-type LiquidityPosition @entity {
-  id: Bytes!                    # NFT tokenId
-  owner: Bytes!                 # 所有者地址
-  pool: Bytes!                  # 池子地址
-  token0: Bytes!                # Token 0
-  token1: Bytes!                # Token 1
-  liquidity: BigInt!            # 流动性数量
-  tickLower: Int!               # 价格下界
-  tickUpper: Int!               # 价格上界
-  createdAt: BigInt!            # 创建时间
-  updatedAt: BigInt!            # 最后更新时间
-  removedAt: BigInt             # 移除时间
-  isActive: Boolean!            # 是否仍有流动性
-  
-  # 关系
-  session: Session              # 关联的会话
-}
-
-"""
-紧急事件实体
-"""
-type EmergencyEvent @entity {
-  id: Bytes!                    # 交易哈希 + logIndex
-  paused: Boolean!              # 是否暂停
+  allowed: Boolean!             # 是否允许
   timestamp: BigInt!            # 时间戳
   blockNumber: BigInt!          # 区块号
   txHash: Bytes!                # 交易哈希
-  triggeredBy: Bytes!           # 触发者地址 (governance)
+  
+  # 关系
+  session: Session              # 关联的 Session
+}
+
+"""
+流动性操作尝试记录（简化版）
+只记录 ComplianceHook 的验证事件
+"""
+type LiquidityAttempt @entity {
+  id: ID!                       # txHash + logIndex
+  user: Bytes!                  # 用户地址
+  allowed: Boolean!             # 是否允许
+  isAdd: Boolean!               # true=添加, false=移除
+  timestamp: BigInt!            # 时间戳
+  blockNumber: BigInt!          # 区块号
+  txHash: Bytes!                # 交易哈希
+  
+  # 关系
+  session: Session              # 关联的 Session
 }
 
 """
 路由器实体
 """
 type Router @entity {
-  id: Bytes!                    # 路由器地址
-  approved: Boolean!            # 是否已批准
+  id: Bytes!                    # router address
+  address: Bytes!               # 路由器地址
+  isApproved: Boolean!          # 是否被批准
   approvedAt: BigInt!           # 批准时间
-  revokedAt: BigInt             # 撤销时间
+  revokedAt: BigInt             # 吊销时间
+}
+
+"""
+紧急事件实体
+"""
+type EmergencyEvent @entity {
+  id: Bytes!                    # txHash
+  isPaused: Boolean!            # 暂停状态
+  triggeredBy: Bytes!           # 触发者
+  timestamp: BigInt!            # 时间戳
+  blockNumber: BigInt!          # 区块号
 }
 
 """
 全局统计实体
 """
 type GlobalStats @entity {
-  id: Bytes!                    # 固定为 "global"
+  id: Bytes!                    # 固定为 0x00
   
-  # 计数统计
-  totalIssuers: Int!            # 总 Issuer 数
-  activeIssuers: Int!           # 活跃 Issuer 数
+  # 发行者统计
+  totalIssuers: Int!            # 总发行者数
+  activeIssuers: Int!           # 活跃发行者数
+  
+  # 会话统计
   totalSessions: Int!           # 总会话数
   activeSessions: Int!          # 活跃会话数
-  totalSwaps: Int!              # 总交易数
-  totalLiquidityPositions: Int! # 总流动性头寸数
   
-  # 金额统计
-  totalVolumeUSD: BigDecimal!   # 总交易量 (USD)
-  totalLiquidityUSD: BigDecimal! # 总锁仓量 (USD)
+  # 操作统计
+  totalSwapAttempts: Int!       # 总 Swap 尝试数
+  totalLiquidityAttempts: Int!  # 总流动性操作尝试数
+  allowedSwaps: Int!            # 允许的 Swap 数
+  allowedLiquidityOps: Int!     # 允许的流动性操作数
   
   # 时间统计
   lastUpdated: BigInt!          # 最后更新时间
@@ -121,14 +117,17 @@ type GlobalStats @entity {
 日统计实体
 """
 type DailyStats @entity {
-  id: Bytes!                    # 日期字符串 (YYYY-MM-DD)
-  date: String!                 # 日期
+  id: Bytes!                    # dayId (timestamp / 86400)
+  date: String!                 # 日期字符串 (YYYY-MM-DD 或 day-N)
   
-  # 每日数据
-  dailySwaps: Int!              # 当日交易数
-  dailyVolumeUSD: BigDecimal!   # 当日交易量
-  newSessions: Int!             # 新增会话
-  expiredSessions: Int!         # 过期会话
+  # 操作统计
+  dailySwapAttempts: Int!       # 当日 Swap 尝试数
+  dailyLiquidityAttempts: Int!  # 当日流动性操作尝试数
   
-  timestamp: BigInt!            # 日期时间戳
+  # 会话统计
+  newSessions: Int!             # 当日新增会话
+  expiredSessions: Int!         # 当日过期会话
+  
+  # 时间
+  timestamp: BigInt!            # 日期对应的时间戳
 }

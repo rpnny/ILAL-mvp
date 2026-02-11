@@ -3,7 +3,6 @@ pragma solidity ^0.8.26;
 
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import {ISessionManager} from "../interfaces/ISessionManager.sol";
 import {IRegistry} from "../interfaces/IRegistry.sol";
 
@@ -15,8 +14,7 @@ import {IRegistry} from "../interfaces/IRegistry.sol";
 contract SessionManager is
     ISessionManager,
     UUPSUpgradeable,
-    AccessControlUpgradeable,
-    ReentrancyGuardUpgradeable
+    AccessControlUpgradeable
 {
     // ============ 角色定义 ============
 
@@ -60,8 +58,6 @@ contract SessionManager is
         }
 
         __AccessControl_init();
-        __UUPSUpgradeable_init();
-        __ReentrancyGuard_init();
 
         registry = IRegistry(_registry);
 
@@ -76,7 +72,6 @@ contract SessionManager is
         external
         override
         onlyRole(VERIFIER_ROLE)
-        nonReentrant
     {
         if (user == address(0)) revert ZeroAddress();
         if (expiry <= block.timestamp) revert InvalidExpiry();
