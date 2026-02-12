@@ -54,3 +54,4 @@ private_keys/
 # Logs
 logs/
 *.log
+circuits/keys/*.ptau
