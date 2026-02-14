@@ -13,11 +13,13 @@ yarn-error.log*
 
 # Environment variables (NEVER commit these!)
 .env
-.env.*
 .env.local
 .env.production
 .env.development
-*.env
+!.env.example
+!.env*.example
+!frontend/.env.example
+!bot/.env.example
 
 # IDEs
 .vscode/
