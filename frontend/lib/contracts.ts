@@ -19,7 +19,7 @@ export const BASE_SEPOLIA_ADDRESSES = {
   verifier: '0x0cDcD82E5efba9De4aCc255402968397F323AFBB', // PlonkVerifierAdapter
   complianceHook: '0xDeDcFDF10b03AB45eEbefD2D91EDE66D9E5c8a80', // v2 Hook（完整 IHooks 接口 + v4 位掩码）
   positionManager: '0x5b460c8Bd32951183a721bdaa3043495D8861f31',
-  simpleSwapRouter: '0x96ad5eAE7e5797e628F9d3FD21995dB19aE17d58', // v2 (修复Delta处理逻辑)
+  simpleSwapRouter: '0xD36Fb9e5127FfdE606Fcbb9De0A4DEA4e565eEdB', // v4 (按 zeroForOne 官方逻辑结算)
   plonkVerifier: '0x2645C48A7DB734C9179A195C51Ea5F022B86261f',
   poolManager: '0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408', // Uniswap v4 PoolManager
 };
@@ -45,6 +45,7 @@ export { default as sessionManagerABI } from './abis/SessionManager.json';
 export { default as verifierABI } from './abis/PlonkVerifierAdapter.json';
 export { default as complianceHookABI } from './abis/ComplianceHook.json';
 export { default as positionManagerABI } from './abis/VerifiedPoolsPositionManager.json';
+export { default as simpleSwapRouterABI } from './abis/SimpleSwapRouter.json';
 
 // ============ Coinbase Verifications ============
 

@@ -255,18 +255,45 @@ export async function checkAllProviders(
  * 创建模拟 attestation（仅限开发/演示模式）
  *
  * ⚠️ 生产环境中不应调用此函数
+ * 
+ * @param testMode - 测试模式：
+ *   - 'normal': 正常有效凭证（默认）
+ *   - 'expired': 已过期凭证（用于测试拦截逻辑）
+ *   - 'revoked': 已撤销凭证（用于测试拦截逻辑）
  */
-export function createMockAttestation(userAddress: string): CoinbaseAttestation {
+export function createMockAttestation(
+  userAddress: string, 
+  testMode: 'normal' | 'expired' | 'revoked' = 'normal'
+): CoinbaseAttestation {
   console.warn('[EAS] ⚠️  Using MOCK attestation — NOT for production use');
+  
+  const now = BigInt(Math.floor(Date.now() / 1000));
+  
+  let expirationTime = BigInt(0); // 0 = no expiration
+  let revocationTime = BigInt(0); // 0 = not revoked
+  
+  // 极端场景模拟
+  let verified = true;
+  
+  if (testMode === 'expired') {
+    console.warn('[EAS] 🧪 TEST MODE: Creating EXPIRED attestation');
+    expirationTime = now - 86400n; // 1 天前过期
+    verified = false; // 过期凭证标记为 invalid
+  } else if (testMode === 'revoked') {
+    console.warn('[EAS] 🧪 TEST MODE: Creating REVOKED attestation');
+    revocationTime = now - 3600n; // 1 小时前被撤销
+    verified = false; // 撤销凭证标记为 invalid
+  }
+  
   return {
     uid: '0x' + '0'.repeat(64),
     schemaUID: EAS_SCHEMA_IDS.VERIFIED_ACCOUNT,
     attester: COINBASE_ATTESTER_ADDRESS,
     recipient: userAddress,
-    time: BigInt(Math.floor(Date.now() / 1000) - 86400),
-    expirationTime: BigInt(0), // 0 = no expiration
-    revocationTime: BigInt(0), // 0 = not revoked
-    verified: true,
+    time: now - 86400n, // 1 天前创建
+    expirationTime,
+    revocationTime,
+    verified, // 根据测试模式动态设置
     isMock: true,
     issuerType: 'mock',
   };

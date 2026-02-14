@@ -16,7 +16,7 @@ export interface TxRecord {
   time: string;
   timestamp: number;
   txHash: string;
-  blockNumber: bigint;
+  blockNumber: string;
 }
 
 // ============ 事件签名 ============
@@ -108,7 +108,7 @@ export function useHistory() {
           time: formatTime(timestamp),
           timestamp,
           txHash: log.transactionHash,
-          blockNumber: log.blockNumber,
+          blockNumber: log.blockNumber.toString(),
         });
       }
 
@@ -160,7 +160,7 @@ export function useHistory() {
           time: formatTime(timestamp),
           timestamp,
           txHash: log.transactionHash,
-          blockNumber: log.blockNumber,
+          blockNumber: log.blockNumber.toString(),
         });
       }
 
@@ -175,7 +175,7 @@ export function useHistory() {
           time: formatTime(timestamp),
           timestamp,
           txHash: log.transactionHash,
-          blockNumber: log.blockNumber,
+          blockNumber: log.blockNumber.toString(),
         });
       }
 
@@ -212,17 +212,19 @@ export function useHistory() {
         const timestamp = await getBlockTimestamp(log.blockNumber);
         const amount0 = log.args.amount0 || 0n;
         const amount1 = log.args.amount1 || 0n;
+        const abs0 = amount0 < 0n ? -amount0 : amount0;
+        const abs1 = amount1 < 0n ? -amount1 : amount1;
         
         records.push({
           id: `swap-${log.transactionHash}`,
           type: 'swap',
           status: 'success',
           description: 'Swap Transaction',
-          detail: `${formatUnits(BigInt(Math.abs(Number(amount0))), 18)} → ${formatUnits(BigInt(Math.abs(Number(amount1))), 6)}`,
+          detail: `${formatUnits(abs0, 18)} → ${formatUnits(abs1, 6)}`,
           time: formatTime(timestamp),
           timestamp,
           txHash: log.transactionHash,
-          blockNumber: log.blockNumber,
+          blockNumber: log.blockNumber.toString(),
         });
       }
 
@@ -265,7 +267,7 @@ export function useHistory() {
           time: formatTime(timestamp),
           timestamp,
           txHash: log.transactionHash,
-          blockNumber: log.blockNumber,
+          blockNumber: log.blockNumber.toString(),
         });
       }
 
@@ -302,20 +304,22 @@ export function useHistory() {
         ...liquidityRecords,
       ].sort((a, b) => b.timestamp - a.timestamp);
 
-      // 如果没有链上记录，从 localStorage 加载
-      if (allRecords.length === 0) {
-        const stored = localStorage.getItem(`ilal_history_${address}`);
-        if (stored) {
-          const storedRecords = JSON.parse(stored) as TxRecord[];
-          setRecords(storedRecords);
-          return;
-        }
-      }
+      // 合并本地记录（总是合并，不只在 allRecords 为空时）
+      const stored = localStorage.getItem(`ilal_history_${address}`);
+      const localRecords = stored ? (JSON.parse(stored) as TxRecord[]) : [];
 
-      setRecords(allRecords);
+      const merged = [...allRecords, ...localRecords].reduce<TxRecord[]>((acc, cur) => {
+        const key = `${cur.type}-${cur.txHash}`;
+        if (!acc.some(r => `${r.type}-${r.txHash}` === key)) {
+          acc.push(cur);
+        }
+        return acc;
+      }, []).sort((a, b) => b.timestamp - a.timestamp);
+
+      setRecords(merged);
 
       // 缓存到 localStorage
-      localStorage.setItem(`ilal_history_${address}`, JSON.stringify(allRecords));
+      localStorage.setItem(`ilal_history_${address}`, JSON.stringify(merged));
     } catch (err) {
       console.error('Failed to fetch history:', err);
       setError('Failed to fetch transaction history');
@@ -340,7 +344,7 @@ export function useHistory() {
       id: `local-${Date.now()}`,
       time: 'Just now',
       timestamp,
-      blockNumber: 0n,
+      blockNumber: '0',
     };
 
     setRecords(prev => {

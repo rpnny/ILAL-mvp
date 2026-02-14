@@ -3,7 +3,7 @@
  * 用于与 PoolManager 和 Hooks 交互
  */
 
-import { type Address, type Hex, encodeAbiParameters, keccak256, encodePacked } from 'viem';
+import { type Address, type Hex, encodeAbiParameters, keccak256, encodePacked, pad, hexToBigInt } from 'viem';
 
 // ============ 类型定义 ============
 
@@ -150,25 +150,56 @@ export const POOL_MANAGER_ABI = [
     outputs: [{ name: 'result', type: 'bytes' }],
     stateMutability: 'nonpayable',
   },
+  // extsload - 读取合约存储的正确方式（Uniswap v4 没有 getSlot0 外部函数）
   {
     type: 'function',
-    name: 'getSlot0',
-    inputs: [{ name: 'poolId', type: 'bytes32' }],
-    outputs: [
-      {
-        name: 'slot0',
-        type: 'tuple',
-        components: [
-          { name: 'sqrtPriceX96', type: 'uint160' },
-          { name: 'tick', type: 'int24' },
-          { name: 'protocolFee', type: 'uint24' },
-          { name: 'lpFee', type: 'uint24' },
-        ],
-      },
-    ],
+    name: 'extsload',
+    inputs: [{ name: 'slot', type: 'bytes32' }],
+    outputs: [{ name: 'value', type: 'bytes32' }],
     stateMutability: 'view',
   },
 ] as const;
+
+// ============ StateLibrary 等效函数 ============
+
+/**
+ * StateLibrary.POOLS_SLOT = bytes32(uint256(6))
+ * 这是 PoolManager 内部 _pools mapping 的存储槽位
+ */
+const POOLS_SLOT: Hex = pad('0x06', { size: 32 });
+
+/**
+ * 计算 Pool State 的存储槽位
+ * 等效于 StateLibrary._getPoolStateSlot(poolId)
+ * stateSlot = keccak256(abi.encodePacked(poolId, POOLS_SLOT))
+ */
+export function getPoolStateSlot(poolId: Hex): Hex {
+  return keccak256(encodePacked(['bytes32', 'bytes32'], [poolId as `0x${string}`, POOLS_SLOT]));
+}
+
+/**
+ * 从 extsload 返回的原始 bytes32 解析 Slot0 数据
+ * 布局：| 24 bits lpFee | 24 bits protocolFee | 24 bits tick | 160 bits sqrtPriceX96 |
+ */
+export function decodeSlot0(data: Hex): {
+  sqrtPriceX96: bigint;
+  tick: number;
+  protocolFee: number;
+  lpFee: number;
+} {
+  const dataBigInt = hexToBigInt(data);
+
+  const sqrtPriceX96 = dataBigInt & ((1n << 160n) - 1n);
+
+  // tick 需要符号扩展（24 位有符号整数）
+  const tickRaw = Number((dataBigInt >> 160n) & ((1n << 24n) - 1n));
+  const tick = tickRaw > 0x7FFFFF ? tickRaw - 0x1000000 : tickRaw;
+
+  const protocolFee = Number((dataBigInt >> 184n) & ((1n << 24n) - 1n));
+  const lpFee = Number((dataBigInt >> 208n) & ((1n << 24n) - 1n));
+
+  return { sqrtPriceX96, tick, protocolFee, lpFee };
+}
 
 // ============ 价格计算 ============
 
@@ -179,18 +210,21 @@ export const POOL_MANAGER_ABI = [
 export function sqrtPriceX96ToPrice(sqrtPriceX96: bigint, decimals0: number, decimals1: number): number {
   const Q96 = BigInt(2) ** BigInt(96);
   const sqrtPrice = Number(sqrtPriceX96) / Number(Q96);
-  const price = sqrtPrice ** 2;
+  const rawPrice = sqrtPrice ** 2;
   
-  // 调整精度
-  const decimalAdjustment = 10 ** (decimals1 - decimals0);
-  return price * decimalAdjustment;
+  // rawPrice = raw_token1 / raw_token0
+  // 要转换为 human-readable (whole token1 per whole token0):
+  // humanPrice = rawPrice * 10^(decimals0 - decimals1)
+  const decimalAdjustment = 10 ** (decimals0 - decimals1);
+  return rawPrice * decimalAdjustment;
 }
 
 /**
  * 从人类可读的价格计算 sqrtPriceX96
  */
 export function priceToSqrtPriceX96(price: number, decimals0: number, decimals1: number): bigint {
-  const decimalAdjustment = 10 ** (decimals1 - decimals0);
+  // 从 human-readable 价格转回 raw price
+  const decimalAdjustment = 10 ** (decimals0 - decimals1);
   const adjustedPrice = price / decimalAdjustment;
   const sqrtPrice = Math.sqrt(adjustedPrice);
   const Q96 = BigInt(2) ** BigInt(96);
@@ -205,7 +239,7 @@ export function priceToSqrtPriceX96(price: number, decimals0: number, decimals1:
  */
 export function tickToPrice(tick: number, decimals0: number, decimals1: number): number {
   const price = 1.0001 ** tick;
-  const decimalAdjustment = 10 ** (decimals1 - decimals0);
+  const decimalAdjustment = 10 ** (decimals0 - decimals1);
   return price * decimalAdjustment;
 }
 
@@ -214,7 +248,7 @@ export function tickToPrice(tick: number, decimals0: number, decimals1: number):
  * tick = log(price) / log(1.0001)
  */
 export function priceToTick(price: number, decimals0: number, decimals1: number): number {
-  const decimalAdjustment = 10 ** (decimals1 - decimals0);
+  const decimalAdjustment = 10 ** (decimals0 - decimals1);
   const adjustedPrice = price / decimalAdjustment;
   return Math.floor(Math.log(adjustedPrice) / Math.log(1.0001));
 }

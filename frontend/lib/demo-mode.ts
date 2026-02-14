@@ -45,9 +45,19 @@ export function activateDemoSession(): void {
 /**
  * 获取本地 Session 状态
  * 始终可用，不依赖任何环境变量
+ * 
+ * 注意：在极端测试模式（expired/revoked）下会自动清空本地 session
  */
 export function getLocalSessionStatus(): LocalSession {
   try {
+    // 极端测试模式：自动清空本地 session，确保测试准确性
+    const testMode = process.env.NEXT_PUBLIC_MOCK_TEST_MODE;
+    if (testMode === 'expired' || testMode === 'revoked') {
+      console.warn('[Session] Extreme test mode active, clearing local session');
+      localStorage.removeItem(SESSION_KEY);
+      return emptySession;
+    }
+    
     const stored = localStorage.getItem(SESSION_KEY);
     if (!stored) return emptySession;
 

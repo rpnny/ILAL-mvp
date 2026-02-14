@@ -14,6 +14,8 @@ import {
   UNISWAP_V4_ADDRESSES,
   createPoolKey,
   getPoolId,
+  getPoolStateSlot,
+  decodeSlot0,
   sqrtPriceX96ToPrice,
   tickToPrice,
 } from '@/lib/uniswap-v4';
@@ -81,36 +83,42 @@ export function usePoolPrice(params: UsePoolPriceParams): PoolPrice {
       // 2. 获取 Pool ID
       const poolId = getPoolId(poolKey);
 
-      // 3. 读取池子状态
-      const slot0 = (await publicClient.readContract({
+      // 3. 计算存储槽位并通过 extsload 读取
+      //    Uniswap v4 的 getSlot0 不是外部函数，需要用 extsload 读取存储
+      const stateSlot = getPoolStateSlot(poolId);
+
+      const rawSlot0 = await publicClient.readContract({
         address: UNISWAP_V4_ADDRESSES.poolManager,
         abi: POOL_MANAGER_ABI,
-        functionName: 'getSlot0',
-        args: [poolId],
-      })) as any;
+        functionName: 'extsload',
+        args: [stateSlot],
+      });
 
-      const currentSqrtPriceX96 = slot0.sqrtPriceX96 as bigint;
-      const currentTick = slot0.tick as number;
+      // 4. 解码 Slot0 数据
+      const slot0 = decodeSlot0(rawSlot0 as `0x${string}`);
 
-      // 4. 计算人类可读的价格
+      if (slot0.sqrtPriceX96 === 0n) {
+        throw new Error('Pool not initialized (sqrtPriceX96 = 0)');
+      }
+
+      // 5. 计算人类可读的价格
       const readablePrice = sqrtPriceX96ToPrice(
-        currentSqrtPriceX96,
+        slot0.sqrtPriceX96,
         params.token0Decimals,
         params.token1Decimals
       );
 
-      // 5. 更新状态
+      // 6. 更新状态
       setPrice(readablePrice);
-      setTick(currentTick);
-      setSqrtPriceX96(currentSqrtPriceX96);
+      setTick(slot0.tick);
+      setSqrtPriceX96(slot0.sqrtPriceX96);
       setLoading(false);
 
-      console.log('[PoolPrice] 价格更新:', {
-        token0: params.token0,
-        token1: params.token1,
+      console.log('[PoolPrice] 价格更新 (via extsload):', {
         price: readablePrice,
-        tick: currentTick,
-        sqrtPriceX96: currentSqrtPriceX96.toString(),
+        tick: slot0.tick,
+        lpFee: slot0.lpFee,
+        sqrtPriceX96: slot0.sqrtPriceX96.toString(),
       });
     } catch (err) {
       console.error('[PoolPrice] 获取价格失败:', err);
@@ -122,6 +130,7 @@ export function usePoolPrice(params: UsePoolPriceParams): PoolPrice {
 
   /**
    * 初始加载和定时刷新
+   * 修复：使用直接依赖而不是 fetchPrice callback，避免无限循环
    */
   useEffect(() => {
     fetchPrice();
@@ -132,7 +141,8 @@ export function usePoolPrice(params: UsePoolPriceParams): PoolPrice {
     }, refreshInterval);
 
     return () => clearInterval(interval);
-  }, [fetchPrice, refreshInterval]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [publicClient, addresses, params.token0, params.token1, params.token0Decimals, params.token1Decimals, fee, refreshInterval]);
 
   return {
     price,

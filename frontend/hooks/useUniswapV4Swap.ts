@@ -18,6 +18,8 @@ import {
   createPoolKey,
   buildSwapParams,
   getPoolId,
+  getPoolStateSlot,
+  decodeSlot0,
   sqrtPriceX96ToPrice,
 } from '@/lib/uniswap-v4';
 import { default as simpleSwapRouterABI } from '@/lib/abis/SimpleSwapRouter.json';
@@ -161,19 +163,15 @@ export function useUniswapV4Swap() {
       try {
         const poolId = getPoolId(poolKey);
 
-        const slot0 = (await publicClient.readContract({
+        const stateSlot = getPoolStateSlot(poolId);
+        const rawSlot0 = await publicClient.readContract({
           address: UNISWAP_V4_ADDRESSES.poolManager,
           abi: POOL_MANAGER_ABI,
-          functionName: 'getSlot0',
-          args: [poolId],
-        })) as any;
+          functionName: 'extsload',
+          args: [stateSlot],
+        });
 
-        return {
-          sqrtPriceX96: slot0.sqrtPriceX96 as bigint,
-          tick: slot0.tick as number,
-          protocolFee: slot0.protocolFee as number,
-          lpFee: slot0.lpFee as number,
-        };
+        return decodeSlot0(rawSlot0 as `0x${string}`);
       } catch (err) {
         console.error('[Pool] 获取池子状态失败:', err);
         return null;

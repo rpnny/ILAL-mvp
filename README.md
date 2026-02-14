@@ -1,324 +1,256 @@
-# 🏦 ILAL - Institutional Liquidity Access Layer
+# ILAL - Institutional Liquidity Access Layer
 
-**版本**: v0.1.0 (Alpha)  
-**网络**: Base Sepolia (测试网)  
-**状态**: ✅ **完全可用**
+**Compliant DeFi Access Control System built on Uniswap v4 Hooks**
 
----
-
-## 📖 项目简介
-
-ILAL (Institutional Liquidity Access Layer) 是一个基于 Uniswap v4 的合规流动性访问层，使用零知识证明（PLONK）实现链上隐私验证，允许机构级用户在保护隐私的前提下访问专属流动性池。
-
-### 核心特性
-
-- 🔐 **零知识证明**: 使用 PLONK 实现隐私保护的合规验证
-- 🏛️ **机构级访问**: 仅限 KYC 用户访问的专属流动性池
-- ⚡ **高效缓存**: 链上 Session 缓存，避免重复验证
-- 🔄 **可升级性**: UUPS 代理模式支持合约升级
-- 🦄 **Uniswap v4**: 深度集成 Uniswap v4 Hooks
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![Network: Base Sepolia](https://img.shields.io/badge/Network-Base%20Sepolia-blue)](https://sepolia.basescan.org/)
+[![Tests: 97.6%](https://img.shields.io/badge/Tests-97.6%25%20Pass-brightgreen)](./docs/testing/TEST_REPORT.md)
+[![Coverage: 99%](https://img.shields.io/badge/Coverage-99%25-brightgreen)](./docs/testing/CODE_HEALTH_CHECK.md)
+[![Solidity: 0.8.26](https://img.shields.io/badge/Solidity-0.8.26-blue)](https://docs.soliditylang.org/)
+[![Gas: 96.8% Savings](https://img.shields.io/badge/Gas%20Savings-96.8%25-success)](./docs/GAS_EFFICIENCY_BENCHMARKS.md)
 
 ---
 
-## 🏗️ 技术架构
+## Overview
 
-### 技术栈
+ILAL (Institutional Liquidity Access Layer) is a compliance-first DeFi protocol that implements on-chain access control using Uniswap v4 Hooks and zero-knowledge proofs. It enables institutional users to access DeFi liquidity while maintaining regulatory compliance and privacy.
 
-- **智能合约**: Solidity 0.8.26 + Foundry
-- **零知识证明**: Circom + PLONK + snarkjs
-- **前端**: Next.js 14 + wagmi + RainbowKit
-- **网络**: Base Sepolia (测试) / Base Mainnet (生产)
-- **代理模式**: UUPS (OpenZeppelin)
+**Key Features**:
+- ✅ ZK-proof based identity verification
+- ✅ On-chain compliance via ComplianceHook
+- ✅ Privacy-preserving (no PII on-chain)
+- ✅ Multi-KYC provider support
+- ✅ Session-based access control
 
-### 核心合约
-
-| 合约 | 地址 (Base Sepolia) | 功能 |
-|------|---------------------|------|
-| **Registry** | `0x104DA869aDd4f1598127F03763a755e7dDE4f988` | 配置管理 |
-| **SessionManager** | `0x4CB61d41E8D4ceCFb8C477ed069adFF309fB6d0e` | Session 缓存 |
-| **PlonkVerifier** | `0x92eF7F6440466eb2138F7d179Cf2031902eF94be` | ZK 验证器 |
-| **PlonkVerifierAdapter** | `0x428aC1E38197bf37A42abEbA5f35B080438Ada22` | 验证器适配层 |
-| **ComplianceHook** | `0xc2eD8e6F4C3a29275cC43e435795c5528BC9CF6A` | Uniswap v4 Hook |
-| **PositionManager** | `0x2A1046A6d0EBdbfe4e45072CAf25833f4FAaEAB4` | LP 管理 |
+**Current Status**: Development complete, ready for testnet verification  
+**Deployment**: Base Sepolia Testnet
 
 ---
 
-## 🚀 快速开始
+## Quick Start
 
-### 前置要求
+### For Users
 
-- Node.js 18+
-- Foundry
-- Circom 2.1+
-- MetaMask 或其他 Web3 钱包
+1. **Connect Wallet** → Connect to Base Sepolia network
+2. **Verify Identity** → Complete Coinbase Onchain Verify or use mock mode
+3. **Activate Session** → Generate ZK proof to activate 24-hour session
+4. **Trade & Provide Liquidity** → Access compliant pools
 
-### 安装
+**Demo**: [Coming Soon]
+
+### For Developers
 
 ```bash
-# 克隆仓库
-git clone <repo-url>
+# Clone the repository
+git clone [repository-url]
 cd ilal
 
-# 安装合约依赖
-cd contracts
-forge install
+# Install dependencies
+cd frontend && npm install
+cd ../contracts && forge install
 
-# 安装电路依赖
-cd ../circuits
-npm install
+# Configure environment
+cp frontend/.env.example frontend/.env.local
+# Edit .env.local with your configuration
 
-# 安装前端依赖
-cd ../frontend
-npm install
-```
+# Start frontend
+cd frontend && npm run dev
 
-### 运行
-
-```bash
-# 1. 启动前端
-cd frontend
-npm run dev
-# 访问 http://localhost:3000
-
-# 2. 生成 ZK Proof
-cd circuits
-node scripts/generate-test-proof.js
-
-# 3. 运行测试
-cd contracts
-forge test
+# Visit http://localhost:3000
 ```
 
 ---
 
-## 🧪 测试
+## Documentation
 
-### 运行所有测试
+### 📊 Main Reports
+- **[Project Report](./docs/testing/PROJECT_REPORT.md)** ⭐ - Complete project overview
+- **[Test Report](./docs/testing/TEST_REPORT.md)** - Testing results
 
-```bash
-# 端到端测试（推荐）
-./scripts/e2e-test.sh
+### 📖 Technical Guides
+- **[Architecture](./docs/guides/ARCHITECTURE.md)** - System design
+- **[Deployment Guide](./docs/guides/DEPLOYMENT.md)** - Deployment instructions
+- **[Debug Guide](./docs/guides/SWAP_DEBUG_GUIDE.md)** - Troubleshooting
 
-# 或者分别运行
-forge test                          # Foundry 测试
-cd frontend && npm run test         # 前端测试
-cd circuits && node scripts/generate-test-proof.js  # ZK Proof 测试
-```
+### 🌐 Localized Docs
+- [中文文档](./README_CN.md) - Chinese documentation
 
-### 测试覆盖
-
-- ✅ 单元测试: 30+ 测试
-- ✅ 集成测试: 15+ 测试
-- ✅ 真实 Proof 测试: 3 测试
-- ✅ Invariant 测试: 5 测试
-- ✅ E2E 测试: 全流程
-
-**总计**: 60+ 测试，100% 通过率
+**Full documentation**: See [`docs/README.md`](./docs/README.md)
 
 ---
 
-## 📊 性能指标
-
-### ZK Proof
-
-- **生成时间**: ~4 秒
-- **Proof 大小**: 768 字节
-- **验证 Gas**: ~670k
-
-### 合约操作
-
-| 操作 | Gas 成本 |
-|------|---------|
-| 首次验证 + Session 激活 | ~997k |
-| Session 查询 | ~2.6k |
-| 后续交易 (Hook 检查) | ~5k |
-
-### 文件大小
-
-- **compliance.wasm**: 2.29 MB
-- **compliance.zkey**: 28.81 MB
-- **前端包**: ~308 KB
-
----
-
-## 📁 项目结构
+## Project Structure
 
 ```
 ilal/
-├── contracts/              # 智能合约
-│   ├── src/
-│   │   ├── core/          # 核心合约
-│   │   ├── interfaces/    # 接口定义
-│   │   └── verifiers/     # ZK 验证器
-│   ├── test/              # Foundry 测试
-│   └── script/            # 部署脚本
-├── circuits/              # ZK 电路
-│   ├── compliance.circom  # 主电路
-│   ├── scripts/           # 工具脚本
-│   └── test-data/         # 生成的测试数据
-├── frontend/              # Next.js 前端
-│   ├── app/               # 页面
-│   ├── components/        # React 组件
-│   ├── hooks/             # React Hooks
-│   ├── lib/               # 工具库
-│   └── public/circuits/   # ZK 电路文件
-├── scripts/               # 项目级脚本
-│   └── e2e-test.sh        # 端到端测试
-└── docs/                  # 文档
+├── contracts/          # Smart contracts (Solidity + Foundry)
+├── frontend/          # Next.js frontend application
+├── circuits/          # Zero-knowledge circuits (Circom)
+├── scripts/           # Deployment and testing scripts
+├── bot/              # Market maker bot
+├── devops/           # DevOps configuration
+└── docs/             # 📚 All documentation
+    ├── reports/      # Project reports & test results
+    ├── guides/       # Technical guides
+    └── archives/     # Historical documents
 ```
 
 ---
 
-## 🔧 开发工作流
+## Key Contracts (Base Sepolia)
 
-### 合约开发
+| Contract | Address | Purpose |
+|----------|---------|---------|
+| Registry | `0x4C4e...29BD` | System governance |
+| SessionManager | `0x53fA...50e2` | Session management |
+| ComplianceHook | `0xDeDc...8a80` | Access control hook |
+| PositionManager | `0x5b46...1f31` | Liquidity management |
+| SimpleSwapRouter | `0xD36F...eEdB` | Trading router |
+
+**Full deployment info**: [`docs/guides/COMPLETE_DEPLOYMENT_SUMMARY.md`](./docs/guides/COMPLETE_DEPLOYMENT_SUMMARY.md)
+
+---
+
+## Tech Stack
+
+**Smart Contracts**:
+- Solidity ^0.8.26
+- Uniswap v4 Core (Hooks)
+- Foundry
+
+**Frontend**:
+- Next.js 14 + React 18
+- Wagmi v2 + Viem
+- RainbowKit
+- TailwindCSS
+
+**Identity & Compliance**:
+- Coinbase Verifications (EAS)
+- PLONK Zero-Knowledge Proofs
+- Multi-KYC provider support
+
+---
+
+## Development Workflow
+
+### Contracts
 
 ```bash
 cd contracts
-forge build         # 编译
-forge test          # 测试
-forge test -vvv     # 详细输出
+
+# Run tests
+forge test
+
+# Deploy to Base Sepolia
+forge script script/Deploy.s.sol --rpc-url $BASE_SEPOLIA_RPC --broadcast
+
+# Verify contracts
+forge verify-contract [ADDRESS] [CONTRACT] --chain-id 84532
 ```
 
-### 电路开发
-
-```bash
-cd circuits/scripts
-./compile.sh        # 编译电路
-./setup.sh          # 可信设置
-node generate-test-proof.js  # 生成测试 Proof
-```
-
-### 前端开发
+### Frontend
 
 ```bash
 cd frontend
-npm run dev         # 开发服务器
-npm run build       # 生产构建
-npm run type-check  # 类型检查
+
+# Development
+npm run dev
+
+# Build for production
+npm run build
+
+# Run linter
+npm run lint
 ```
 
 ---
 
-## 📚 文档
+## Testing
 
-### 技术文档
+### Run All Tests
 
-- [项目完成报告](./PROJECT_COMPLETION_REPORT.md)
-- [ZK Proof 修复文档](./ZK_PROOF_FIXED.md)
-- [端到端测试报告](./E2E_TESTS_SUCCESS.md)
-- [部署成功报告](./BASE_SEPOLIA_DEPLOYMENT_SUCCESS.md)
+```bash
+# Smart contract tests
+cd contracts && forge test
 
-### 指南
+# Frontend tests
+cd frontend && npm test
 
-- [Base Sepolia 部署指南](./DEPLOY_BASE_SEPOLIA.md)
-- [部署前检查清单](./PRE_DEPLOYMENT_CHECKLIST.md)
-- [前端测试指南](./frontend/TESTING.md)
-- [故障排除](./frontend/TROUBLESHOOTING.md)
+# End-to-end tests
+./scripts/deployment/test-all-features.sh
+```
 
-### 合约文档
-
-- [合约 README](./contracts/README.md)
-- [电路 README](./circuits/README.md)
+**Test results**: See [`docs/reports/TEST_REPORT.md`](./docs/reports/TEST_REPORT.md)
 
 ---
 
-## 🌐 在线资源
+## Security
 
-### 已部署的合约
+### Audits
+- ✅ Slither static analysis: [`contracts/slither-report.json`](./contracts/slither-report.json)
+- 🔄 External audit: Pending
 
-- **Registry**: [Basescan](https://sepolia.basescan.org/address/0x104DA869aDd4f1598127F03763a755e7dDE4f988)
-- **SessionManager**: [Basescan](https://sepolia.basescan.org/address/0x4CB61d41E8D4ceCFb8C477ed069adFF309fB6d0e)
-- **ComplianceHook**: [Basescan](https://sepolia.basescan.org/address/0xc2eD8e6F4C3a29275cC43e435795c5528BC9CF6A)
+### Known Limitations
+- Testnet only (Base Sepolia)
+- Relay service dependency for session activation
+- Mock mode for development (must disable in production)
 
-### 相关链接
-
-- **Coinbase Onchain Verification**: https://www.coinbase.com/onchain-verify
-- **Base Sepolia Faucet**: https://www.coinbase.com/faucets/base-ethereum-sepolia-faucet
-- **Base Sepolia Explorer**: https://sepolia.basescan.org
-
----
-
-## 🤝 贡献
-
-欢迎贡献！请查看我们的贡献指南。
-
-### 开发流程
-
-1. Fork 项目
-2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
+**Security considerations**: See Project Report section 7
 
 ---
 
-## 📄 许可证
+## Contributing
 
-MIT License - 查看 [LICENSE](./LICENSE) 文件
+We welcome contributions! Please:
 
----
-
-## 🙏 致谢
-
-感谢以下项目和社区：
-
-- [Uniswap](https://uniswap.org/) - v4 Hooks 框架
-- [OpenZeppelin](https://openzeppelin.com/) - 安全合约库
-- [Foundry](https://getfoundry.sh/) - 智能合约开发工具
-- [Circom](https://docs.circom.io/) - ZK 电路语言
-- [snarkjs](https://github.com/iden3/snarkjs) - ZK 证明库
-- [Base](https://base.org/) - L2 区块链网络
-- [RainbowKit](https://www.rainbowkit.com/) - 钱包连接 UI
-- [wagmi](https://wagmi.sh/) - React Hooks for Ethereum
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ---
 
-## 📮 联系方式
+## Roadmap
 
-- **GitHub**: (待添加)
-- **Twitter**: (待添加)
-- **Discord**: (待添加)
-- **Email**: (待添加)
+### Short-term (1-2 weeks)
+- [ ] Complete real verification testing
+- [ ] Multi-language UI support
+- [ ] Session auto-renewal
 
----
+### Mid-term (1-2 months)
+- [ ] Graph Protocol subgraph deployment
+- [ ] Additional trading pairs
+- [ ] Liquidity mining incentives
 
-## 🎯 路线图
-
-### v0.1.0 (当前) ✅
-- ✅ 核心合约实现
-- ✅ PLONK 验证器集成
-- ✅ Base Sepolia 部署
-- ✅ 前端框架
-- ✅ 完整测试覆盖
-
-### v0.2.0 (下一步)
-- 🔄 真实 EAS 数据集成
-- 🔄 浏览器端 Proof 生成优化
-- 🔄 完整 UI/UX
-- 🔄 交易界面
-- 🔄 流动性管理
-
-### v1.0.0 (生产)
-- 🔜 安全审计
-- 🔜 Base Mainnet 部署
-- 🔜 监控和告警
-- 🔜 做市机器人
-- 🔜 完整文档
+### Long-term (3-6 months)
+- [ ] Base Mainnet deployment
+- [ ] DAO governance
+- [ ] Cross-chain support
 
 ---
 
-## ⚠️ 免责声明
+## License
 
-此项目目前处于 Alpha 测试阶段，仅部署在测试网。请勿在生产环境或主网使用。
-
----
-
-**构建时间**: 2026-02-11  
-**最后更新**: 2026-02-11  
-**版本**: v0.1.0
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
 
 ---
 
-## 🎉 **从概念到现实，ILAL 重新定义 DeFi 合规！**
+## Contact & Support
 
+- **Documentation**: [`docs/`](./docs/README.md)
+- **Issues**: [GitHub Issues]
+- **Discussions**: [GitHub Discussions]
+
+---
+
+## Acknowledgments
+
+- Uniswap v4 team for the Hooks architecture
+- Coinbase for Onchain Verify infrastructure
+- Base team for testnet support
+
+---
+
+**Last Updated**: 2026-02-12  
+**Version**: v1.0.0 (Testnet)

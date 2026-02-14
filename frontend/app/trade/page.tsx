@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAccount } from 'wagmi';
+import { type Address } from 'viem';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useSession } from '@/hooks/useSession';
 import { useSwap, TOKENS } from '@/hooks/useSwap';
+import { useTokenBalance } from '@/hooks/useTokenBalance';
 import Link from 'next/link';
 
 const TOKEN_LIST = Object.keys(TOKENS);
@@ -12,12 +14,75 @@ const TOKEN_LIST = Object.keys(TOKENS);
 export default function TradePage() {
   const { address, isConnected } = useAccount();
   const { isActive, timeRemainingFormatted } = useSession();
-  const { status, error, txHash, quote, getQuote, executeSwap, reset, getPrice } = useSwap();
+  const { status, error, txHash, quote, getQuote, executeSwap, reset, getPrice, lastSwapDelta } = useSwap();
+
+  // Token balances - 使用自定义 hook 绕过 wagmi 的问题
+  const { 
+    balance: ethBalanceStr, 
+    isLoading: ethBalanceLoading, 
+    error: ethBalanceErrorMsg,
+    refetch: refetchEthBalance 
+  } = useTokenBalance(address);
+  
+  const { 
+    balance: usdcBalanceStr, 
+    isLoading: usdcBalanceLoading, 
+    error: usdcBalanceErrorMsg,
+    refetch: refetchUsdcBalance 
+  } = useTokenBalance(address, '0x036CbD53842c5426634e7929541eC2318f3dCF7e' as Address);
+
+  const {
+    balance: wethBalanceStr,
+    isLoading: wethBalanceLoading,
+    error: wethBalanceErrorMsg,
+    refetch: refetchWethBalance,
+  } = useTokenBalance(address, '0x4200000000000000000000000000000000000006' as Address);
+  
+  const ethBalanceError = !!ethBalanceErrorMsg;
+  const usdcBalanceError = !!usdcBalanceErrorMsg;
+  const wethBalanceError = !!wethBalanceErrorMsg;
+
+  // 调试日志
+  useEffect(() => {
+    if (address) {
+      console.log('[Trade] Balance status:', {
+        address,
+        ethBalance: ethBalanceStr,
+        ethBalanceError,
+        ethBalanceLoading,
+        usdcBalance: usdcBalanceStr,
+        usdcBalanceError,
+        usdcBalanceLoading,
+        wethBalance: wethBalanceStr,
+        wethBalanceError,
+        wethBalanceLoading,
+      });
+    }
+  }, [address, ethBalanceStr, usdcBalanceStr, wethBalanceStr, ethBalanceError, usdcBalanceError, wethBalanceError, ethBalanceLoading, usdcBalanceLoading, wethBalanceLoading]);
 
   const [fromToken, setFromToken] = useState('ETH');
   const [toToken, setToToken] = useState('USDC');
   const [amount, setAmount] = useState('');
   const [slippage, setSlippage] = useState(50); // 0.5%
+
+  const fromBalance = useMemo(() => {
+    if (fromToken === 'ETH') {
+      if (ethBalanceLoading) return 'Loading...';
+      if (ethBalanceError) return 'Error';
+      return ethBalanceStr;
+    }
+    if (fromToken === 'WETH') {
+      if (wethBalanceLoading) return 'Loading...';
+      if (wethBalanceError) return 'Error';
+      return wethBalanceStr;
+    }
+    if (fromToken === 'USDC') {
+      if (usdcBalanceLoading) return 'Loading...';
+      if (usdcBalanceError) return 'Error';
+      return usdcBalanceStr;
+    }
+    return '--';
+  }, [fromToken, ethBalanceStr, usdcBalanceStr, wethBalanceStr, ethBalanceError, usdcBalanceError, wethBalanceError, ethBalanceLoading, usdcBalanceLoading, wethBalanceLoading]);
 
   // 获取报价
   useEffect(() => {
@@ -40,9 +105,25 @@ export default function TradePage() {
 
   // 执行交易
   const handleSwap = async () => {
-    const success = await executeSwap({ fromToken, toToken, amount, slippage });
-    if (success) {
-      setAmount('');
+    console.log('[Trade] handleSwap called:', { fromToken, toToken, amount, slippage });
+    
+    // 开始新交易前，先清除旧的错误和状态
+    reset();
+    
+    try {
+      const success = await executeSwap({ fromToken, toToken, amount, slippage });
+      console.log('[Trade] executeSwap result:', success);
+      if (success) {
+        // 交易成功后立即刷新余额，避免“金额看起来没变化”
+        await Promise.all([
+          refetchEthBalance(),
+          refetchUsdcBalance(),
+          refetchWethBalance(),
+        ]);
+        setAmount('');
+      }
+    } catch (err) {
+      console.error('[Trade] handleSwap error:', err);
     }
   };
 
@@ -86,7 +167,7 @@ export default function TradePage() {
     );
   }
 
-  const price = getPrice(fromToken, toToken);
+  const price = typeof getPrice === 'function' ? getPrice(fromToken, toToken) : null;
 
   return (
     <div className="max-w-md mx-auto p-6 mt-8 space-y-4">
@@ -105,9 +186,43 @@ export default function TradePage() {
 
         {/* From */}
         <div className="bg-slate-50 rounded-xl p-4 space-y-2">
-          <div className="flex justify-between text-xs text-slate-500">
-            <span>Pay</span>
-            <span>Balance: --</span>
+          <div className="flex justify-between text-xs">
+            <span className="text-slate-500">Pay</span>
+            <div className="flex items-center space-x-2">
+              <span className={ethBalanceError || usdcBalanceError || wethBalanceError ? 'text-amber-600' : 'text-slate-500'}>
+                Balance: {fromBalance} {fromToken}
+                {ethBalanceLoading && fromToken === 'ETH' && ' ⏳'}
+                {usdcBalanceLoading && fromToken === 'USDC' && ' ⏳'}
+                {wethBalanceLoading && fromToken === 'WETH' && ' ⏳'}
+              </span>
+              {ethBalanceError && fromToken === 'ETH' && (
+                <button
+                  onClick={() => refetchEthBalance()}
+                  className="text-blue-600 hover:text-blue-700 text-xs underline"
+                  title="Retry fetching balance"
+                >
+                  Retry
+                </button>
+              )}
+              {usdcBalanceError && fromToken === 'USDC' && (
+                <button
+                  onClick={() => refetchUsdcBalance()}
+                  className="text-blue-600 hover:text-blue-700 text-xs underline"
+                  title="Retry fetching balance"
+                >
+                  Retry
+                </button>
+              )}
+              {wethBalanceError && fromToken === 'WETH' && (
+                <button
+                  onClick={() => refetchWethBalance()}
+                  className="text-blue-600 hover:text-blue-700 text-xs underline"
+                  title="Retry fetching balance"
+                >
+                  Retry
+                </button>
+              )}
+            </div>
           </div>
           <div className="flex items-center space-x-3">
             <input
@@ -119,7 +234,10 @@ export default function TradePage() {
             />
             <select
               value={fromToken}
-              onChange={(e) => { setFromToken(e.target.value); reset(); }}
+              onChange={(e) => { 
+                setFromToken(e.target.value);
+                // 不要立即 reset，让错误信息保持显示
+              }}
               className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {TOKEN_LIST.map((t) => (
@@ -152,7 +270,10 @@ export default function TradePage() {
             </div>
             <select
               value={toToken}
-              onChange={(e) => { setToToken(e.target.value); reset(); }}
+              onChange={(e) => { 
+                setToToken(e.target.value);
+                // 不要立即 reset，让错误信息保持显示
+              }}
               className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {TOKEN_LIST.map((t) => (
@@ -168,7 +289,7 @@ export default function TradePage() {
             <div className="flex justify-between">
               <span className="text-slate-500">Price</span>
               <span className="text-slate-700 font-medium">
-                1 {fromToken} = {price ? price.toLocaleString() : '?'} {toToken}
+                1 {fromToken} = {price ? (price < 0.01 ? price.toFixed(6) : price.toLocaleString(undefined, { maximumFractionDigits: 2 })) : '?'} {toToken}
               </span>
             </div>
             <div className="flex justify-between">
@@ -177,6 +298,11 @@ export default function TradePage() {
                 {fromToken} &rarr; ComplianceHook &rarr; {toToken}
               </span>
             </div>
+            {toToken === 'ETH' && (
+              <div className="text-amber-600">
+                Note: ETH output is auto-unwrapped from WETH after swap.
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-slate-500">Slippage Tolerance</span>
               <span className="text-slate-700 font-medium">{slippage / 100}%</span>
@@ -199,7 +325,18 @@ export default function TradePage() {
         {/* 错误 */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-            <p className="text-xs text-red-700">{error}</p>
+            <div className="flex items-start justify-between space-x-2">
+              <p className="text-xs text-red-700 flex-1">{error}</p>
+              <button
+                onClick={reset}
+                className="text-red-400 hover:text-red-600 transition"
+                aria-label="Close error"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
         )}
 
@@ -215,6 +352,12 @@ export default function TradePage() {
             >
               View on Basescan
             </a>
+            {lastSwapDelta && (
+              <p className="text-xs text-emerald-700">
+                On-chain change: {lastSwapDelta.fromToken} {lastSwapDelta.fromDelta} / {lastSwapDelta.toToken}{' '}
+                {lastSwapDelta.toDelta}
+              </p>
+            )}
           </div>
         )}
 
@@ -230,15 +373,19 @@ export default function TradePage() {
           }
           className="w-full py-3.5 rounded-xl font-semibold text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 active:bg-blue-800 shadow-sm hover:shadow"
         >
-          {status === 'swapping'
-            ? 'Sending transaction...'
-            : status === 'confirming'
-            ? 'Confirming...'
-            : fromToken === toToken
-            ? 'Select different tokens'
-            : !amount || parseFloat(amount) <= 0
-            ? 'Enter amount'
-            : 'Swap'}
+          {status === 'signing'
+            ? 'Sign permit...'
+            : status === 'approving'
+              ? 'Approving token...'
+              : status === 'swapping'
+                ? 'Sending transaction...'
+                : status === 'confirming'
+                  ? 'Confirming...'
+                  : fromToken === toToken
+                    ? 'Select different tokens'
+                    : !amount || parseFloat(amount) <= 0
+                      ? 'Enter amount'
+                      : 'Swap'}
         </button>
       </div>
 

@@ -3,39 +3,35 @@
 import { useAccount, useReadContract } from 'wagmi';
 import { useEffect, useState, useCallback } from 'react';
 import { getContractAddresses, sessionManagerABI } from '@/lib/contracts';
-import { getLocalSessionStatus, clearDemoSession } from '@/lib/demo-mode';
+import { clearDemoSession, getLocalSessionStatus, DEMO_MODE } from '@/lib/demo-mode';
 
 /**
  * useSession Hook - 管理用户验证会话状态
  *
- * 检查顺序：
- * 1. 链上 SessionManager.isSessionActive（如果在支持的网络上）
- * 2. 本地 localStorage Session（ZK 验证通过后存储）
- *
- * 任一返回 true 则认为 Session 有效
+ * 生产模式：只认链上 SessionManager（fail-closed）
+ * Mock 模式：允许使用本地 Session（便于前端功能联调）
  */
 export function useSession() {
   const { address, chainId } = useAccount();
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
-  const [localSession, setLocalSession] = useState<ReturnType<typeof getLocalSessionStatus> | null>(null);
+  const [localSessionActive, setLocalSessionActive] = useState(false);
+  const [localRemaining, setLocalRemaining] = useState(0);
 
   const addresses = chainId ? getContractAddresses(chainId) : null;
 
-  // ============ 本地 Session（始终检查） ============
-
-  const refreshLocal = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    const session = getLocalSessionStatus();
-    setLocalSession(session);
-    if (session.isActive && session.timeRemaining > 0) {
-      setTimeRemaining(session.timeRemaining);
-    }
-  }, []);
-
-  // 初始加载 + address 变化时刷新
+  // 生产模式清理历史本地 Session；Mock 模式读取本地 Session
   useEffect(() => {
-    refreshLocal();
-  }, [address, refreshLocal]);
+    if (DEMO_MODE) {
+      const local = getLocalSessionStatus();
+      setLocalSessionActive(local.isActive);
+      setLocalRemaining(local.timeRemaining);
+      return;
+    }
+
+    clearDemoSession();
+    setLocalSessionActive(false);
+    setLocalRemaining(0);
+  }, [address]);
 
   // ============ 链上 Session ============
 
@@ -61,17 +57,19 @@ export function useSession() {
 
   // ============ 合并判断 ============
 
-  // 链上 active 或本地 active 都算有效
-  const isActive = !!(onChainIsActive) || !!(localSession?.isActive);
+  // 生产模式只认链上；Mock 模式允许本地会话
+  const isActive = DEMO_MODE
+    ? (!!address && (!!onChainIsActive || localSessionActive))
+    : (!!address && !!addresses && !!onChainIsActive);
 
   // 更新 timeRemaining
   useEffect(() => {
     let time = 0;
 
-    if (onChainIsActive && onChainRemaining) {
+    if (!!address && !!onChainIsActive && onChainRemaining) {
       time = Number(onChainRemaining);
-    } else if (localSession?.isActive && localSession.timeRemaining > 0) {
-      time = localSession.timeRemaining;
+    } else if (DEMO_MODE && localSessionActive && localRemaining > 0) {
+      time = localRemaining;
     }
 
     if (time > 0) {
@@ -89,7 +87,7 @@ export function useSession() {
 
       return () => clearInterval(interval);
     }
-  }, [onChainIsActive, onChainRemaining, localSession]);
+  }, [address, onChainIsActive, onChainRemaining, localSessionActive, localRemaining]);
 
   // ============ 格式化 ============
 
@@ -108,19 +106,23 @@ export function useSession() {
   // ============ 刷新 ============
 
   const refresh = useCallback(() => {
-    refreshLocal();
+    if (DEMO_MODE) {
+      const local = getLocalSessionStatus();
+      setLocalSessionActive(local.isActive);
+      setLocalRemaining(local.timeRemaining);
+    }
     if (addresses) {
       refetchActive();
       refetchRemaining();
     }
-  }, [refreshLocal, addresses, refetchActive, refetchRemaining]);
+  }, [addresses, refetchActive, refetchRemaining]);
 
   // ============ 清除 Session ============
 
   const clearSession = useCallback(() => {
     clearDemoSession();
-    refreshLocal();
-  }, [refreshLocal]);
+    setTimeRemaining(0);
+  }, []);
 
   return {
     isActive,

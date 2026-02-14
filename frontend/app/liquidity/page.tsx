@@ -13,6 +13,7 @@ export default function LiquidityPage() {
   const { 
     pools, 
     positions, 
+    lastLiquidityDelta,
     status, 
     error, 
     txHash, 
@@ -82,25 +83,44 @@ export default function LiquidityPage() {
   }
 
   const handleAddLiquidity = async (pool: Pool) => {
+    console.log('[LiquidityPage] handleAddLiquidity called', { pool: pool.id, form: addForm });
+    
     if (!addForm.token0Amount || !addForm.token1Amount) {
+      console.warn('[LiquidityPage] Missing amounts');
       return;
     }
 
-    const tickLower = addForm.priceLower 
-      ? priceToTick(parseFloat(addForm.priceLower), pool.tickSpacing)
-      : -887220; // 全范围
-    const tickUpper = addForm.priceUpper
-      ? priceToTick(parseFloat(addForm.priceUpper), pool.tickSpacing)
-      : 887220;
+    try {
+      const alignTick = (tick: number) => Math.floor(tick / pool.tickSpacing) * pool.tickSpacing;
+      const maxUsableTick = Math.floor(887272 / pool.tickSpacing) * pool.tickSpacing;
+      const defaultRange = pool.tickSpacing * 50; // 默认在当前价格附近提供流动性，避免 full-range 资金需求过大
+      const tickLower = addForm.priceLower 
+        ? priceToTick(parseFloat(addForm.priceLower), pool.tickSpacing)
+        : Math.max(-maxUsableTick, alignTick(pool.tick - defaultRange));
+      const tickUpper = addForm.priceUpper
+        ? priceToTick(parseFloat(addForm.priceUpper), pool.tickSpacing)
+        : Math.min(maxUsableTick, alignTick(pool.tick + defaultRange));
 
-    await addLiquidity({
-      poolId: pool.id,
-      token0Amount: addForm.token0Amount,
-      token1Amount: addForm.token1Amount,
-      tickLower,
-      tickUpper,
-      slippage: 50, // 0.5%
-    });
+      if (tickLower >= tickUpper) {
+        console.warn('[LiquidityPage] Invalid tick range', { tickLower, tickUpper });
+        return;
+      }
+
+      console.log('[LiquidityPage] Tick range:', { tickLower, tickUpper });
+
+      const success = await addLiquidity({
+        poolId: pool.id,
+        token0Amount: addForm.token0Amount,
+        token1Amount: addForm.token1Amount,
+        tickLower,
+        tickUpper,
+        slippage: 50, // 0.5%
+      });
+
+      console.log('[LiquidityPage] Add liquidity result:', success);
+    } catch (err) {
+      console.error('[LiquidityPage] Error in handleAddLiquidity:', err);
+    }
   };
 
   const handleRemoveLiquidity = async () => {
@@ -217,6 +237,12 @@ export default function LiquidityPage() {
               </a>
             )}
           </div>
+          {lastLiquidityDelta && (
+            <p className="mt-2 text-xs text-emerald-700">
+              On-chain change: {lastLiquidityDelta.token0} {lastLiquidityDelta.token0Delta} / {lastLiquidityDelta.token1}{' '}
+              {lastLiquidityDelta.token1Delta}
+            </p>
+          )}
         </div>
       )}
 
@@ -243,12 +269,18 @@ export default function LiquidityPage() {
             pools.map((pool) => (
               <div
                 key={pool.id}
-                className={`card card-hover p-5 cursor-pointer ${
+                className={`card p-5 ${
                   selectedPool === pool.id ? 'ring-2 ring-blue-500 border-blue-200' : ''
                 }`}
-                onClick={() => setSelectedPool(selectedPool === pool.id ? null : pool.id)}
               >
-                <div className="flex items-center justify-between">
+                <div 
+                  className="flex items-center justify-between cursor-pointer hover:opacity-80 transition"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('[LiquidityPage] Toggle pool', pool.id);
+                    setSelectedPool(selectedPool === pool.id ? null : pool.id);
+                  }}
+                >
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                       <span className="text-white text-xs font-bold">
@@ -277,7 +309,10 @@ export default function LiquidityPage() {
 
                 {/* Expanded details */}
                 {selectedPool === pool.id && (
-                  <div className="mt-4 pt-4 border-t border-slate-100 space-y-4">
+                  <div 
+                    className="mt-4 pt-4 border-t border-slate-100 space-y-4"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <p className="text-slate-500 text-xs">24h Volume</p>

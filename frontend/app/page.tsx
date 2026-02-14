@@ -74,8 +74,35 @@ export default function Home() {
 
   // 已验证
   if (isActive) {
+    // 极端测试模式警告
+    const testMode = process.env.NEXT_PUBLIC_MOCK_TEST_MODE;
+    const isExtremeTest = testMode === 'expired' || testMode === 'revoked';
+    
     return (
       <div className="max-w-2xl mx-auto p-6 space-y-6 mt-8">
+        {/* 极端测试模式警告 */}
+        {isExtremeTest && (
+          <div className="card p-6 bg-red-50 border-2 border-red-300">
+            <div className="flex items-start space-x-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-red-800">🧪 极端测试模式警告</h3>
+                <p className="text-sm text-red-700 mt-1">
+                  当前使用 <code className="bg-red-200 px-1 rounded">{testMode}</code> 凭证测试模式。
+                  这是异常状态：你看到"已验证"是因为本地 Session 缓存，但实际凭证{testMode === 'expired' ? '已过期' : '已被撤销'}。
+                </p>
+                <p className="text-sm text-red-700 mt-2">
+                  ⚠️ 尝试交易/添加流动性时会被正确拦截（预期行为）。
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* 成功卡片 */}
         <div className="card p-8 text-center space-y-4">
           <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
@@ -122,12 +149,23 @@ export default function Home() {
             <InfoRow label="Wallet Address" value={`${address?.slice(0, 8)}...${address?.slice(-6)}`} />
             <InfoRow label="Verification Method" value="PLONK ZK Proof" />
             <InfoRow label="Session Status" value="Active" valueColor="text-emerald-600" />
+            <InfoRow label="Session Source" value="On-chain SessionManager" valueColor="text-emerald-600" />
             <InfoRow label="Time Remaining" value={timeRemainingFormatted} />
-            <InfoRow
-              label="Attestation"
-              value={attestation?.isMock ? 'Mock Data (Dev)' : 'Coinbase Verified'}
-              valueColor={attestation?.isMock ? 'text-amber-600' : 'text-emerald-600'}
-            />
+          <InfoRow
+            label="Attestation"
+            value={
+              attestation?.isMock 
+                ? `Mock Data (${process.env.NEXT_PUBLIC_MOCK_TEST_MODE || 'normal'})` 
+                : 'Coinbase Verified'
+            }
+            valueColor={
+              attestation?.isMock 
+                ? (process.env.NEXT_PUBLIC_MOCK_TEST_MODE === 'expired' || process.env.NEXT_PUBLIC_MOCK_TEST_MODE === 'revoked' 
+                    ? 'text-red-600' 
+                    : 'text-amber-600')
+                : 'text-emerald-600'
+            }
+          />
             <InfoRow label="Network" value="Base Sepolia" />
           </div>
         </div>

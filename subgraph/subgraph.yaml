@@ -2,16 +2,13 @@ specVersion: 0.0.5
 schema:
   file: ./schema.graphql
 dataSources:
-  # Registry 合约
   - kind: ethereum/contract
     name: Registry
     network: base-sepolia
     source:
-      # Base Sepolia 部署地址
       address: "0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD"
       abi: Registry
-      # 部署区块
-      startBlock: 19000000
+      startBlock: 21000000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -38,16 +35,13 @@ dataSources:
         - event: UserVerified(indexed address,indexed bytes32,uint256)
           handler: handleUserVerified
       file: ./src/registry.ts
-
-  # SessionManager 合约
   - kind: ethereum/contract
     name: SessionManager
     network: base-sepolia
     source:
-      # Base Sepolia 部署地址
       address: "0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2"
       abi: SessionManager
-      startBlock: 19000000
+      startBlock: 21000000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -65,16 +59,13 @@ dataSources:
         - event: SessionEnded(indexed address)
           handler: handleSessionEnded
       file: ./src/session.ts
-
-  # ComplianceHook 合约
   - kind: ethereum/contract
     name: ComplianceHook
     network: base-sepolia
     source:
-      # Base Sepolia 部署地址
       address: "0xDeDcFDF10b03AB45eEbefD2D91EDE66D9E5c8a80"
       abi: ComplianceHook
-      startBlock: 19000000
+      startBlock: 21000000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7

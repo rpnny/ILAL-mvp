@@ -50,8 +50,9 @@ export function useEAS() {
         setStatus('done');
       } else if (DEMO_MODE) {
         // 仅在演示模式下允许 mock
-        console.warn('[EAS] DEMO_MODE: using mock attestation');
-        const mock = createMockAttestation(address);
+        const testMode = (process.env.NEXT_PUBLIC_MOCK_TEST_MODE as 'normal' | 'expired' | 'revoked') || 'normal';
+        console.warn('[EAS] DEMO_MODE: using mock attestation, test mode:', testMode);
+        const mock = createMockAttestation(address, testMode);
         setAttestation(mock);
         setHasAttestation(true);
         setStatus('done');
@@ -70,7 +71,8 @@ export function useEAS() {
 
       if (DEMO_MODE && address) {
         // 演示模式容错
-        const mock = createMockAttestation(address);
+        const testMode = (process.env.NEXT_PUBLIC_MOCK_TEST_MODE as 'normal' | 'expired' | 'revoked') || 'normal';
+        const mock = createMockAttestation(address, testMode);
         setAttestation(mock);
         setHasAttestation(true);
       } else {

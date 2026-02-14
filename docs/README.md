@@ -1,90 +1,124 @@
-# ILAL 文档索引
+# ILAL 项目文档导航
 
-> Institutional Liquidity Access Layer - 项目文档中心
-
-## 目录结构
-
-```
-docs/
-├── README.md              ← 你在这里
-├── guides/                ← 使用指南 & 技术决策
-├── deployment/            ← 部署文档 & 检查清单
-├── reports/               ← 开发进度 & 状态报告
-└── testing/               ← 测试报告 & 系统测试结果
-```
+欢迎查阅 ILAL 项目文档！为了方便查找，文档已按类别整理。
 
 ---
 
-## 📖 guides/ — 使用指南
+## 📊 测试与报告（testing/）
 
-| 文件 | 说明 |
-|------|------|
-| [SETUP.md](guides/SETUP.md) | 开发环境搭建指南 |
-| [USER_GUIDE.md](guides/USER_GUIDE.md) | 用户使用手册 |
-| [QUICK_START_GUIDE.md](guides/QUICK_START_GUIDE.md) | 快速入门 |
-| [TESTING_QUICK_START.md](guides/TESTING_QUICK_START.md) | 测试快速入门 |
-| [UI_TEST_CHECKLIST.md](guides/UI_TEST_CHECKLIST.md) | UI 测试清单 |
-| [DECISIONS.md](guides/DECISIONS.md) | 技术架构决策记录 |
-| [ZK_INTEGRATION_PLAN.md](guides/ZK_INTEGRATION_PLAN.md) | ZK 证明集成方案 |
-| [NEXT_STEPS.md](guides/NEXT_STEPS.md) | 后续开发计划 |
+**最重要的文档，优先阅读！**
 
-## 🚀 deployment/ — 部署文档
+- **[PROJECT_REPORT.md](./testing/PROJECT_REPORT.md)** ⭐⭐⭐
+  - 完整的最终项目报告
+  - 涵盖架构、功能、测试、部署全貌
+  - 适合展示给外部合作方、投资人
 
-| 文件 | 说明 |
-|------|------|
-| [DEPLOYMENT.md](deployment/DEPLOYMENT.md) | 部署总览 |
-| [DEPLOYMENT_CHECKLIST.md](deployment/DEPLOYMENT_CHECKLIST.md) | 部署检查清单 |
-| [PRE_DEPLOYMENT_CHECKLIST.md](deployment/PRE_DEPLOYMENT_CHECKLIST.md) | 部署前检查 |
-| [DEPLOYMENT_PROGRESS.md](deployment/DEPLOYMENT_PROGRESS.md) | 部署进度 |
-| [DEPLOYMENT_STATUS.md](deployment/DEPLOYMENT_STATUS.md) | 部署状态 |
-| [DEPLOYMENT_SUCCESS.md](deployment/DEPLOYMENT_SUCCESS.md) | 部署成功记录 |
-| [DEPLOYMENT_UPDATE_20260211.md](deployment/DEPLOYMENT_UPDATE_20260211.md) | 2026-02-11 部署更新 |
-| [BASE_SEPOLIA_DEPLOYMENT_SUCCESS.md](deployment/BASE_SEPOLIA_DEPLOYMENT_SUCCESS.md) | Base Sepolia 部署成功 |
-| [READY_TO_DEPLOY.md](deployment/READY_TO_DEPLOY.md) | 部署就绪确认 |
-| [DAY10_DEPLOYMENT_COMPLETE.md](deployment/DAY10_DEPLOYMENT_COMPLETE.md) | Day10 部署完成 |
+- **[FINAL_SUMMARY_20260211.md](./testing/FINAL_SUMMARY_20260211.md)** ⭐⭐
+  - 2026-02-11 阶段性工作总结
+  - 开发历程与关键修复记录
 
-## 📊 reports/ — 开发进度报告
+- **[CODE_HEALTH_CHECK.md](./testing/CODE_HEALTH_CHECK.md)**
+  - 代码质量检查报告
+  - Lint、类型检查、安全审计结果
 
-| 文件 | 说明 |
-|------|------|
-| [PROJECT_COMPLETION_REPORT.md](reports/PROJECT_COMPLETION_REPORT.md) | 项目完成报告 |
-| [FINAL_STATUS_REPORT.md](reports/FINAL_STATUS_REPORT.md) | 最终状态报告 |
-| [FINAL_SUMMARY_20260211.md](reports/FINAL_SUMMARY_20260211.md) | 2026-02-11 最终总结 |
-| [PRODUCTION_READY_STATUS.md](reports/PRODUCTION_READY_STATUS.md) | 生产就绪状态 |
-| [IMPLEMENTATION_SUMMARY.md](reports/IMPLEMENTATION_SUMMARY.md) | 实现总结 |
-| [PROGRESS_REPORT.md](reports/PROGRESS_REPORT.md) | 进度报告 |
-| [PROGRESS_REPORT_20260211.md](reports/PROGRESS_REPORT_20260211.md) | 2026-02-11 进度报告 |
-| [PROGRESS_SUMMARY.md](reports/PROGRESS_SUMMARY.md) | 进度摘要 |
-| [今日完成总结.md](reports/今日完成总结.md) | 今日完成总结 |
-| *更多...* | DAY9/DAY11 进度, STATUS, SUMMARY 等 |
+- **[CODE_STATISTICS.md](./testing/CODE_STATISTICS.md)**
+  - 项目代码统计信息
+  - 文件数量、代码行数等
 
-## 🧪 testing/ — 测试报告
+- **[TEST_REPORT.md](./testing/TEST_REPORT.md)**
+  - 完整测试报告
+  - 功能测试、集成测试结果
 
-| 文件 | 说明 |
-|------|------|
-| [ILAL_Test_Report_Latest.html](testing/ILAL_Test_Report_Latest.html) | **最新系统测试报告 (HTML)** |
-| [TEST_REPORT.md](testing/TEST_REPORT.md) | 测试总报告 |
-| [TEST_RESULTS_SUMMARY.md](testing/TEST_RESULTS_SUMMARY.md) | 测试结果汇总 |
-| [COMPLETE_TEST_INDEX.md](testing/COMPLETE_TEST_INDEX.md) | 完整测试索引 |
-| [E2E_TEST_COMPLETE.md](testing/E2E_TEST_COMPLETE.md) | E2E 测试完成 |
-| [E2E_TESTS_SUCCESS.md](testing/E2E_TESTS_SUCCESS.md) | E2E 测试成功 |
-| [HELL_MODE_TESTING.md](testing/HELL_MODE_TESTING.md) | 极限压力测试 |
-| [ZK_PROOF_FIXED.md](testing/ZK_PROOF_FIXED.md) | ZK 证明修复记录 |
+- **[TEST_SUMMARY.txt](./testing/TEST_SUMMARY.txt)**
+  - 测试结果简要总结
 
 ---
 
-## 根目录保留文件
+## 📖 开发指南（guides/）
 
-| 文件 | 说明 |
-|------|------|
-| `README.md` | 项目主 README |
-| `README_CN.md` | 中文 README |
-| `ARCHITECTURE.md` | 系统架构文档 |
+**技术文档与操作指南**
+
+- **[ARCHITECTURE.md](./guides/ARCHITECTURE.md)** ⭐
+  - 系统架构设计文档
+  - 技术栈、组件关系、数据流
+
+- **[DEPLOYMENT.md](./guides/DEPLOYMENT.md)** ⭐
+  - 部署操作手册
+  - 环境配置、部署步骤、验证方法
+
+- **[COMPLETE_DEPLOYMENT_SUMMARY.md](./guides/COMPLETE_DEPLOYMENT_SUMMARY.md)**
+  - 完整部署总结
+  - 所有部署的合约地址与配置
+
+- **[SWAP_DEBUG_GUIDE.md](./guides/SWAP_DEBUG_GUIDE.md)**
+  - Swap 功能调试指南
+  - 常见错误码与解决方案
 
 ---
 
-*运行系统测试并生成最新 HTML 报告:*
+## 🗄️ 归档文档（archives/）
 
-```bash
-cd scripts/system-test && npx tsx index.ts
-```
+**历史记录与清理文档**
+
+- **[CLEANUP_PLAN.md](./archives/CLEANUP_PLAN.md)**
+  - 项目文件清理方案
+  - 保留/删除文件清单
+
+- **[CLEANUP_SUMMARY.md](./archives/CLEANUP_SUMMARY.md)**
+  - 清理执行总结
+  - 清理前后对比
+
+---
+
+## 🚀 快速入口
+
+### 我是新人，想快速了解项目
+→ 阅读 **[PROJECT_REPORT.md](./testing/PROJECT_REPORT.md)**
+
+### 我要部署系统
+→ 参考 **[DEPLOYMENT.md](./guides/DEPLOYMENT.md)**
+
+### 我要了解架构
+→ 阅读 **[ARCHITECTURE.md](./guides/ARCHITECTURE.md)**
+
+### 遇到 Swap 报错
+→ 查看 **[SWAP_DEBUG_GUIDE.md](./guides/SWAP_DEBUG_GUIDE.md)**
+
+### 想看测试结果
+→ 参考 **[TEST_REPORT.md](./testing/TEST_REPORT.md)**
+
+---
+
+## 📂 其他文档位置
+
+### 前端相关
+- `frontend/WALLET_CONNECTION_DEBUG.md` - 钱包连接调试
+- `frontend/TROUBLESHOOTING.md` - 前端故障排除
+
+### 合约相关
+- `contracts/slither-report.json` - Slither 安全审计报告
+
+### 根目录
+- `README.md` - 项目英文说明
+- `README_CN.md` - 项目中文说明
+- `LICENSE` - 开源许可证
+
+---
+
+## 📝 文档维护规范
+
+1. **测试与报告** → `docs/testing/`
+   - 测试报告、代码检查、项目总结、最终报告等
+
+2. **指南文档** → `docs/guides/`
+   - 架构设计、部署手册、调试指南、用户手册等
+
+3. **归档文档** → `docs/archives/`
+   - 历史记录、清理文档、过时文档、修复记录等
+
+4. **临时调试文档** → 调试完成后删除或移至 archives/
+
+---
+
+**最后更新**: 2026-02-12  
+**文档结构版本**: v2.0（整理后）

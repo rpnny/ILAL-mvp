@@ -6,11 +6,21 @@ import { WagmiProvider } from 'wagmi';
 import { RainbowKitProvider, darkTheme, lightTheme } from '@rainbow-me/rainbowkit';
 import { config } from '../lib/wagmi';
 
+// 优化的 QueryClient 配置
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5_000,
+      staleTime: 60_000, // 1 分钟
+      gcTime: 300_000, // 5 分钟（垃圾回收时间，v5+ 使用 gcTime 替代 cacheTime）
       refetchOnWindowFocus: false,
+      refetchOnReconnect: true,
+      retry: 1,
+      // 避免不必要的重新获取
+      refetchOnMount: false,
+    },
+    mutations: {
+      // 变更失败后重试一次
+      retry: 1,
     },
   },
 });

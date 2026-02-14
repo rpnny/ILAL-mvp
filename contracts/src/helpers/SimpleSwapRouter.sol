@@ -97,7 +97,7 @@ contract SimpleSwapRouter is IUnlockCallback {
         );
 
         // 处理代币结算
-        _settleSwap(callbackData.sender, callbackData.poolKey, delta);
+        _settleSwap(callbackData.sender, callbackData.poolKey, callbackData.params, delta);
 
         // 返回 delta
         return abi.encode(delta);
@@ -109,29 +109,20 @@ contract SimpleSwapRouter is IUnlockCallback {
     function _settleSwap(
         address user,
         PoolKey memory key,
+        IPoolManager.SwapParams memory params,
         BalanceDelta delta
     ) internal {
         int128 amount0 = delta.amount0();
         int128 amount1 = delta.amount1();
-
-        // 处理 currency0
-        // delta < 0 = Pool 欠用户,用户获得 (take from pool)
-        // delta > 0 = 用户欠 Pool,用户支付 (settle to pool)
-        if (amount0 < 0) {
-            // Pool 欠用户 token0 (从 pool take)
-            poolManager.take(key.currency0, user, uint128(-amount0));
-        } else if (amount0 > 0) {
-            // 用户欠 Pool token0 (settle to pool)
-            _settle(user, key.currency0, uint128(amount0));
-        }
-
-        // 处理 currency1
-        if (amount1 < 0) {
-            // Pool 欠用户 token1 (从 pool take)
-            poolManager.take(key.currency1, user, uint128(-amount1));
-        } else if (amount1 > 0) {
-            // 用户欠 Pool token1 (settle to pool)
-            _settle(user, key.currency1, uint128(amount1));
+        // 使用 Uniswap v4 官方测试路由器同款逻辑：
+        // zeroForOne: 结算 currency0，提取 currency1
+        // oneForZero: 结算 currency1，提取 currency0
+        if (params.zeroForOne) {
+            if (amount0 < 0) _settle(user, key.currency0, uint128(-amount0));
+            if (amount1 > 0) poolManager.take(key.currency1, user, uint128(amount1));
+        } else {
+            if (amount1 < 0) _settle(user, key.currency1, uint128(-amount1));
+            if (amount0 > 0) poolManager.take(key.currency0, user, uint128(amount0));
         }
     }
 
