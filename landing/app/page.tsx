@@ -295,26 +295,18 @@ export default function Home() {
                   icon: CheckCircle2
                 },
               ].map((card, i) => (
-                <motion.div
+                <Link 
                   key={i}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.1 }}
-                  className="h-full"
+                  href={card.link}
+                  className="block border border-white/10 rounded-lg p-6 hover:border-[#2962FF]/50 hover:bg-white/[0.02] hover:-translate-y-2 transition-all group"
                 >
-                  <Link 
-                    href={card.link}
-                    className="block border border-white/10 rounded-lg p-6 hover:border-[#2962FF]/50 hover:bg-white/[0.02] hover:-translate-y-2 hover:scale-[1.02] transition-all group h-full"
-                  >
-                    <card.icon className="w-8 h-8 text-[#2962FF] mb-4 group-hover:scale-110 group-hover:rotate-3 transition-all" />
-                    <h3 className="text-lg font-semibold mb-2 group-hover:text-[#2962FF] transition-colors">{card.title}</h3>
-                    <p className="text-sm text-gray-500 mb-4">{card.desc}</p>
-                    <div className="text-[#2962FF] text-sm flex items-center group-hover:gap-2 transition-all">
-                      Read more <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                    </div>
-                  </Link>
-                </motion.div>
+                  <card.icon className="w-8 h-8 text-[#2962FF] mb-4 group-hover:scale-110 group-hover:rotate-3 transition-all" />
+                  <h3 className="text-lg font-semibold mb-2 group-hover:text-[#2962FF] transition-colors">{card.title}</h3>
+                  <p className="text-sm text-gray-500 mb-4">{card.desc}</p>
+                  <div className="text-[#2962FF] text-sm flex items-center">
+                    Read more <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </Link>
               ))}
             </div>
           </div>
