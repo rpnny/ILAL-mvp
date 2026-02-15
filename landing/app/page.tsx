@@ -51,7 +51,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white font-sans antialiased">
       {/* Subtle grid background */}
-      <div className="fixed inset-0 opacity-[0.015]" style={{
+      <div className="fixed inset-0 opacity-[0.015] pointer-events-none" style={{
         backgroundImage: `linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)`,
         backgroundSize: '48px 48px'
       }} />
