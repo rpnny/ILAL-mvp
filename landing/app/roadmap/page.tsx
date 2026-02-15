@@ -235,7 +235,12 @@ export default function RoadmapPage() {
                     completion: "0%"
                   },
                 ].map((phase, i) => {
-                  const statusConfig = {
+                  const statusConfig: Record<string, {
+                    border: string;
+                    bg: string;
+                    badge: string;
+                    badgeText: string;
+                  }> = {
                     "in-progress": { 
                       border: "border-green-500/30", 
                       bg: "bg-green-500/5", 
