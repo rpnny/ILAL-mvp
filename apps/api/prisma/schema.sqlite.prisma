@@ -1,0 +1,74 @@
+// Prisma Schema for ILAL SaaS - SQLite 版本
+// 用于开发和测试（无需安装 PostgreSQL）
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 用户表
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  name          String?
+  walletAddress String?  @unique
+  plan          String   @default("FREE")  // "FREE" | "PRO" | "ENTERPRISE"
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  apiKeys       ApiKey[]
+  usageRecords  UsageRecord[]
+  subscriptions Subscription[]
+}
+
+// API Key 表
+model ApiKey {
+  id          String   @id @default(cuid())
+  userId      String
+  key         String   @unique  // bcrypt hash
+  keyPrefix   String
+  name        String
+  permissions String   @default("verify,session") // 逗号分隔: "verify,session,usage"
+  rateLimit   Int      @default(10)
+  isActive    Int      @default(1)  // SQLite 使用 Int 代替 Boolean: 1=true, 0=false
+  lastUsedAt  String?  // ISO string
+  createdAt   DateTime @default(now())
+  expiresAt   String?  // ISO string
+  
+  user         User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usageRecords UsageRecord[]
+}
+
+// 使用记录表
+model UsageRecord {
+  id           String   @id @default(cuid())
+  userId       String
+  apiKeyId     String
+  endpoint     String
+  method       String
+  statusCode   Int
+  cost         Float    @default(1.0)
+  responseTime Int?
+  timestamp    DateTime @default(now())
+  
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  apiKey ApiKey @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+}
+
+// 订阅表
+model Subscription {
+  id                 String   @id @default(cuid())
+  userId             String
+  plan               String   // "FREE" | "PRO" | "ENTERPRISE"
+  status             String   @default("ACTIVE") // "ACTIVE" | "CANCELLED" | "PAST_DUE" | "EXPIRED"
+  currentPeriodStart String   // ISO string
+  currentPeriodEnd   String   // ISO string
+  createdAt          DateTime @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

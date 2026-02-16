@@ -10,9 +10,9 @@ This document describes how to deploy ILAL (Institutional Liquidity Access Layer
 
 ```bash
 # Install dependencies
-cd contracts && forge install
-cd ../frontend && npm install
-cd ../subgraph && npm install
+cd packages/contracts && forge install
+cd ../../apps/web-demo && npm install
+cd ../../subgraph && npm install
 cd ../bot && npm install
 ```
 
@@ -43,7 +43,7 @@ BASESCAN_API_KEY=...
 ### 1. Deploy Contracts
 
 ```bash
-cd contracts
+cd packages/contracts
 
 # Deploy all contracts
 forge script script/DeployPlonk.s.sol:DeployPlonk \
@@ -64,18 +64,10 @@ After deployment, record the following addresses:
 
 ### 3. Configure Backend
 
-Update addresses in `frontend/lib/contracts.ts`:
+Update addresses in SDK/Web config:
 
 ```typescript
-const ADDRESSES: Record<number, ContractAddresses> = {
-  84532: { // Base Sepolia
-    registry: '0x...',
-    sessionManager: '0x...',
-    complianceHook: '0x...',
-    positionManager: '0x...',
-    verifier: '0x...',
-  },
-};
+`packages/sdk/src/constants/addresses.ts`
 ```
 
 ### 4. Deploy Subgraph
@@ -96,7 +88,7 @@ npm run deploy
 ### 5. Start Frontend
 
 ```bash
-cd frontend
+cd apps/web-demo
 npm run dev
 ```
 
@@ -113,7 +105,7 @@ npm run dev
 ### 2. Deploy Contracts
 
 ```bash
-cd contracts
+cd packages/contracts
 
 # Use Mainnet deployment script
 forge script script/DeployMainnet.s.sol:DeployMainnet \
@@ -144,7 +136,7 @@ registry.approveRouter(uniswapRouterAddress, true);
 
 ### 4. Update Configuration
 
-1. Update `frontend/lib/contracts.ts` with Mainnet addresses
+1. Update `packages/sdk/src/constants/addresses.ts` with Mainnet addresses
 2. Update `subgraph/config/base-mainnet.json`
 3. Update `bot/config.yaml`
 

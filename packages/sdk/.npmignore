@@ -1,0 +1,38 @@
+# Source files
+src/
+tests/
+examples/
+
+# Config files
+tsconfig.json
+tsup.config.ts
+.eslintrc.json
+
+# Development
+node_modules/
+*.log
+*.tsbuildinfo
+
+# Testing
+coverage/
+.nyc_output/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation (keep README.md)
+docs/
+
+# Only include dist/ in the published package

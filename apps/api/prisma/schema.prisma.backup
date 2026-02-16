@@ -1,0 +1,100 @@
+// Prisma Schema for ILAL SaaS
+// Database: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 用户表
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  name          String?
+  walletAddress String?  @unique
+  plan          Plan     @default(FREE)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  apiKeys       ApiKey[]
+  usageRecords  UsageRecord[]
+  subscriptions Subscription[]
+
+  @@index([email])
+  @@index([walletAddress])
+}
+
+// API Key 表
+model ApiKey {
+  id          String   @id @default(cuid())
+  userId      String
+  key         String   @unique  // bcrypt hash of actual key
+  keyPrefix   String              // 前4个字符用于识别 (例如 "ilal")
+  name        String
+  permissions Json     @default("[]") // ["verify", "session", "usage"]
+  rateLimit   Int      @default(10)   // 每分钟请求数
+  isActive    Boolean  @default(true)
+  lastUsedAt  DateTime?
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime?
+  
+  user         User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usageRecords UsageRecord[]
+
+  @@index([userId])
+  @@index([keyPrefix])
+}
+
+// 使用记录表
+model UsageRecord {
+  id          String   @id @default(cuid())
+  userId      String
+  apiKeyId    String
+  endpoint    String   // "/api/v1/verify"
+  method      String   // "POST"
+  statusCode  Int
+  cost        Float    @default(1.0) // 计费权重
+  responseTime Int?    // 响应时间（毫秒）
+  timestamp   DateTime @default(now())
+  
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  apiKey ApiKey @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  @@index([userId, timestamp])
+  @@index([apiKeyId, timestamp])
+}
+
+// 订阅表
+model Subscription {
+  id                 String             @id @default(cuid())
+  userId             String
+  plan               Plan
+  status             SubscriptionStatus @default(ACTIVE)
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  createdAt          DateTime           @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// 套餐枚举
+enum Plan {
+  FREE        // 免费版：100次/月，10req/min
+  PRO         // 专业版：10,000次/月，100req/min
+  ENTERPRISE  // 企业版：无限制，1000req/min
+}
+
+// 订阅状态枚举
+enum SubscriptionStatus {
+  ACTIVE      // 活跃
+  CANCELLED   // 已取消
+  PAST_DUE    // 逾期未付
+  EXPIRED     // 已过期
+}

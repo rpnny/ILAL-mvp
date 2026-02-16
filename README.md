@@ -1,256 +1,190 @@
 # ILAL - Institutional Liquidity Access Layer
 
-**Compliant DeFi Access Control System built on Uniswap v4 Hooks**
+> 合规的 DeFi 基础设施，基于 Uniswap V4 Hooks 构建
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-[![Network: Base Sepolia](https://img.shields.io/badge/Network-Base%20Sepolia-blue)](https://sepolia.basescan.org/)
-[![Tests: 97.6%](https://img.shields.io/badge/Tests-97.6%25%20Pass-brightgreen)](./docs/testing/TEST_REPORT.md)
-[![Coverage: 99%](https://img.shields.io/badge/Coverage-99%25-brightgreen)](./docs/testing/CODE_HEALTH_CHECK.md)
-[![Solidity: 0.8.26](https://img.shields.io/badge/Solidity-0.8.26-blue)](https://docs.soliditylang.org/)
-[![Gas: 96.8% Savings](https://img.shields.io/badge/Gas%20Savings-96.8%25-success)](./docs/GAS_EFFICIENCY_BENCHMARKS.md)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![Base Sepolia](https://img.shields.io/badge/Base-Sepolia-blue)](https://basescan.org)
 
----
+## 🚀 快速开始
 
-## Overview
-
-ILAL (Institutional Liquidity Access Layer) is a compliance-first DeFi protocol that implements on-chain access control using Uniswap v4 Hooks and zero-knowledge proofs. It enables institutional users to access DeFi liquidity while maintaining regulatory compliance and privacy.
-
-**Key Features**:
-- ✅ ZK-proof based identity verification
-- ✅ On-chain compliance via ComplianceHook
-- ✅ Privacy-preserving (no PII on-chain)
-- ✅ Multi-KYC provider support
-- ✅ Session-based access control
-
-**Current Status**: Development complete, ready for testnet verification  
-**Deployment**: Base Sepolia Testnet
-
----
-
-## Quick Start
-
-### For Users
-
-1. **Connect Wallet** → Connect to Base Sepolia network
-2. **Verify Identity** → Complete Coinbase Onchain Verify or use mock mode
-3. **Activate Session** → Generate ZK proof to activate 24-hour session
-4. **Trade & Provide Liquidity** → Access compliant pools
-
-**Demo**: [Coming Soon]
-
-### For Developers
+### 项目开发入口（Monorepo）
 
 ```bash
-# Clone the repository
-git clone [repository-url]
-cd ilal
-
-# Install dependencies
-cd frontend && npm install
-cd ../contracts && forge install
-
-# Configure environment
-cp frontend/.env.example frontend/.env.local
-# Edit .env.local with your configuration
-
-# Start frontend
-cd frontend && npm run dev
-
-# Visit http://localhost:3000
+pnpm install
+pnpm build
+pnpm dev
 ```
 
----
+**新同学建议先读**：`START_HERE.md` 和 `docs/INDEX.md`
 
-## Documentation
+### 对于开发者：使用 SDK
 
-### 📊 Main Reports
-- **[Project Report](./docs/testing/PROJECT_REPORT.md)** ⭐ - Complete project overview
-- **[Test Report](./docs/testing/TEST_REPORT.md)** - Testing results
+```bash
+npm install @ilal/sdk viem
+```
 
-### 📖 Technical Guides
-- **[Architecture](./docs/guides/ARCHITECTURE.md)** - System design
-- **[Deployment Guide](./docs/guides/DEPLOYMENT.md)** - Deployment instructions
-- **[Debug Guide](./docs/guides/SWAP_DEBUG_GUIDE.md)** - Troubleshooting
+```typescript
+import { ILALClient } from '@ilal/sdk';
 
-### 🌐 Localized Docs
-- [中文文档](./README_CN.md) - Chinese documentation
+const client = ILALClient.fromProvider({
+  provider: window.ethereum,
+  chainId: 84532,
+});
 
-**Full documentation**: See [`docs/README.md`](./docs/README.md)
+// 激活 Session
+await client.session.activate();
 
----
+// 执行 Swap
+await client.swap.execute({
+  tokenIn: BASE_SEPOLIA_TOKENS.USDC,
+  tokenOut: BASE_SEPOLIA_TOKENS.WETH,
+  amountIn: parseUnits('100', 6),
+});
+```
 
-## Project Structure
+**📖 完整文档**: [`packages/sdk/README.md`](packages/sdk/README.md)
+
+## ✨ 特性
+
+- **🔐 合规优先** - Session 管理 + ZK 证明 + EAS 验证
+- **💧 流动性管理** - 基于 Uniswap V4 的机构级深度
+- **🔄 安全交换** - 白名单路由 + ComplianceHook 保护
+- **📦 开发者友好** - 完整的 TypeScript SDK
+- **🌐 Monorepo 架构** - SDK、合约、电路统一管理
+
+## 🏗️ 项目结构（Monorepo）
 
 ```
 ilal/
-├── contracts/          # Smart contracts (Solidity + Foundry)
-├── frontend/          # Next.js frontend application
-├── circuits/          # Zero-knowledge circuits (Circom)
-├── scripts/           # Deployment and testing scripts
-├── bot/              # Market maker bot
-├── devops/           # DevOps configuration
-└── docs/             # 📚 All documentation
-    ├── reports/      # Project reports & test results
-    ├── guides/       # Technical guides
-    └── archives/     # Historical documents
+├── packages/
+│   ├── sdk/              # ⭐ ILAL SDK（核心产品）
+│   ├── contracts/        # 智能合约（Foundry）
+│   └── circuits/         # ZK 电路（Circom）
+├── apps/
+│   ├── web-demo/         # Web Demo（SDK 参考实现）
+│   └── api/              # SaaS API（含原 Verifier Relay 能力）
+├── scripts/              # 部署和测试脚本
+└── docs/                 # 技术文档
 ```
 
----
+## 📦 SDK API 概览
 
-## Key Contracts (Base Sepolia)
+### 核心模块
 
-| Contract | Address | Purpose |
-|----------|---------|---------|
-| Registry | `0x4C4e...29BD` | System governance |
-| SessionManager | `0x53fA...50e2` | Session management |
-| ComplianceHook | `0xDeDc...8a80` | Access control hook |
-| PositionManager | `0x5b46...1f31` | Liquidity management |
-| SimpleSwapRouter | `0xD36F...eEdB` | Trading router |
+| 模块 | 功能 | 示例 |
+|------|------|------|
+| **Session** | 合规会话管理 | `client.session.activate()` |
+| **Swap** | 代币交换 | `client.swap.execute(params)` |
+| **Liquidity** | 流动性管理 | `client.liquidity.add(params)` |
+| **ZKProof** | 零知识证明生成 | `client.zkproof.generate(addr)` |
+| **EAS** | 身份验证 | `client.eas.getVerification(addr)` |
 
-**Full deployment info**: [`docs/guides/COMPLETE_DEPLOYMENT_SUMMARY.md`](./docs/guides/COMPLETE_DEPLOYMENT_SUMMARY.md)
+### 完整示例
 
----
+查看 [`packages/sdk/examples/`](packages/sdk/examples/) 目录：
 
-## Tech Stack
+- [基础设置](packages/sdk/examples/01-basic-setup.ts)
+- [Session 管理](packages/sdk/examples/02-session-management.ts)
+- [基本 Swap](packages/sdk/examples/03-basic-swap.ts)
+- [添加流动性](packages/sdk/examples/04-add-liquidity.ts)
+- [ZK Proof 生成](packages/sdk/examples/05-zk-proof.ts)
+- [EAS 验证](packages/sdk/examples/06-eas-verification.ts)
 
-**Smart Contracts**:
-- Solidity ^0.8.26
-- Uniswap v4 Core (Hooks)
-- Foundry
+## 🔗 合约地址（Base Sepolia）
 
-**Frontend**:
-- Next.js 14 + React 18
-- Wagmi v2 + Viem
-- RainbowKit
-- TailwindCSS
+| 合约 | 地址 |
+|------|------|
+| Registry | `0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD` |
+| SessionManager | `0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2` |
+| ComplianceHook | `0xDeDcFDF10b03AB45eEbefD2D91EDE66D9E5c8a80` |
+| SimpleSwapRouter | `0xfBfc94f61b009C1DD39dB88A3b781199973E2e44` |
+| PositionManager | `0x5b460c8Bd32951183a721bdaa3043495D8861f31` |
 
-**Identity & Compliance**:
-- Coinbase Verifications (EAS)
-- PLONK Zero-Knowledge Proofs
-- Multi-KYC provider support
+## 🧪 测试
 
----
-
-## Development Workflow
-
-### Contracts
+### Mock Theater 测试（双账户场景）
 
 ```bash
-cd contracts
-
-# Run tests
-forge test
-
-# Deploy to Base Sepolia
-forge script script/Deploy.s.sol --rpc-url $BASE_SEPOLIA_RPC --broadcast
-
-# Verify contracts
-forge verify-contract [ADDRESS] [CONTRACT] --chain-id 84532
+cd scripts/system-test
+export ACCOUNT_A_KEY="0x..." # 机构巨鲸
+export ACCOUNT_B_KEY="0x..." # 高频交易员
+./run-theater.sh
 ```
 
-### Frontend
+**测试说明**: [`scripts/system-test/README-MOCK-THEATER.md`](scripts/system-test/README-MOCK-THEATER.md)
+
+### SDK 单元测试
 
 ```bash
-cd frontend
+cd packages/sdk
+npm test
+```
 
-# Development
-npm run dev
+## 🏃 本地开发（Monorepo）
 
-# Build for production
+### 安装依赖
+
+```bash
+# 使用 pnpm（推荐）
+pnpm install
+
+# 或使用 npm
+npm install
+```
+
+### 启动开发环境
+
+```bash
+# 并行构建所有包
+pnpm turbo build
+
+# 启动 SDK 开发模式 + Web Demo
+pnpm turbo dev
+```
+
+### 构建单个包
+
+```bash
+# 构建 SDK
+cd packages/sdk
 npm run build
 
-# Run linter
-npm run lint
+# 构建合约
+cd packages/contracts
+forge build
+
+# 构建 ZK 电路
+cd packages/circuits
+npm run build
 ```
 
----
+## 📚 文档
 
-## Testing
+- **文档导航**: [`docs/INDEX.md`](docs/INDEX.md)
+- **SDK 文档**: [`packages/sdk/README.md`](packages/sdk/README.md)
+- **合约文档**: [`packages/contracts/README.md`](packages/contracts/README.md)
+- **部署指南**: [`docs/guides/DEPLOYMENT.md`](docs/guides/DEPLOYMENT.md)
+- **架构设计**: [`docs/guides/ARCHITECTURE.md`](docs/guides/ARCHITECTURE.md)
 
-### Run All Tests
+## 🤝 贡献
 
-```bash
-# Smart contract tests
-cd contracts && forge test
+欢迎贡献！请查看 [CONTRIBUTING.md](CONTRIBUTING.md)
 
-# Frontend tests
-cd frontend && npm test
+## 📄 License
 
-# End-to-end tests
-./scripts/deployment/test-all-features.sh
-```
+Apache-2.0 © 2026 ILAL Team
 
-**Test results**: See [`docs/reports/TEST_REPORT.md`](./docs/reports/TEST_REPORT.md)
+## 🔗 链接
 
----
-
-## Security
-
-### Audits
-- ✅ Slither static analysis: [`contracts/slither-report.json`](./contracts/slither-report.json)
-- 🔄 External audit: Pending
-
-### Known Limitations
-- Testnet only (Base Sepolia)
-- Relay service dependency for session activation
-- Mock mode for development (must disable in production)
-
-**Security considerations**: See Project Report section 7
+- **GitHub**: [github.com/your-org/ilal](https://github.com/your-org/ilal)
+- **文档**: [docs.ilal.xyz](https://docs.ilal.xyz)
+- **Discord**: [discord.gg/ilal](https://discord.gg/ilal)
+- **Twitter**: [@ILALProtocol](https://twitter.com/ILALProtocol)
 
 ---
 
-## Contributing
+**🎯 核心理念**: ILAL 专注于提供基础设施层的合规解决方案。我们不是一个 DEX，而是让机构安全接入 DeFi 流动性的基础设施提供商。
 
-We welcome contributions! Please:
+**🚀 当前状态**: Base Sepolia 测试网已部署，SDK v0.1.0 已发布。主网即将推出。
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
----
-
-## Roadmap
-
-### Short-term (1-2 weeks)
-- [ ] Complete real verification testing
-- [ ] Multi-language UI support
-- [ ] Session auto-renewal
-
-### Mid-term (1-2 months)
-- [ ] Graph Protocol subgraph deployment
-- [ ] Additional trading pairs
-- [ ] Liquidity mining incentives
-
-### Long-term (3-6 months)
-- [ ] Base Mainnet deployment
-- [ ] DAO governance
-- [ ] Cross-chain support
-
----
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
-
----
-
-## Contact & Support
-
-- **Documentation**: [`docs/`](./docs/README.md)
-- **Issues**: [GitHub Issues]
-- **Discussions**: [GitHub Discussions]
-
----
-
-## Acknowledgments
-
-- Uniswap v4 team for the Hooks architecture
-- Coinbase for Onchain Verify infrastructure
-- Base team for testnet support
-
----
-
-**Last Updated**: 2026-02-12  
-**Version**: v1.0.0 (Testnet)
+**Made with ❤️ for the DeFi ecosystem**

@@ -1,0 +1,72 @@
+{
+  "name": "@ilal/sdk",
+  "version": "0.1.0",
+  "description": "ILAL Protocol SDK - Compliant DeFi infrastructure",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.mts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest",
+    "lint": "eslint src --ext ts",
+    "type-check": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "viem": "^2.21.54"
+  },
+  "peerDependencies": {
+    "viem": ">=2.0.0"
+  },
+  "optionalDependencies": {
+    "circomlibjs": "^0.1.7",
+    "snarkjs": "^0.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.6",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.56.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "keywords": [
+    "defi",
+    "compliance",
+    "uniswap-v4",
+    "zk-proof",
+    "ethereum",
+    "base",
+    "sdk"
+  ],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/ilal.git",
+    "directory": "packages/sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/ilal/issues"
+  },
+  "homepage": "https://github.com/your-org/ilal/tree/main/packages/sdk#readme"
+}

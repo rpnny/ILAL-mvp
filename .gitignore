@@ -18,7 +18,8 @@ yarn-error.log*
 .env.development
 !.env.example
 !.env*.example
-!frontend/.env.example
+!apps/*/.env.example
+!packages/*/.env.example
 !bot/.env.example
 
 # IDEs
@@ -47,6 +48,15 @@ circuits/verification_key.json
 # Frontend
 frontend/.next/
 frontend/out/
+apps/web-demo/.next/
+apps/web-demo/out/
+landing/.next/
+landing/out/
+
+# Monorepo package outputs
+packages/*/dist/
+apps/*/dist/
+bot/dist/
 
 # Subgraph
 subgraph/build/
@@ -61,3 +71,23 @@ private_keys/
 logs/
 *.log
 circuits/keys/*.ptau
+
+# Root-level transient reports (source-of-truth is under docs/)
+/*_FIX*.md
+/*_SUMMARY*.md
+/*_REPORT*.md
+/STATUS_UPDATE_*.md
+/MOCK_THEATER*.md
+/QUICK_*.md
+/RUN_TEST_NOW.md
+/SUBGRAPH_INFO.md
+/GITHUB_UPLOAD_SOLUTION.md
+/*测试*.md
+/*安装*.md
+/*配置*.md
+/SAAS_*.md
+/PostgreSQL*.md
+/Supabase*.md
+/FINAL_DELIVERY*.md
+/*项目*.md
+/如何*.md

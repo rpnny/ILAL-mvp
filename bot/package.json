@@ -2,6 +2,7 @@
   "name": "ilal-market-maker",
   "version": "0.1.0",
   "description": "ILAL Market Maker Bot - Automated liquidity management with compliance",
+  "license": "Apache-2.0",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {

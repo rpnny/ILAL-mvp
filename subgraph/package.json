@@ -6,7 +6,7 @@
     "type": "git",
     "url": "https://github.com/your-org/ilal"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "scripts": {
     "prepare:base-sepolia": "node scripts/prepare.js base-sepolia",
     "prepare:base-mainnet": "node scripts/prepare.js base-mainnet",

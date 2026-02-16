@@ -1,0 +1,24 @@
+{
+  "name": "ilal-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ILAL - Institutional Liquidity Access Layer Monorepo",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean",
+    "dev:web": "pnpm --filter @ilal/web-demo dev",
+    "dev:api": "pnpm --filter @ilal/api dev",
+    "build:sdk": "pnpm --filter @ilal/sdk build"
+  },
+  "devDependencies": {
+    "turbo": "^1.13.0"
+  },
+  "packageManager": "pnpm@8.15.0",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}

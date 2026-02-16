@@ -1,0 +1,29 @@
+{
+  "name": "ilal-circuits",
+  "version": "1.0.0",
+  "description": "ILAL ZK Circuits - PLONK compliance verification",
+  "main": "scripts/generate-test-proof.js",
+  "scripts": {
+    "compile": "cd scripts && ./compile.sh",
+    "setup": "cd scripts && ./setup.sh",
+    "generate-proof": "node scripts/generate-test-proof.js",
+    "test": "node scripts/generate-test-proof.js"
+  },
+  "keywords": [
+    "zk",
+    "plonk",
+    "circom",
+    "snarkjs",
+    "compliance"
+  ],
+  "author": "ILAL Team",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "circomlibjs": "^0.1.7",
+    "ethers": "^6.16.0",
+    "snarkjs": "^0.7.4"
+  },
+  "devDependencies": {
+    "circom_tester": "^0.0.19"
+  }
+}
