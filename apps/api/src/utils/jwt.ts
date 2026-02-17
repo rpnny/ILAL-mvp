@@ -1,5 +1,5 @@
 /**
- * JWT Token 工具函数
+ * JWT Token utility functions
  */
 
 import jwt from 'jsonwebtoken';
@@ -14,7 +14,7 @@ export interface JWTPayload {
 }
 
 /**
- * 生成访问 Token
+ * Generate access token
  */
 export function generateAccessToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
   return jwt.sign(payload, JWT_SECRET, {
@@ -23,7 +23,7 @@ export function generateAccessToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): s
 }
 
 /**
- * 生成刷新 Token
+ * Generate refresh token
  */
 export function generateRefreshToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
   return jwt.sign(payload, JWT_SECRET, {
@@ -32,7 +32,7 @@ export function generateRefreshToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): 
 }
 
 /**
- * 验证 Token
+ * Verify token
  */
 export function verifyToken(token: string): JWTPayload {
   try {
@@ -43,7 +43,7 @@ export function verifyToken(token: string): JWTPayload {
 }
 
 /**
- * 解码 Token (不验证签名)
+ * Decode token (without verifying signature)
  */
 export function decodeToken(token: string): JWTPayload | null {
   try {

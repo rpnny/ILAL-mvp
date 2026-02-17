@@ -1,5 +1,5 @@
 /**
- * 计费服务 - 使用追踪和配额管理
+ * Billing Service - Usage recording, quota management, plan upgrades
  */
 
 import { prisma } from '../config/database.js';
@@ -9,7 +9,7 @@ import type { Plan } from '@prisma/client';
 
 class BillingService {
   /**
-   * 记录 API 使用
+   * Record API usage
    */
   async recordUsage(params: {
     userId: string;
@@ -39,12 +39,12 @@ class BillingService {
       });
     } catch (error: any) {
       logger.error('Failed to record usage', { error: error.message });
-      // 不抛出错误，避免影响主流程
+      // Do not throw an error to avoid affecting the main process
     }
   }
 
   /**
-   * 检查配额是否充足
+   * Check user quota
    */
   async checkQuota(userId: string, plan: Plan): Promise<{
     allowed: boolean;
@@ -56,7 +56,7 @@ class BillingService {
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-    // 获取本月使用量
+    // Get current month's usage count
     const usageCount = await prisma.usageRecord.count({
       where: {
         userId,
@@ -80,7 +80,7 @@ class BillingService {
   }
 
   /**
-   * 获取用户本月使用统计
+   * Get usage statistics
    */
   async getMonthlyStats(userId: string): Promise<{
     totalCalls: number;
@@ -121,7 +121,7 @@ class BillingService {
   }
 
   /**
-   * 获取用户的当前套餐限制信息
+   * Get current plan limit info for user
    */
   getPlanLimits(plan: Plan): {
     monthlyQuota: number;
@@ -137,7 +137,7 @@ class BillingService {
   }
 
   /**
-   * 检查是否允许升级套餐
+   * Check if plan upgrade is allowed
    */
   canUpgradePlan(currentPlan: Plan, targetPlan: Plan): boolean {
     const planOrder = { FREE: 0, PRO: 1, ENTERPRISE: 2 };
@@ -145,7 +145,7 @@ class BillingService {
   }
 
   /**
-   * 升级用户套餐
+   * Upgrade user plan
    */
   async upgradePlan(userId: string, newPlan: Plan): Promise<void> {
     const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -159,13 +159,13 @@ class BillingService {
     }
 
     await prisma.$transaction([
-      // 更新用户套餐
+      // Update user plan
       prisma.user.update({
         where: { id: userId },
         data: { plan: newPlan },
       }),
 
-      // 创建订阅记录
+      // Create subscription record
       prisma.subscription.create({
         data: {
           userId,
@@ -181,7 +181,7 @@ class BillingService {
   }
 
   /**
-   * 获取用户活跃订阅
+   * Get user's active subscription
    */
   async getActiveSubscription(userId: string) {
     return await prisma.subscription.findFirst({

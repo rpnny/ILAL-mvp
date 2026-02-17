@@ -1,5 +1,5 @@
 /**
- * 认证路由
+ * Authentication Routes
  */
 
 import { Router } from 'express';
@@ -9,16 +9,16 @@ import { authRateLimiter, registerRateLimiter } from '../middleware/ratelimit.mi
 
 const router = Router();
 
-// POST /api/v1/auth/register - 用户注册
+// POST /api/v1/auth/register - User registration
 router.post('/register', registerRateLimiter, authController.register);
 
-// POST /api/v1/auth/login - 用户登录
+// POST /api/v1/auth/login - User login
 router.post('/login', authRateLimiter, authController.login);
 
-// POST /api/v1/auth/refresh - 刷新 access token
+// POST /api/v1/auth/refresh - Refresh access token
 router.post('/refresh', authController.refresh);
 
-// GET /api/v1/auth/me - 获取当前用户信息（需要认证）
+// GET /api/v1/auth/me - Get current user info (requires auth)
 router.get('/me', authMiddleware, authController.getMe);
 
 export default router;

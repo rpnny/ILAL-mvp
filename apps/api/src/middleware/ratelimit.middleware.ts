@@ -1,5 +1,5 @@
 /**
- * 限流中间件
+ * Rate Limiting Middleware
  */
 
 import rateLimit from 'express-rate-limit';
@@ -8,22 +8,22 @@ import { RATE_LIMITS } from '../config/constants.js';
 import type { Plan } from '@prisma/client';
 
 /**
- * 动态限流中间件 - 根据用户套餐动态调整限流
+ * Dynamic rate limiter - adjusts rate limits based on user plan
  */
 export const dynamicRateLimiter = rateLimit({
-  windowMs: 60000, // 1分钟窗口
+  windowMs: 60000, // 1 minute window
   max: (req: Request) => {
-    // 如果有用户信息，根据套餐返回限制
+    // If user info is present, return plan-based limit
     if (req.user?.plan) {
       const plan = req.user.plan as Plan;
       return RATE_LIMITS[plan]?.max || RATE_LIMITS.FREE.max;
     }
 
-    // 默认使用免费套餐限制
+    // Default to free plan limit
     return RATE_LIMITS.FREE.max;
   },
-  standardHeaders: true, // 返回标准的 RateLimit headers
-  legacyHeaders: false, // 禁用 X-RateLimit-* headers
+  standardHeaders: true, // Return standard RateLimit headers
+  legacyHeaders: false, // Disable X-RateLimit-* headers
   handler: (req: Request, res: Response) => {
     res.status(429).json({
       error: 'Too Many Requests',
@@ -32,24 +32,24 @@ export const dynamicRateLimiter = rateLimit({
     });
   },
   keyGenerator: (req: Request) => {
-    // 使用 API Key ID 或用户 ID 作为限流 key
+    // Use API Key ID or user ID as rate limit key
     if (req.apiKey?.id) {
       return `apikey:${req.apiKey.id}`;
     }
     if (req.user?.userId) {
       return `user:${req.user.userId}`;
     }
-    // fallback 到 IP
+    // Fallback to IP
     return req.ip || 'unknown';
   },
 });
 
 /**
- * 为不同端点创建固定限流器
+ * Fixed rate limiter for specific endpoints
  */
 export const authRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15分钟
-  max: 5, // 每15分钟最多5次登录尝试
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Max 5 login attempts per 15 minutes
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req: Request, res: Response) => {
@@ -62,11 +62,11 @@ export const authRateLimiter = rateLimit({
 });
 
 /**
- * 注册限流器
+ * Registration rate limiter
  */
 export const registerRateLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1小时
-  max: 3, // 每小时最多3次注册
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3, // Max 3 registrations per hour
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req: Request, res: Response) => {

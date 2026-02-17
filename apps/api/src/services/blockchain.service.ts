@@ -1,5 +1,5 @@
 /**
- * 区块链服务 - 保留原 Relay 的链上交互逻辑
+ * Blockchain Service - Preserves original relay on-chain interaction logic
  */
 
 import { createPublicClient, createWalletClient, http, type Address, type Hex } from 'viem';
@@ -50,7 +50,7 @@ class BlockchainService {
   }
 
   /**
-   * 验证 ZK Proof（链上只读调用）
+   * Verify ZK Proof (on-chain read-only call)
    */
   async verifyProof(proof: Hex, publicInputs: bigint[]): Promise<boolean> {
     try {
@@ -70,7 +70,7 @@ class BlockchainService {
   }
 
   /**
-   * 检查用户是否有活跃 Session
+   * Check if user has an active session
    */
   async isSessionActive(userAddress: Address): Promise<boolean> {
     try {
@@ -89,7 +89,7 @@ class BlockchainService {
   }
 
   /**
-   * 获取 Session 剩余时间
+   * Get session remaining time
    */
   async getRemainingTime(userAddress: Address): Promise<number> {
     try {
@@ -108,7 +108,7 @@ class BlockchainService {
   }
 
   /**
-   * 激活 Session（链上交易）
+   * Activate session (on-chain transaction)
    */
   async startSession(userAddress: Address, durationSeconds: number = 24 * 60 * 60): Promise<{
     txHash: string;
@@ -149,19 +149,19 @@ class BlockchainService {
   }
 
   /**
-   * 获取当前区块号（用于健康检查）
+   * Get current block number (for health check)
    */
   async getBlockNumber(): Promise<bigint> {
     return await this.publicClient.getBlockNumber();
   }
 
   /**
-   * 获取 Relay 账户地址
+   * Get relay account address
    */
   getRelayAddress(): Address {
     return this.account.address;
   }
 }
 
-// 单例导出
+// Singleton export
 export const blockchainService = new BlockchainService();

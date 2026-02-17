@@ -1,5 +1,5 @@
 /**
- * API Key 生成和验证工具
+ * API Key generation and verification utilities
  */
 
 import crypto from 'crypto';
@@ -7,9 +7,9 @@ import bcrypt from 'bcrypt';
 import { API_KEY_PREFIX, API_KEY_SECRET } from '../config/constants.js';
 
 /**
- * 生成新的 API Key
- * 格式: ilal_env_randomstring
- * 例如: ilal_live_1234567890abcdef1234567890abcdef
+ * Generate a new API Key
+ * Format: ilal_env_randomstring
+ * Example: ilal_live_1234567890abcdef1234567890abcdef
  */
 export function generateApiKey(env: 'test' | 'live' = 'live'): string {
   const randomBytes = crypto.randomBytes(24); // 24 bytes = 48 hex chars
@@ -18,7 +18,7 @@ export function generateApiKey(env: 'test' | 'live' = 'live'): string {
 }
 
 /**
- * 哈希 API Key（用于存储）
+ * Hash API Key (for storage)
  */
 export async function hashApiKey(apiKey: string): Promise<string> {
   const saltRounds = 10;
@@ -26,7 +26,7 @@ export async function hashApiKey(apiKey: string): Promise<string> {
 }
 
 /**
- * 验证 API Key
+ * Verify API Key
  */
 export async function verifyApiKey(apiKey: string, hash: string): Promise<boolean> {
   try {
@@ -37,10 +37,10 @@ export async function verifyApiKey(apiKey: string, hash: string): Promise<boolea
 }
 
 /**
- * 提取 API Key 前缀（用于快速查询）
+ * Extract API Key prefix (for fast lookup)
  */
 export function extractApiKeyPrefix(apiKey: string): string {
-  // 提取格式 "ilal_live" 或 "ilal_test"
+  // Extract format "ilal_live" or "ilal_test"
   const parts = apiKey.split('_');
   if (parts.length >= 2) {
     return `${parts[0]}_${parts[1]}`;
@@ -49,7 +49,7 @@ export function extractApiKeyPrefix(apiKey: string): string {
 }
 
 /**
- * 验证 API Key 格式
+ * Validate API Key format
  */
 export function isValidApiKeyFormat(apiKey: string): boolean {
   const pattern = new RegExp(`^${API_KEY_PREFIX}_(test|live)_[a-f0-9]{48}$`);

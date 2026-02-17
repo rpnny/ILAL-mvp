@@ -1,5 +1,5 @@
 /**
- * API Key 认证中间件
+ * API Key Authentication Middleware
  */
 
 import type { Request, Response, NextFunction } from 'express';
@@ -7,7 +7,7 @@ import { prisma } from '../config/database.js';
 import { verifyApiKey, extractApiKeyPrefix, isValidApiKeyFormat } from '../utils/apiKey.js';
 import { logger } from '../config/logger.js';
 
-// 扩展 Express Request 类型
+// Extend Express Request type
 declare global {
   namespace Express {
     interface Request {
@@ -23,8 +23,8 @@ declare global {
 }
 
 /**
- * API Key 认证中间件
- * 从 X-API-Key header 中提取和验证 API Key
+ * API Key Authentication Middleware
+ * Extracts and validates API Key from X-API-Key header
  */
 export async function apiKeyMiddleware(
   req: Request,
@@ -42,7 +42,7 @@ export async function apiKeyMiddleware(
       return;
     }
 
-    // 验证格式
+    // Validate format
     if (!isValidApiKeyFormat(apiKeyHeader)) {
       res.status(401).json({
         error: 'Unauthorized',
@@ -51,10 +51,10 @@ export async function apiKeyMiddleware(
       return;
     }
 
-    // 提取前缀用于快速查询
+    // Extract prefix for fast lookup
     const prefix = extractApiKeyPrefix(apiKeyHeader);
 
-    // 查询 API Key（使用前缀过滤）
+    // Query API Key (filter by prefix)
     const apiKeys = await prisma.apiKey.findMany({
       where: {
         keyPrefix: prefix,
@@ -71,7 +71,7 @@ export async function apiKeyMiddleware(
       },
     });
 
-    // 验证 API Key（需要逐个比对 hash）
+    // Verify API Key (compare hashes one by one)
     let matchedKey: typeof apiKeys[0] | null = null;
 
     for (const key of apiKeys) {
@@ -90,7 +90,7 @@ export async function apiKeyMiddleware(
       return;
     }
 
-    // 更新最后使用时间（异步，不阻塞请求）
+    // Update last used time (async, non-blocking)
     prisma.apiKey.update({
       where: { id: matchedKey.id },
       data: { lastUsedAt: new Date() },
@@ -98,11 +98,11 @@ export async function apiKeyMiddleware(
       logger.error('Failed to update API Key lastUsedAt', { error: err.message });
     });
 
-    // 将 API Key 和用户信息附加到 request
+    // Attach API Key and user info to request
     req.apiKey = {
       id: matchedKey.id,
       userId: matchedKey.userId,
-      permissions: Array.isArray(matchedKey.permissions) 
+      permissions: Array.isArray(matchedKey.permissions)
         ? matchedKey.permissions as string[]
         : [],
       rateLimit: matchedKey.rateLimit,
@@ -126,7 +126,7 @@ export async function apiKeyMiddleware(
 }
 
 /**
- * 权限检查中间件工厂函数
+ * Permission check middleware factory
  */
 export function requirePermission(permission: string) {
   return (req: Request, res: Response, next: NextFunction): void => {

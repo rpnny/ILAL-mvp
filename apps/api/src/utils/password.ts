@@ -1,5 +1,5 @@
 /**
- * 密码哈希和验证工具
+ * Password hashing and verification utilities
  */
 
 import bcrypt from 'bcrypt';
@@ -7,14 +7,14 @@ import bcrypt from 'bcrypt';
 const SALT_ROUNDS = 12;
 
 /**
- * 哈希密码
+ * Hash a password
  */
 export async function hashPassword(password: string): Promise<string> {
   return await bcrypt.hash(password, SALT_ROUNDS);
 }
 
 /**
- * 验证密码
+ * Verify a password
  */
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
   try {
@@ -25,8 +25,8 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 /**
- * 验证密码强度
- * 至少8个字符，包含大小写字母和数字
+ * Validate password strength
+ * At least 8 characters, including uppercase, lowercase, and digits
  */
 export function validatePasswordStrength(password: string): {
   valid: boolean;
@@ -35,19 +35,19 @@ export function validatePasswordStrength(password: string): {
   const errors: string[] = [];
 
   if (password.length < 8) {
-    errors.push('密码至少需要8个字符');
+    errors.push('Password must be at least 8 characters');
   }
 
   if (!/[a-z]/.test(password)) {
-    errors.push('密码需要包含小写字母');
+    errors.push('Password must contain a lowercase letter');
   }
 
   if (!/[A-Z]/.test(password)) {
-    errors.push('密码需要包含大写字母');
+    errors.push('Password must contain an uppercase letter');
   }
 
   if (!/[0-9]/.test(password)) {
-    errors.push('密码需要包含数字');
+    errors.push('Password must contain a digit');
   }
 
   return {

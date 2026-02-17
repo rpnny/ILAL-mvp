@@ -1,10 +1,10 @@
-# ILAL 快速入口
+# ILAL Quick Start
 
-这个文件只保留最短上手路径。更完整文档请看 `docs/INDEX.md`。
+This file provides the shortest path to get up and running. For complete documentation, see `docs/INDEX.md`.
 
 ---
 
-## 1) 项目初始化（Monorepo）
+## 1) Project Initialization (Monorepo)
 
 ```bash
 cd ~/Desktop/ilal
@@ -14,22 +14,22 @@ pnpm build
 
 ---
 
-## 2) 本地开发（推荐顺序）
+## 2) Local Development (Recommended Order)
 
-### 启动 Web Demo
+### Start Web Demo
 ```bash
 cd apps/web-demo
 npm run dev
 ```
 
-### 启动 API（可选，但推荐）
+### Start API (Optional, but recommended)
 ```bash
 cd apps/api
 cp .env.example .env
 npm run dev
 ```
 
-### 启动 Bot（可选）
+### Start Bot (Optional)
 ```bash
 cd bot
 npm run dev
@@ -37,15 +37,15 @@ npm run dev
 
 ---
 
-## 3) 部署与系统测试
+## 3) Deployment & System Testing
 
-### 一键部署引导
+### One-Click Deployment
 ```bash
 cd ~/Desktop/ilal
 ./complete-deployment.sh
 ```
 
-### 系统测试（Mock Theater）
+### System Test (Mock Theater)
 ```bash
 cd scripts/system-test
 ./run-theater.sh
@@ -53,20 +53,20 @@ cd scripts/system-test
 
 ---
 
-## 4) 先读哪些文档
+## 4) Recommended Reading Order
 
-- 总导航：`docs/INDEX.md`
-- SDK 文档：`packages/sdk/README.md`
-- 架构说明：`docs/guides/ARCHITECTURE.md`
-- 部署指南：`docs/guides/DEPLOYMENT.md`
+- Documentation Index: `docs/INDEX.md`
+- SDK Documentation: `packages/sdk/README.md`
+- Architecture Guide: `docs/guides/ARCHITECTURE.md`
+- Deployment Guide: `docs/guides/DEPLOYMENT.md`
 
 ---
 
-## 说明
+## Note
 
-项目正在从旧目录结构迁移到 Monorepo 结构：
+The project is migrating from the legacy directory structure to a Monorepo structure:
 
-- 旧：`frontend/`, `contracts/`, `circuits/`, `relay/`
-- 新：`apps/*`, `packages/*`
+- Legacy: `frontend/`, `contracts/`, `circuits/`, `relay/`
+- New: `apps/*`, `packages/*`
 
-请优先使用新路径进行开发和脚本执行。
+Please use the new paths for development and script execution.

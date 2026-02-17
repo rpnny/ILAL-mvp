@@ -4,6 +4,8 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowRight, Github, ExternalLink, Zap, Lock, TrendingUp, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useAuth } from "../hooks/useAuth";
+import UserMenu from "../components/UserMenu";
 
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
@@ -39,6 +41,7 @@ function Counter({ value, suffix = "" }: { value: string; suffix?: string }) {
 
 export default function Home() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const { user } = useAuth();
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -70,10 +73,20 @@ export default function Home() {
             <Link href="/technology" className="text-gray-400 hover:text-white transition-colors">Technology</Link>
             <Link href="/integrations" className="text-gray-400 hover:text-white transition-colors">Integrations</Link>
             <Link href="/roadmap" className="text-gray-400 hover:text-white transition-colors">Roadmap</Link>
-                    <a href="https://github.com/rpnny/ILAL-mvp" className="text-gray-400 hover:text-white transition-colors flex items-center">
-                      Docs <ExternalLink className="w-3 h-3 ml-1" />
-                    </a>
-                  </div>
+            <a href="https://github.com/rpnny/ILAL-mvp" className="text-gray-400 hover:text-white transition-colors flex items-center">
+              Docs <ExternalLink className="w-3 h-3 ml-1" />
+            </a>
+            {user ? (
+              <UserMenu />
+            ) : (
+              <>
+                <Link href="/login" className="text-gray-400 hover:text-white transition-colors">Login</Link>
+                <Link href="/register" className="px-4 py-2 bg-[#2962FF] hover:bg-[#2962FF]/90 rounded font-medium transition-colors">
+                  Get Started
+                </Link>
+              </>
+            )}
+          </div>
                 </div>
               </nav>
 

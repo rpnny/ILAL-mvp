@@ -1,5 +1,5 @@
 /**
- * 使用追踪中间件
+ * Usage Tracking Middleware
  */
 
 import type { Request, Response, NextFunction } from 'express';
@@ -7,8 +7,8 @@ import { billingService } from '../services/billing.service.js';
 import { logger } from '../config/logger.js';
 
 /**
- * 使用追踪中间件
- * 记录每个 API 调用到数据库
+ * Usage tracking middleware
+ * Records each API call to the database
  */
 export function usageTrackingMiddleware(
   req: Request,
@@ -17,14 +17,14 @@ export function usageTrackingMiddleware(
 ): void {
   const startTime = Date.now();
 
-  // 保存原始的 res.json 方法
+  // Save original res.json method
   const originalJson = res.json.bind(res);
 
-  // 重写 res.json 方法以捕获响应
+  // Override res.json to capture response
   res.json = function (body: any) {
     const responseTime = Date.now() - startTime;
 
-    // 异步记录使用情况（不阻塞响应）
+    // Record usage asynchronously (non-blocking)
     if (req.user && req.apiKey) {
       billingService.recordUsage({
         userId: req.user.userId,
@@ -39,7 +39,7 @@ export function usageTrackingMiddleware(
       });
     }
 
-    // 调用原始的 json 方法
+    // Call original json method
     return originalJson(body);
   };
 
@@ -47,31 +47,31 @@ export function usageTrackingMiddleware(
 }
 
 /**
- * 计算请求成本（不同端点权重不同）
+ * Calculate request cost (different endpoint weights)
  */
 function calculateCost(path: string, method: string): number {
-  // ZK 验证成本较高
+  // ZK verification has higher cost
   if (path.includes('/verify') && method === 'POST') {
     return 5.0;
   }
 
-  // Session 激活成本中等
+  // Session activation has medium cost
   if (path.includes('/session') && method === 'POST') {
     return 3.0;
   }
 
-  // 查询类请求成本较低
+  // Query requests have lower cost
   if (method === 'GET') {
     return 0.5;
   }
 
-  // 默认成本
+  // Default cost
   return 1.0;
 }
 
 /**
- * 配额检查中间件
- * 在处理请求前检查用户配额
+ * Quota check middleware
+ * Checks user quota before processing request
  */
 export async function quotaCheckMiddleware(
   req: Request,
@@ -80,7 +80,7 @@ export async function quotaCheckMiddleware(
 ): Promise<void> {
   try {
     if (!req.user) {
-      // 没有用户信息，跳过配额检查
+      // No user info, skip quota check
       next();
       return;
     }
@@ -103,7 +103,7 @@ export async function quotaCheckMiddleware(
       return;
     }
 
-    // 将配额信息附加到响应头
+    // Attach quota info to response headers
     res.setHeader('X-Quota-Remaining', quota.remaining.toString());
     res.setHeader('X-Quota-Limit', quota.limit.toString());
     res.setHeader('X-Quota-Reset', quota.resetDate.toISOString());
@@ -111,7 +111,7 @@ export async function quotaCheckMiddleware(
     next();
   } catch (error: any) {
     logger.error('Quota check failed', { error: error.message });
-    // 配额检查失败不阻塞请求
+    // Quota check failure should not block request
     next();
   }
 }

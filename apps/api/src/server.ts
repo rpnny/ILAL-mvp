@@ -1,5 +1,5 @@
 /**
- * Express 服务器配置
+ * Express Server Configuration
  */
 
 import express, { type Request, type Response, type NextFunction } from 'express';
@@ -7,21 +7,21 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { logger } from './config/logger.js';
 
-// 导入路由
+// Import routes
 import authRoutes from './routes/auth.routes.js';
 import apikeyRoutes from './routes/apikey.routes.js';
 import verifyRoutes from './routes/verify.routes.js';
 import billingRoutes from './routes/billing.routes.js';
 
-// 导入控制器
+// Import controllers
 import * as verifyController from './controllers/verify.controller.js';
 
 export function createServer(): express.Application {
   const app = express();
 
-  // ============ 中间件 ============
+  // ============ Middleware ============
 
-  // 安全headers
+  // Security headers
   app.use(helmet());
 
   // CORS
@@ -34,7 +34,7 @@ export function createServer(): express.Application {
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true }));
 
-  // 请求日志
+  // Request logging
   app.use((req: Request, res: Response, next: NextFunction) => {
     const start = Date.now();
     res.on('finish', () => {
@@ -50,31 +50,31 @@ export function createServer(): express.Application {
     next();
   });
 
-  // ============ 路由 ============
+  // ============ Routes ============
 
-  // 健康检查（无需认证）
+  // Health check (no auth required)
   app.get('/api/v1/health', verifyController.healthCheck);
   app.get('/health', verifyController.healthCheck);
 
-  // 认证路由
+  // Auth routes
   app.use('/api/v1/auth', authRoutes);
 
-  // API Key 管理路由
+  // API Key management routes
   app.use('/api/v1/apikeys', apikeyRoutes);
 
-  // 验证路由（ZK Proof）
+  // Verify routes (ZK Proof)
   app.use('/api/v1/verify', verifyRoutes);
-  
-  // Session 查询路由（单独挂载）
+
+  // Session query route (mounted separately)
   app.get('/api/v1/session/:address', verifyController.getSessionStatus);
 
-  // 使用统计路由
+  // Usage statistics routes
   app.use('/api/v1/usage', billingRoutes);
 
-  // 计费路由
+  // Billing routes
   app.use('/api/v1/billing', billingRoutes);
 
-  // 根路径
+  // Root path
   app.get('/', (req: Request, res: Response) => {
     res.json({
       service: 'ILAL API',
@@ -84,9 +84,9 @@ export function createServer(): express.Application {
     });
   });
 
-  // ============ 错误处理 ============
+  // ============ Error Handling ============
 
-  // 404 处理
+  // 404 handler
   app.use((req: Request, res: Response) => {
     res.status(404).json({
       error: 'Not Found',
@@ -95,7 +95,7 @@ export function createServer(): express.Application {
     });
   });
 
-  // 全局错误处理
+  // Global error handler
   app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     logger.error('Unhandled error', {
       error: err.message,

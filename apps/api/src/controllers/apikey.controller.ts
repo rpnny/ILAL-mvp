@@ -1,5 +1,5 @@
 /**
- * API Key 管理控制器
+ * API Key Management Controller
  */
 
 import type { Request, Response } from 'express';
@@ -8,16 +8,16 @@ import { prisma } from '../config/database.js';
 import { generateApiKey, hashApiKey, extractApiKeyPrefix } from '../utils/apiKey.js';
 import { logger } from '../config/logger.js';
 
-// 请求验证 schemas
+// Request validation schemas
 const createApiKeySchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
   permissions: z.array(z.string()).default(['verify', 'session']),
   rateLimit: z.number().int().min(1).max(10000).optional(),
-  expiresIn: z.number().int().positive().optional(), // 有效期（天）
+  expiresIn: z.number().int().positive().optional(), // Expiration period (days)
 });
 
 /**
- * 列出用户的所有 API Keys
+ * List user's API Keys
  * GET /api/v1/apikeys
  */
 export async function listApiKeys(req: Request, res: Response): Promise<void> {
@@ -57,7 +57,7 @@ export async function listApiKeys(req: Request, res: Response): Promise<void> {
 }
 
 /**
- * 创建新的 API Key
+ * Create a new API Key
  * POST /api/v1/apikeys
  */
 export async function createApiKey(req: Request, res: Response): Promise<void> {
@@ -70,10 +70,10 @@ export async function createApiKey(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    // 验证请求体
+    // Validate request body
     const body = createApiKeySchema.parse(req.body);
 
-    // 检查用户已有的 API Key 数量（免费套餐限制）
+    // Check existing API Key count (free plan limit)
     const existingKeysCount = await prisma.apiKey.count({
       where: {
         userId: req.user.userId,
@@ -91,24 +91,24 @@ export async function createApiKey(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    // 生成新的 API Key
+    // Generate new API Key
     const apiKey = generateApiKey('live');
     const apiKeyHash = await hashApiKey(apiKey);
     const prefix = extractApiKeyPrefix(apiKey);
 
-    // 计算过期时间
+    // Calculate expiration time
     const expiresAt = body.expiresIn
       ? new Date(Date.now() + body.expiresIn * 24 * 60 * 60 * 1000)
       : null;
 
-    // 创建 API Key 记录
+    // Create API Key record
     const createdKey = await prisma.apiKey.create({
       data: {
         userId: req.user.userId,
         key: apiKeyHash,
         keyPrefix: prefix,
         name: body.name,
-        permissions: body.permissions, // PostgreSQL: 直接使用 JSON 数组
+        permissions: body.permissions, // PostgreSQL: use JSON array directly
         rateLimit: body.rateLimit || 10,
         expiresAt: expiresAt,
       },
@@ -128,9 +128,9 @@ export async function createApiKey(req: Request, res: Response): Promise<void> {
       apiKeyId: createdKey.id,
     });
 
-    // 返回完整的 API Key（只在创建时显示一次）
+    // Return full API Key (only shown once at creation)
     res.status(201).json({
-      apiKey: apiKey, // 完整 key，只显示一次
+      apiKey: apiKey, // Full key, shown only once
       ...createdKey,
       warning: 'Please save this API key securely. It will not be shown again.',
     });
@@ -153,7 +153,7 @@ export async function createApiKey(req: Request, res: Response): Promise<void> {
 }
 
 /**
- * 撤销（删除）API Key
+ * Revoke (delete) API Key
  * DELETE /api/v1/apikeys/:id
  */
 export async function deleteApiKey(req: Request, res: Response): Promise<void> {
@@ -168,7 +168,7 @@ export async function deleteApiKey(req: Request, res: Response): Promise<void> {
 
     const { id } = req.params;
 
-    // 检查 API Key 是否存在且属于当前用户
+    // Check if API Key exists and belongs to current user
     const apiKey = await prisma.apiKey.findFirst({
       where: {
         id,
@@ -184,7 +184,7 @@ export async function deleteApiKey(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    // 软删除：设置为 inactive
+    // Soft delete: set to inactive
     await prisma.apiKey.update({
       where: { id },
       data: { isActive: false },
@@ -208,7 +208,7 @@ export async function deleteApiKey(req: Request, res: Response): Promise<void> {
 }
 
 /**
- * 更新 API Key
+ * Update API Key
  * PATCH /api/v1/apikeys/:id
  */
 export async function updateApiKey(req: Request, res: Response): Promise<void> {
@@ -230,7 +230,7 @@ export async function updateApiKey(req: Request, res: Response): Promise<void> {
 
     const body = updateSchema.parse(req.body);
 
-    // 检查 API Key 是否存在且属于当前用户
+    // Check if API Key exists and belongs to current user
     const apiKey = await prisma.apiKey.findFirst({
       where: {
         id,
@@ -247,7 +247,7 @@ export async function updateApiKey(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    // 更新 API Key
+    // Update API Key
     const updated = await prisma.apiKey.update({
       where: { id },
       data: body,

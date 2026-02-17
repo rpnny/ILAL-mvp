@@ -1,117 +1,117 @@
-# ILAL 项目现状总结
+# ILAL Project Status Summary
 
-**更新时间**: 2026-02-16  
-**状态**: ✅ 生产就绪
+**Last Updated**: 2026-02-16  
+**Status**: ✅ Production Ready
 
 ---
 
-## 🎯 项目定位
+## 🎯 Project Positioning
 
 **ILAL (Institutional Liquidity Access Layer)**  
-基于 Uniswap V4 Hooks 的机构级 DeFi 流动性访问层
+Institutional-grade DeFi liquidity access layer built on Uniswap V4 Hooks
 
-**核心价值**：
-- 合规化的链上流动性访问
-- ZK Proof 隐私保护
-- 机构级交易控制
-- Session 管理机制
+**Core Value**:
+- Compliant on-chain liquidity access
+- ZK Proof privacy protection
+- Institutional-grade trading controls
+- Session management mechanism
 
 ---
 
-## 🏗️ 当前架构
+## 🏗️ Current Architecture
 
-### 从全栈 DApp → SaaS 架构
+### From Full-Stack DApp → SaaS Architecture
 
-**原始架构** (已清理):
+**Original Architecture** (cleaned up):
 ```
-❌ frontend/ - Next.js 前端
-❌ contracts/ - Solidity 智能合约
-❌ circuits/ - Circom ZK 电路
-❌ relay/ - 简单验证服务
+❌ frontend/ - Next.js frontend
+❌ contracts/ - Solidity smart contracts
+❌ circuits/ - Circom ZK circuits
+❌ relay/ - Simple verification service
 ```
 
-**当前架构** (✅ 已完成):
+**Current Architecture** (✅ Complete):
 ```
-✅ apps/api/ - 完整的 SaaS API 服务
+✅ apps/api/ - Full SaaS API service
 ✅ packages/sdk/ - TypeScript SDK
-✅ bot/ - 自动化机器人
-✅ subgraph/ - 数据索引
+✅ bot/ - Automation bot
+✅ subgraph/ - Data indexing
 ```
 
-**架构特点**：
-- 🔑 API Key 认证
-- 💰 计费追踪
-- 📊 配额管理
-- 🔒 JWT 安全
-- 🌐 云端数据库
+**Architecture Features**:
+- 🔑 API Key authentication
+- 💰 Billing tracking
+- 📊 Quota management
+- 🔒 JWT security
+- 🌐 Cloud database
 
 ---
 
-## 💾 数据库状态
+## 💾 Database Status
 
-### Supabase PostgreSQL (云端)
+### Supabase PostgreSQL (Cloud)
 
-**连接信息**：
+**Connection Info**:
 ```
 Host: db.mcclijvnjtzhzktuwknz.supabase.co
 Port: 5432
 Database: postgres
-Status: ✅ 运行中
+Status: ✅ Running
 ```
 
-**数据表**：
-- ✅ `User` - 用户表 (认证、套餐)
-- ✅ `ApiKey` - API 密钥表 (权限、限流)
-- ✅ `UsageRecord` - 使用记录表 (计费)
-- ✅ `Subscription` - 订阅表 (套餐管理)
+**Tables**:
+- ✅ `User` - Users table (auth, plans)
+- ✅ `ApiKey` - API keys table (permissions, rate limiting)
+- ✅ `UsageRecord` - Usage records table (billing)
+- ✅ `Subscription` - Subscriptions table (plan management)
 
 ---
 
-## 🚀 API 服务状态
+## 🚀 API Service Status
 
 ```
 URL: http://localhost:3001
-Status: ✅ 运行中
+Status: ✅ Running
 Environment: development
-Database: ✅ 已连接
+Database: ✅ Connected
 Blockchain: Base Sepolia
 ```
 
-**核心功能**：
-- 认证系统（注册/登录/刷新/用户信息）
-- API Key 管理（创建/列表/更新/撤销）
-- 计费系统（usage stats / plans / upgrade）
-- 区块链验证（verify / session，测试环境可能受私钥余额影响）
+**Core Features**:
+- Authentication system (register/login/refresh/user info)
+- API Key management (create/list/update/revoke)
+- Billing system (usage stats / plans / upgrade)
+- Blockchain verification (verify / session — testnet may be affected by wallet balance)
 
 ---
 
-## 📊 测试结果
+## 📊 Test Results
 
-### 最新测试 (2026-02-16)
+### Latest Tests (2026-02-16)
 
-- 自动化测试：12/13 通过（92%）
-- 手动测试：6/6 通过（100%）
-- 综合通过率：96%
-
----
-
-## 📦 SDK 状态
-
-SDK（`packages/sdk`）支持两种模式：
-
-1. **Direct Mode（直接链上）**
-2. **API Mode（通过 API Key 的 SaaS 模式）**
+- Automated tests: 12/13 passed (92%)
+- Manual tests: 6/6 passed (100%)
+- Overall pass rate: 96%
 
 ---
 
-## 🔄 待完成功能（可选增强）
+## 📦 SDK Status
 
-- Dashboard 前端（用户管理、API Key、使用统计、账单）
-- 邮件系统（验证、重置、通知）
-- 支付集成（Stripe）
-- 监控告警（Prometheus/Grafana/Sentry）
-- 区块链侧增强（有余额私钥、多链、Gas 优化）
+SDK (`packages/sdk`) supports two modes:
+
+1. **Direct Mode (on-chain)**
+2. **API Mode (SaaS via API Key)**
 
 ---
 
-**结论**：核心 SaaS 能力已就绪，可直接开始集成与对外试用；Dashboard/支付/监控等属于后续增强。
+## 🔄 Remaining Features (Optional Enhancements)
+
+- Dashboard frontend (user management, API Keys, usage stats, billing)
+- Email system (verification, reset, notifications)
+- Payment integration (Stripe)
+- Monitoring & alerting (Prometheus/Grafana/Sentry)
+- Blockchain enhancements (funded private key, multi-chain, gas optimization)
+
+---
+
+**Conclusion**: Core SaaS capabilities are ready. Integration and external trials can begin immediately. Dashboard/payments/monitoring are follow-up enhancements.

@@ -1,5 +1,5 @@
 /**
- * 验证路由 - ZK Proof 验证和 Session 管理
+ * Verification Routes - ZK Proof verification and session management
  */
 
 import { Router } from 'express';
@@ -10,13 +10,13 @@ import { usageTrackingMiddleware, quotaCheckMiddleware } from '../middleware/usa
 
 const router = Router();
 
-// 所有验证路由都需要 API Key 认证
+// All verification routes require API Key authentication
 router.use(apiKeyMiddleware);
 router.use(dynamicRateLimiter);
 router.use(quotaCheckMiddleware);
 router.use(usageTrackingMiddleware);
 
-// POST /api/v1/verify - 验证 ZK Proof 并激活 Session
+// POST /api/v1/verify - Verify ZK Proof and activate session
 router.post('/', verifyController.verifyAndActivate);
 
 export default router;

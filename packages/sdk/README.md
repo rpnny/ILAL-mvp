@@ -5,39 +5,39 @@
 [![npm version](https://img.shields.io/npm/v/@ilal/sdk.svg)](https://www.npmjs.com/package/@ilal/sdk)
 [![License](https://img.shields.io/npm/l/@ilal/sdk.svg)](https://github.com/your-org/ilal/blob/main/LICENSE)
 
-## 特性
+## Features
 
-- ✅ **Session 管理** - 合规会话激活和管理
-- 🔄 **代币交换** - 安全的代币兑换功能
-- 💧 **流动性管理** - 添加/移除流动性头寸
-- 🔐 **ZK Proof 生成** - 零知识证明合规验证
-- 🎫 **EAS 验证** - Ethereum Attestation Service 集成
-- 🌐 **跨环境支持** - 浏览器和 Node.js 通用
-- 📦 **Tree-shakable** - 仅打包使用的代码
-- 🔧 **完整类型支持** - 100% TypeScript
+- ✅ **Session Management** - Compliance session activation and management
+- 🔄 **Token Swaps** - Secure token exchange functionality
+- 💧 **Liquidity Management** - Add/remove liquidity positions
+- 🔐 **ZK Proof Generation** - Zero-knowledge proof compliance verification
+- 🎫 **EAS Verification** - Ethereum Attestation Service integration
+- 🌐 **Cross-Environment** - Works in both browser and Node.js
+- 📦 **Tree-shakable** - Only bundle the code you use
+- 🔧 **Full Type Support** - 100% TypeScript
 
-## 安装
+## Installation
 
 ```bash
 npm install @ilal/sdk viem
 ```
 
-或使用 pnpm:
+Or using pnpm:
 
 ```bash
 pnpm add @ilal/sdk viem
 ```
 
-## 快速开始
+## Quick Start
 
-### 基础设置
+### Basic Setup
 
 ```typescript
 import { ILALClient } from '@ilal/sdk';
 import { createWalletClient, createPublicClient, http } from 'viem';
 import { baseSepolia } from 'viem/chains';
 
-// 创建客户端
+// Create clients
 const walletClient = createWalletClient({
   chain: baseSepolia,
   transport: http('https://base-sepolia-rpc.publicnode.com'),
@@ -48,7 +48,7 @@ const publicClient = createPublicClient({
   transport: http('https://base-sepolia-rpc.publicnode.com'),
 });
 
-// 初始化 ILAL 客户端
+// Initialize ILAL client
 const client = new ILALClient({
   walletClient,
   publicClient,
@@ -56,23 +56,23 @@ const client = new ILALClient({
 });
 ```
 
-### 从浏览器 Provider 初始化
+### Initialize from Browser Provider
 
 ```typescript
-// 使用 MetaMask 或其他 EIP-1193 Provider
+// Using MetaMask or other EIP-1193 providers
 const client = ILALClient.fromProvider({
   provider: window.ethereum,
   chainId: 84532,
 });
 ```
 
-### Session 管理
+### Session Management
 
 ```typescript
-// 激活 Session
+// Activate session
 await client.session.activate({ expiry: 24 * 3600 });
 
-// 检查状态
+// Check status
 const isActive = await client.session.isActive();
 const info = await client.session.getInfo();
 
@@ -80,7 +80,7 @@ console.log(`Session active: ${info.isActive}`);
 console.log(`Remaining: ${Number(info.remainingTime) / 3600}h`);
 ```
 
-### 执行 Swap
+### Execute Swap
 
 ```typescript
 import { parseUnits } from 'viem';
@@ -96,7 +96,7 @@ const result = await client.swap.execute({
 console.log('Swap successful:', result.hash);
 ```
 
-### 添加流动性
+### Add Liquidity
 
 ```typescript
 import { parseEther, parseUnits } from 'viem';
@@ -118,11 +118,11 @@ const result = await client.liquidity.add({
 console.log('Liquidity added, Token ID:', result.tokenId);
 ```
 
-### 生成 ZK Proof
+### Generate ZK Proof
 
 ```typescript
 const client = new ILALClient({
-  // ... 基础配置
+  // ... base config
   zkConfig: {
     wasmUrl: 'https://cdn.ilal.xyz/circuits/compliance.wasm',
     zkeyUrl: 'https://cdn.ilal.xyz/circuits/compliance_final.zkey',
@@ -139,7 +139,7 @@ const proof = await client.zkproof.generate(
 console.log('Proof generated in', proof.elapsedTime, 'ms');
 ```
 
-### EAS 验证
+### EAS Verification
 
 ```typescript
 const verification = await client.eas.getVerification(userAddress);
@@ -152,36 +152,36 @@ if (verification.isVerified) {
 }
 ```
 
-## 核心 API
+## Core API
 
 ### ILALClient
 
-主客户端类，提供访问所有模块的入口。
+Main client class providing access to all modules.
 
-**构造函数**:
+**Constructors**:
 - `new ILALClient(config: ILALConfig)`
 - `ILALClient.fromProvider(params)`
 - `ILALClient.fromRPC(params)`
 
-**模块**:
-- `client.session` - Session 管理
-- `client.swap` - 代币交换
-- `client.liquidity` - 流动性管理
-- `client.zkproof` - ZK Proof 生成
-- `client.eas` - EAS 验证
+**Modules**:
+- `client.session` - Session management
+- `client.swap` - Token swaps
+- `client.liquidity` - Liquidity management
+- `client.zkproof` - ZK Proof generation
+- `client.eas` - EAS verification
 
 ### SessionModule
 
 ```typescript
-// 激活 Session
+// Activate session
 await client.session.activate({ expiry?: number })
 
-// 查询状态
+// Query status
 await client.session.isActive(user?: Address): Promise<boolean>
 await client.session.getInfo(user?: Address): Promise<SessionInfo>
 await client.session.getRemainingTime(user?: Address): Promise<bigint>
 
-// 智能激活
+// Smart activation
 await client.session.activateIfNeeded(params?)
 await client.session.ensureActive(user?)
 ```
@@ -189,13 +189,13 @@ await client.session.ensureActive(user?)
 ### SwapModule
 
 ```typescript
-// 执行 Swap
+// Execute swap
 await client.swap.execute(params: SwapParams): Promise<SwapResult>
 
-// 估算输出
+// Estimate output
 await client.swap.estimateOutput(params: SwapParams): Promise<bigint>
 
-// 查询余额和信息
+// Query balance and info
 await client.swap.getBalance(token: Address): Promise<bigint>
 await client.swap.getTokenInfo(token: Address)
 ```
@@ -203,13 +203,13 @@ await client.swap.getTokenInfo(token: Address)
 ### LiquidityModule
 
 ```typescript
-// 添加流动性
+// Add liquidity
 await client.liquidity.add(params: LiquidityParams): Promise<LiquidityResult>
 
-// 移除流动性
+// Remove liquidity
 await client.liquidity.remove(params: RemoveLiquidityParams): Promise<LiquidityResult>
 
-// 查询头寸
+// Query positions
 await client.liquidity.getPosition(tokenId: bigint): Promise<LiquidityPosition | null>
 await client.liquidity.getUserPositions(user?: Address): Promise<LiquidityPosition[]>
 ```
@@ -217,43 +217,43 @@ await client.liquidity.getUserPositions(user?: Address): Promise<LiquidityPositi
 ### ZKProofModule
 
 ```typescript
-// 生成证明
+// Generate proof
 await client.zkproof.generate(
   userAddress: string,
   onProgress?: ProofProgressCallback
 ): Promise<ProofResult>
 
-// 验证证明
+// Verify proof
 await client.zkproof.verify(proof: any, publicSignals: string[]): Promise<boolean>
 
-// 格式化为合约参数
+// Format for contract call
 client.zkproof.formatForContract(proof, publicSignals)
 ```
 
 ### EASModule
 
 ```typescript
-// 检查验证状态
+// Check verification status
 await client.eas.checkCoinbaseVerification(user: Address): Promise<VerificationResult>
 await client.eas.checkAllProviders(user: Address): Promise<VerificationResult>
 
-// 便捷方法
+// Convenience methods
 await client.eas.getVerification(user: Address)
 await client.eas.ensureVerified(user: Address)
 
-// 注册自定义 Provider
+// Register custom provider
 client.eas.registerProvider(config: KYCProviderConfig)
 ```
 
-## ZK Proof 配置
+## ZK Proof Configuration
 
-SDK 不打包 WASM 文件（文件太大，50-100MB），而是让你指定文件位置。
+The SDK does not bundle WASM files (too large, 50-100MB). Instead, you specify the file locations.
 
-### 浏览器环境（从 CDN）
+### Browser (from CDN)
 
 ```typescript
 const client = new ILALClient({
-  // ... 其他配置
+  // ... other config
   zkConfig: {
     wasmUrl: 'https://cdn.ilal.xyz/circuits/compliance.wasm',
     zkeyUrl: 'https://cdn.ilal.xyz/circuits/compliance_final.zkey',
@@ -261,11 +261,11 @@ const client = new ILALClient({
 });
 ```
 
-### Node.js 环境（本地文件）
+### Node.js (Local files)
 
 ```typescript
 const client = new ILALClient({
-  // ... 其他配置
+  // ... other config
   zkConfig: {
     wasmUrl: './circuits/compliance.wasm',
     zkeyUrl: './circuits/compliance_final.zkey',
@@ -273,7 +273,7 @@ const client = new ILALClient({
 });
 ```
 
-### 使用 Buffer（高级用法）
+### Using Buffer (Advanced)
 
 ```typescript
 import fs from 'fs';
@@ -286,9 +286,9 @@ const client = new ILALClient({
 });
 ```
 
-## 错误处理
+## Error Handling
 
-SDK 提供详细的错误类型：
+The SDK provides detailed error types:
 
 ```typescript
 import {
@@ -314,50 +314,50 @@ try {
 }
 ```
 
-## 示例
+## Examples
 
-完整示例请查看 [`examples/`](./examples/) 目录：
+See the [`examples/`](./examples/) directory for complete examples:
 
-- [01-basic-setup.ts](./examples/01-basic-setup.ts) - 客户端初始化
-- [02-session-management.ts](./examples/02-session-management.ts) - Session 管理
-- [03-basic-swap.ts](./examples/03-basic-swap.ts) - 基本 Swap
-- [04-add-liquidity.ts](./examples/04-add-liquidity.ts) - 添加流动性
-- [05-zk-proof.ts](./examples/05-zk-proof.ts) - ZK Proof 生成
-- [06-eas-verification.ts](./examples/06-eas-verification.ts) - EAS 验证
+- [01-basic-setup.ts](./examples/01-basic-setup.ts) - Client initialization
+- [02-session-management.ts](./examples/02-session-management.ts) - Session management
+- [03-basic-swap.ts](./examples/03-basic-swap.ts) - Basic swap
+- [04-add-liquidity.ts](./examples/04-add-liquidity.ts) - Add liquidity
+- [05-zk-proof.ts](./examples/05-zk-proof.ts) - ZK Proof generation
+- [06-eas-verification.ts](./examples/06-eas-verification.ts) - EAS verification
 
-## 链支持
+## Chain Support
 
-| 网络 | Chain ID | 状态 |
-|------|----------|------|
-| Base Sepolia | 84532 | ✅ 已部署 |
-| Base Mainnet | 8453 | 🚧 即将推出 |
+| Network | Chain ID | Status |
+|---------|----------|--------|
+| Base Sepolia | 84532 | ✅ Deployed |
+| Base Mainnet | 8453 | 🚧 Coming soon |
 
-## 依赖
+## Dependencies
 
-核心依赖：
-- `viem` - Ethereum 交互库
+Core dependencies:
+- `viem` - Ethereum interaction library
 
-可选依赖（仅 ZK 功能需要）：
+Optional dependencies (ZK features only):
 - `circomlibjs` - Poseidon hash
-- `snarkjs` - ZK proof 生成
+- `snarkjs` - ZK proof generation
 
 ## License
 
 Apache-2.0
 
-## 资源
+## Resources
 
-- [文档](../docs/) - 完整技术文档
-- [示例](./examples/) - 代码示例
-- [GitHub](https://github.com/your-org/ilal) - 源代码
-- [Discord](https://discord.gg/ilal) - 社区支持
+- [Documentation](../docs/) - Full technical documentation
+- [Examples](./examples/) - Code examples
+- [GitHub](https://github.com/your-org/ilal) - Source code
+- [Discord](https://discord.gg/ilal) - Community support
 
-## 支持
+## Support
 
-遇到问题？
-- 查看 [示例代码](./examples/)
-- 提交 [Issue](https://github.com/your-org/ilal/issues)
-- 加入 [Discord](https://discord.gg/ilal) 社区
+Having issues?
+- Check the [example code](./examples/)
+- Submit an [Issue](https://github.com/your-org/ilal/issues)
+- Join the [Discord](https://discord.gg/ilal) community
 
 ---
 

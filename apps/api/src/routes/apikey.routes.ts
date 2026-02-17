@@ -1,5 +1,5 @@
 /**
- * API Key 管理路由
+ * API Key Management Routes
  */
 
 import { Router } from 'express';
@@ -8,19 +8,19 @@ import { authMiddleware } from '../middleware/auth.middleware.js';
 
 const router = Router();
 
-// 所有 API Key 路由都需要认证
+// All API Key routes require authentication
 router.use(authMiddleware);
 
-// GET /api/v1/apikeys - 列出所有 API Keys
+// GET /api/v1/apikeys - List all API Keys
 router.get('/', apikeyController.listApiKeys);
 
-// POST /api/v1/apikeys - 创建新的 API Key
+// POST /api/v1/apikeys - Create new API Key
 router.post('/', apikeyController.createApiKey);
 
-// PATCH /api/v1/apikeys/:id - 更新 API Key
+// PATCH /api/v1/apikeys/:id - Update API Key
 router.patch('/:id', apikeyController.updateApiKey);
 
-// DELETE /api/v1/apikeys/:id - 撤销 API Key
+// DELETE /api/v1/apikeys/:id - Revoke API Key
 router.delete('/:id', apikeyController.deleteApiKey);
 
 export default router;

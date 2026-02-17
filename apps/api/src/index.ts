@@ -1,12 +1,12 @@
 /**
- * ILAL API Service - 入口文件
+ * ILAL API Service - Entry point
  * 
- * SaaS 架构的后端服务：
- * - 用户认证（注册、登录、JWT）
- * - API Key 管理
- * - ZK Proof 验证（原 relay 功能）
- * - Session 管理
- * - 计费和配额管理
+ * SaaS backend service:
+ * - User authentication (register, login, JWT)
+ * - API Key management
+ * - ZK Proof verification (from original relay)
+ * - Session management
+ * - Billing and quota management
  */
 
 import { createServer } from './server.js';
@@ -16,19 +16,19 @@ import { logger } from './config/logger.js';
 
 async function start() {
   try {
-    // 1. 验证环境变量
+    // 1. Validate environment variables
     logger.info('Validating configuration...');
     validateConfig();
 
-    // 2. 测试数据库连接
+    // 2. Test database connection
     logger.info('Testing database connection...');
     await prisma.$connect();
     logger.info('Database connected successfully');
 
-    // 3. 创建 Express 服务器
+    // 3. Create Express server
     const app = createServer();
 
-    // 4. 启动服务器
+    // 4. Start server
     const server = app.listen(PORT, () => {
       logger.info('═══════════════════════════════════════════════');
       logger.info('     ILAL API Service Started                 ');
@@ -39,28 +39,28 @@ async function start() {
       logger.info(`  API Docs:    http://localhost:${PORT}/api/v1/docs`);
       logger.info('');
       logger.info('API Endpoints:');
-      logger.info('  POST   /api/v1/auth/register       - 用户注册');
-      logger.info('  POST   /api/v1/auth/login          - 用户登录');
-      logger.info('  POST   /api/v1/auth/refresh        - 刷新 Token');
-      logger.info('  GET    /api/v1/auth/me             - 获取用户信息');
+      logger.info('  POST   /api/v1/auth/register       - User registration');
+      logger.info('  POST   /api/v1/auth/login          - User login');
+      logger.info('  POST   /api/v1/auth/refresh        - Refresh token');
+      logger.info('  GET    /api/v1/auth/me             - Get user info');
       logger.info('');
-      logger.info('  GET    /api/v1/apikeys             - 列出 API Keys');
-      logger.info('  POST   /api/v1/apikeys             - 创建 API Key');
-      logger.info('  DELETE /api/v1/apikeys/:id         - 撤销 API Key');
+      logger.info('  GET    /api/v1/apikeys             - List API Keys');
+      logger.info('  POST   /api/v1/apikeys             - Create API Key');
+      logger.info('  DELETE /api/v1/apikeys/:id         - Revoke API Key');
       logger.info('');
-      logger.info('  POST   /api/v1/verify              - ZK Proof 验证');
-      logger.info('  GET    /api/v1/session/:address    - Session 状态');
+      logger.info('  POST   /api/v1/verify              - ZK Proof verification');
+      logger.info('  GET    /api/v1/session/:address    - Session status');
       logger.info('');
-      logger.info('  GET    /api/v1/usage/stats         - 使用统计');
-      logger.info('  GET    /api/v1/billing/plans       - 套餐列表');
-      logger.info('  POST   /api/v1/billing/upgrade     - 升级套餐');
+      logger.info('  GET    /api/v1/usage/stats         - Usage statistics');
+      logger.info('  GET    /api/v1/billing/plans       - Plans list');
+      logger.info('  POST   /api/v1/billing/upgrade     - Upgrade plan');
       logger.info('═══════════════════════════════════════════════');
     });
 
-    // 5. 优雅关闭
+    // 5. Graceful shutdown
     const shutdown = async () => {
       logger.info('Shutting down gracefully...');
-      
+
       server.close(() => {
         logger.info('HTTP server closed');
       });
@@ -80,5 +80,5 @@ async function start() {
   }
 }
 
-// 启动服务器
+// Start server
 start();

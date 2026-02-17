@@ -1,5 +1,5 @@
 /**
- * 认证控制器 - 注册、登录、刷新token
+ * Auth Controller - Register, login, token refresh
  */
 
 import type { Request, Response } from 'express';
@@ -9,7 +9,7 @@ import { hashPassword, verifyPassword, validatePasswordStrength } from '../utils
 import { generateAccessToken, generateRefreshToken, verifyToken } from '../utils/jwt.js';
 import { logger } from '../config/logger.js';
 
-// 请求验证 schemas
+// Request validation schemas
 const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
@@ -27,15 +27,15 @@ const refreshSchema = z.object({
 });
 
 /**
- * 用户注册
+ * User registration
  * POST /api/v1/auth/register
  */
 export async function register(req: Request, res: Response): Promise<void> {
   try {
-    // 验证请求体
+    // Validate request body
     const body = registerSchema.parse(req.body);
 
-    // 验证密码强度
+    // Validate password strength
     const passwordValidation = validatePasswordStrength(body.password);
     if (!passwordValidation.valid) {
       res.status(400).json({
@@ -46,7 +46,7 @@ export async function register(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    // 检查邮箱是否已存在
+    // Check if email already exists
     const existingUser = await prisma.user.findUnique({
       where: { email: body.email },
     });
@@ -59,7 +59,7 @@ export async function register(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    // 检查钱包地址是否已存在
+    // Check if wallet address already exists
     if (body.walletAddress) {
       const existingWallet = await prisma.user.findUnique({
         where: { walletAddress: body.walletAddress },
@@ -74,7 +74,7 @@ export async function register(req: Request, res: Response): Promise<void> {
       }
     }
 
-    // 创建用户
+    // Create user
     const passwordHash = await hashPassword(body.password);
 
     const user = await prisma.user.create({
@@ -95,7 +95,7 @@ export async function register(req: Request, res: Response): Promise<void> {
       },
     });
 
-    // 生成 tokens
+    // Generate tokens
     const accessToken = generateAccessToken({
       userId: user.id,
       email: user.email,
@@ -134,15 +134,15 @@ export async function register(req: Request, res: Response): Promise<void> {
 }
 
 /**
- * 用户登录
+ * User login
  * POST /api/v1/auth/login
  */
 export async function login(req: Request, res: Response): Promise<void> {
   try {
-    // 验证请求体
+    // Validate request body
     const body = loginSchema.parse(req.body);
 
-    // 查找用户
+    // Find user
     const user = await prisma.user.findUnique({
       where: { email: body.email },
     });
@@ -155,7 +155,7 @@ export async function login(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    // 验证密码
+    // Verify password
     const isValid = await verifyPassword(body.password, user.passwordHash);
 
     if (!isValid) {
@@ -166,7 +166,7 @@ export async function login(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    // 生成 tokens
+    // Generate tokens
     const accessToken = generateAccessToken({
       userId: user.id,
       email: user.email,
@@ -211,18 +211,18 @@ export async function login(req: Request, res: Response): Promise<void> {
 }
 
 /**
- * 刷新访问token
+ * Refresh access token
  * POST /api/v1/auth/refresh
  */
 export async function refresh(req: Request, res: Response): Promise<void> {
   try {
-    // 验证请求体
+    // Validate request body
     const body = refreshSchema.parse(req.body);
 
-    // 验证 refresh token
+    // Verify refresh token
     const payload = verifyToken(body.refreshToken);
 
-    // 检查用户是否存在
+    // Check if user exists
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
     });
@@ -235,7 +235,7 @@ export async function refresh(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    // 生成新的 access token
+    // Generate new access token
     const accessToken = generateAccessToken({
       userId: user.id,
       email: user.email,
@@ -264,7 +264,7 @@ export async function refresh(req: Request, res: Response): Promise<void> {
 }
 
 /**
- * 获取当前用户信息
+ * Get current user info
  * GET /api/v1/auth/me
  */
 export async function getMe(req: Request, res: Response): Promise<void> {

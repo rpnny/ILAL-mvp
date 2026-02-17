@@ -1,36 +1,191 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ILAL Landing & API Portal
 
-## Getting Started
+ILAL official website and API Portal (developer control panel).
 
-First, run the development server:
+## Features
+
+### Landing Page
+- Product introduction and technical overview
+- Project roadmap
+- Integration guides
+
+### API Portal (Dashboard)
+- User registration and login (invite-only)
+- API Key management (create, copy, revoke)
+- Usage statistics and quota monitoring
+- API documentation
+
+## Development Setup
+
+### 1. Install Dependencies
+
+```bash
+npm install
+```
+
+### 2. Environment Variables
+
+Copy `.env.local.example` to `.env.local`:
+
+```bash
+cp .env.local.example .env.local
+```
+
+Edit `.env.local` to configure the API URL:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3001
+```
+
+For production:
+
+```env
+NEXT_PUBLIC_API_URL=https://api.ilal.tech
+```
+
+### 3. Start Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+landing/
+├── app/                          # Next.js App Router
+│   ├── (auth)/                  # Auth pages group
+│   │   ├── login/              # Login page
+│   │   └── register/           # Register page (with invite code)
+│   ├── dashboard/              # Dashboard (requires auth)
+│   │   ├── page.tsx           # Main control panel
+│   │   ├── api-keys/          # API Key management
+│   │   ├── usage/             # Usage statistics
+│   │   └── settings/          # Account settings
+│   ├── docs/                   # API documentation
+│   │   ├── quickstart/        # Quick start
+│   │   ├── authentication/    # Authentication docs
+│   │   └── endpoints/         # API endpoints
+│   ├── about/                  # About page
+│   ├── technology/             # Technology overview
+│   ├── integrations/           # Integration guides
+│   └── roadmap/               # Roadmap
+├── components/
+│   ├── UserMenu.tsx           # User menu
+│   └── dashboard/             # Dashboard components
+│       ├── Sidebar.tsx
+│       ├── ApiKeyCard.tsx
+│       ├── CreateApiKeyDialog.tsx
+│       └── UsageChart.tsx
+├── lib/
+│   ├── api.ts                 # API call wrapper
+│   ├── auth.ts                # Auth utilities
+│   └── utils.ts               # General utilities
+├── contexts/
+│   └── AuthContext.tsx        # Global auth state
+└── hooks/
+    └── useAuth.ts             # Auth hook
+```
 
-## Learn More
+## Invite System
 
-To learn more about Next.js, take a look at the following resources:
+Registration uses a fixed invite code system (Beta testing phase).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Valid Invite Codes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Configured in `app/(auth)/register/page.tsx`:
 
-## Deploy on Vercel
+```typescript
+const VALID_INVITE_CODES = ['ILAL-BETA-2026', 'ILAL-EARLY-ACCESS'];
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Adding New Invite Codes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Edit `app/(auth)/register/page.tsx` and add new codes to the `VALID_INVITE_CODES` array.
+
+### Disabling Invite System
+
+Set `showInviteCode` to `false` in `app/(auth)/register/page.tsx`:
+
+```typescript
+const [showInviteCode, setShowInviteCode] = useState(false);
+```
+
+## API Integration
+
+The API Portal depends on the backend service `apps/api`. Make sure the backend is running with CORS properly configured.
+
+### CORS Configuration
+
+The backend must allow cross-origin requests from the Landing domain:
+
+```javascript
+// apps/api/src/index.ts
+app.use(cors({
+  origin: ['http://localhost:3000', 'https://ilal.tech'],
+  credentials: true
+}));
+```
+
+## Deployment
+
+### Vercel Deployment (Recommended)
+
+1. Connect your Git repository to Vercel
+2. Set environment variables:
+   - `NEXT_PUBLIC_API_URL`: API service URL
+3. Deploy
+
+### Environment Variables (Production)
+
+```env
+NEXT_PUBLIC_API_URL=https://api.ilal.tech
+```
+
+## Tech Stack
+
+- **Framework**: Next.js 14 (App Router)
+- **Styling**: TailwindCSS
+- **Animations**: Framer Motion
+- **Charts**: Recharts
+- **Date Handling**: date-fns
+- **Notifications**: react-hot-toast
+- **HTTP Client**: fetch API
+- **Form Validation**: Zod
+
+## Development Guide
+
+### Adding New Pages
+
+1. Create a new folder under `app/`
+2. Add `page.tsx`
+3. (Optional) Add `layout.tsx`
+
+### Adding New API Endpoints
+
+Add new API call functions in `lib/api.ts`:
+
+```typescript
+export async function newApiCall(token: string, params: any) {
+  const res = await fetch(`${API_URL}/api/v1/new-endpoint`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(params),
+  });
+  
+  if (!res.ok) {
+    throw new Error('API call failed');
+  }
+  
+  return res.json();
+}
+```
+
+## License
+
+MIT

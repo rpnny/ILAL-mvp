@@ -1,6 +1,6 @@
 /**
- * 验证控制器 - ZK Proof 验证和 Session 激活
- * 核心功能来自原 relay 服务
+ * Verify Controller - ZK Proof verification and session activation
+ * Core functionality from original relay service
  */
 
 import type { Request, Response } from 'express';
@@ -9,7 +9,7 @@ import { type Address, type Hex } from 'viem';
 import { blockchainService } from '../services/blockchain.service.js';
 import { logger } from '../config/logger.js';
 
-// 请求验证 schemas
+// Request validation schemas
 const verifySchema = z.object({
   userAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address'),
   proof: z.string(), // hex-encoded proof bytes
@@ -21,22 +21,22 @@ const sessionStatusSchema = z.object({
 });
 
 /**
- * 验证 ZK Proof 并激活 Session
+ * Verify ZK Proof and activate session
  * POST /api/v1/verify
  * 
- * 原 relay 的核心功能
+ * Core functionality from original relay
  */
 export async function verifyAndActivate(req: Request, res: Response): Promise<void> {
   const startTime = Date.now();
 
   try {
-    // 验证请求体
+    // Validate request body
     const body = verifySchema.parse(req.body);
     const userAddress = body.userAddress as Address;
 
     logger.info('Verify request received', { userAddress });
 
-    // 1. 检查是否已有活跃 Session
+    // 1. Check if session is already active
     const isActive = await blockchainService.isSessionActive(userAddress);
 
     if (isActive) {
@@ -54,7 +54,7 @@ export async function verifyAndActivate(req: Request, res: Response): Promise<vo
       return;
     }
 
-    // 2. 链上验证 ZK Proof
+    // 2. Verify ZK Proof on-chain
     logger.debug('Verifying proof on-chain', { userAddress });
 
     const proofHex = (body.proof.startsWith('0x') ? body.proof : `0x${body.proof}`) as Hex;
@@ -85,7 +85,7 @@ export async function verifyAndActivate(req: Request, res: Response): Promise<vo
 
     logger.info('Proof verified successfully', { userAddress });
 
-    // 3. 激活链上 Session
+    // 3. Activate on-chain session
     logger.debug('Activating session', { userAddress });
 
     try {
@@ -136,14 +136,14 @@ export async function verifyAndActivate(req: Request, res: Response): Promise<vo
 }
 
 /**
- * 查询 Session 状态
+ * Query session status
  * GET /api/v1/session/:address
  */
 export async function getSessionStatus(req: Request, res: Response): Promise<void> {
   try {
     const address = req.params.address;
 
-    // 验证地址格式
+    // Validate address format
     if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address)) {
       res.status(400).json({
         error: 'Bad Request',
@@ -154,7 +154,7 @@ export async function getSessionStatus(req: Request, res: Response): Promise<voi
 
     const userAddress = address as Address;
 
-    // 查询链上状态
+    // Query on-chain status
     const [isActive, remaining] = await Promise.all([
       blockchainService.isSessionActive(userAddress),
       blockchainService.getRemainingTime(userAddress),
@@ -176,7 +176,7 @@ export async function getSessionStatus(req: Request, res: Response): Promise<voi
 }
 
 /**
- * 健康检查
+ * Health check
  * GET /api/v1/health
  */
 export async function healthCheck(req: Request, res: Response): Promise<void> {

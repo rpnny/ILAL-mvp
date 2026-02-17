@@ -1,5 +1,5 @@
 /**
- * 计费控制器 - 使用统计、套餐管理
+ * Billing Controller - Usage statistics and plan management
  */
 
 import type { Request, Response } from 'express';
@@ -11,7 +11,7 @@ import { logger } from '../config/logger.js';
 import type { Plan } from '@prisma/client';
 
 /**
- * 获取使用统计
+ * Get usage statistics
  * GET /api/v1/usage/stats
  */
 export async function getUsageStats(req: Request, res: Response): Promise<void> {
@@ -50,7 +50,7 @@ export async function getUsageStats(req: Request, res: Response): Promise<void> 
 }
 
 /**
- * 获取可用套餐列表
+ * Get available plans
  * GET /api/v1/billing/plans
  */
 export async function getPlans(req: Request, res: Response): Promise<void> {
@@ -58,19 +58,19 @@ export async function getPlans(req: Request, res: Response): Promise<void> {
     const plans = [
       {
         id: 'FREE',
-        name: '免费版',
+        name: 'Free',
         price: PLAN_PRICING.FREE,
         currency: 'USD',
         interval: 'month',
         features: {
           monthlyQuota: RATE_LIMITS.FREE.monthlyQuota,
           rateLimit: RATE_LIMITS.FREE.max,
-          support: '社区',
+          support: 'Community',
         },
       },
       {
         id: 'PRO',
-        name: '专业版',
+        name: 'Pro',
         price: PLAN_PRICING.PRO,
         currency: 'USD',
         interval: 'month',
@@ -82,14 +82,14 @@ export async function getPlans(req: Request, res: Response): Promise<void> {
       },
       {
         id: 'ENTERPRISE',
-        name: '企业版',
+        name: 'Enterprise',
         price: PLAN_PRICING.ENTERPRISE,
         currency: 'USD',
         interval: 'month',
         features: {
-          monthlyQuota: '无限制',
+          monthlyQuota: 'Unlimited',
           rateLimit: RATE_LIMITS.ENTERPRISE.max,
-          support: '专属',
+          support: 'Dedicated',
           customization: true,
         },
       },
@@ -106,7 +106,7 @@ export async function getPlans(req: Request, res: Response): Promise<void> {
 }
 
 /**
- * 升级套餐
+ * Upgrade plan
  * POST /api/v1/billing/upgrade
  */
 export async function upgradePlan(req: Request, res: Response): Promise<void> {
@@ -125,7 +125,7 @@ export async function upgradePlan(req: Request, res: Response): Promise<void> {
 
     const body = upgradeSchema.parse(req.body);
 
-    // 检查是否允许升级
+    // Check if upgrade is allowed
     const user = await prisma.user.findUnique({
       where: { id: req.user.userId },
     });
@@ -146,7 +146,7 @@ export async function upgradePlan(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    // 执行升级
+    // Perform upgrade
     await billingService.upgradePlan(req.user.userId, body.targetPlan as Plan);
 
     logger.info('Plan upgraded', {
@@ -178,7 +178,7 @@ export async function upgradePlan(req: Request, res: Response): Promise<void> {
 }
 
 /**
- * 获取账单历史
+ * Get billing history
  * GET /api/v1/billing/invoices
  */
 export async function getInvoices(req: Request, res: Response): Promise<void> {
@@ -194,7 +194,7 @@ export async function getInvoices(req: Request, res: Response): Promise<void> {
     const subscriptions = await prisma.subscription.findMany({
       where: { userId: req.user.userId },
       orderBy: { createdAt: 'desc' },
-      take: 12, // 最近12个月
+      take: 12, // Last 12 months
     });
 
     res.json({ subscriptions });

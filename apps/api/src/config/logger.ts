@@ -1,5 +1,5 @@
 /**
- * Winston 日志配置
+ * Winston logger configuration
  */
 
 import winston from 'winston';
@@ -27,7 +27,7 @@ export const logger = winston.createLogger({
         logFormat
       ),
     }),
-    // 生产环境可以添加文件日志
+    // Production: add file transports as needed
     // new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
     // new winston.transports.File({ filename: 'logs/combined.log' }),
   ],

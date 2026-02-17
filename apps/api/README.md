@@ -1,226 +1,226 @@
 # ILAL API Service
 
-企业级 REST API 服务 - 提供认证、计费、ZK Proof 验证和 Session 管理。
+Enterprise-grade REST API service — providing authentication, billing, ZK Proof verification, and session management.
 
-## 功能
+## Features
 
-- 🔐 **用户认证** - 注册、登录、JWT Token 管理
-- 🔑 **API Key 管理** - 生成、撤销、权限控制
-- ⚡ **ZK Proof 验证** - 链上验证 ZK Proof 并激活 Session
-- 📊 **使用追踪** - 实时记录 API 调用和计费
-- 💰 **套餐管理** - 免费、专业版、企业版三档套餐
-- 🛡️ **安全防护** - 限流、配额检查、API Key 加密
+- 🔐 **User Authentication** - Registration, login, JWT token management
+- 🔑 **API Key Management** - Generation, revocation, permission control
+- ⚡ **ZK Proof Verification** - On-chain ZK Proof verification and session activation
+- 📊 **Usage Tracking** - Real-time API call recording and billing
+- 💰 **Plan Management** - Free, Pro, and Enterprise tiers
+- 🛡️ **Security** - Rate limiting, quota checks, API key encryption
 
-## 技术栈
+## Tech Stack
 
-- **框架**: Express.js + TypeScript
-- **数据库**: PostgreSQL + Prisma ORM
-- **认证**: JWT + bcrypt
-- **区块链**: viem (Base Sepolia)
-- **日志**: Winston
-- **安全**: Helmet, CORS, Rate Limiting
+- **Framework**: Express.js + TypeScript
+- **Database**: PostgreSQL + Prisma ORM
+- **Authentication**: JWT + bcrypt
+- **Blockchain**: viem (Base Sepolia)
+- **Logging**: Winston
+- **Security**: Helmet, CORS, Rate Limiting
 
-## 快速开始
+## Quick Start
 
-### 1. 环境配置
+### 1. Environment Configuration
 
-复制环境变量模板：
+Copy the environment template:
 
-\`\`\`bash
+```bash
 cp .env.example .env
-\`\`\`
+```
 
-编辑 `.env` 配置数据库和区块链参数：
+Edit `.env` to configure the database and blockchain parameters:
 
-\`\`\`env
+```env
 DATABASE_URL="postgresql://user:password@localhost:5432/ilal_saas"
 JWT_SECRET="your-secret-key"
 VERIFIER_PRIVATE_KEY="0x..."
-\`\`\`
+```
 
-### 2. 安装依赖
+### 2. Install Dependencies
 
-\`\`\`bash
+```bash
 pnpm install
-\`\`\`
+```
 
-### 3. 数据库设置
+### 3. Database Setup
 
-\`\`\`bash
-# 生成 Prisma Client
+```bash
+# Generate Prisma Client
 pnpm db:generate
 
-# 运行数据库迁移
+# Run database migrations
 pnpm db:migrate
 
-# (可选) 打开 Prisma Studio 查看数据
+# (Optional) Open Prisma Studio to view data
 pnpm db:studio
-\`\`\`
+```
 
-### 4. 启动服务
+### 4. Start the Service
 
-\`\`\`bash
-# 开发模式（热重载）
+```bash
+# Development mode (hot reload)
 pnpm dev
 
-# 生产模式
+# Production mode
 pnpm build
 pnpm start
-\`\`\`
+```
 
-服务将在 `http://localhost:3001` 启动。
+The service will start at `http://localhost:3001`.
 
-## API 端点
+## API Endpoints
 
-### 认证
+### Authentication
 
-- `POST /api/v1/auth/register` - 用户注册
-- `POST /api/v1/auth/login` - 用户登录
-- `POST /api/v1/auth/refresh` - 刷新 Token
-- `GET /api/v1/auth/me` - 获取当前用户信息
+- `POST /api/v1/auth/register` - User registration
+- `POST /api/v1/auth/login` - User login
+- `POST /api/v1/auth/refresh` - Refresh token
+- `GET /api/v1/auth/me` - Get current user info
 
-### API Key 管理
+### API Key Management
 
-- `GET /api/v1/apikeys` - 列出所有 API Keys
-- `POST /api/v1/apikeys` - 创建新的 API Key
-- `PATCH /api/v1/apikeys/:id` - 更新 API Key
-- `DELETE /api/v1/apikeys/:id` - 撤销 API Key
+- `GET /api/v1/apikeys` - List all API Keys
+- `POST /api/v1/apikeys` - Create new API Key
+- `PATCH /api/v1/apikeys/:id` - Update API Key
+- `DELETE /api/v1/apikeys/:id` - Revoke API Key
 
-### ZK Proof 验证
+### ZK Proof Verification
 
-- `POST /api/v1/verify` - 验证 ZK Proof 并激活 Session
-- `GET /api/v1/session/:address` - 查询 Session 状态
+- `POST /api/v1/verify` - Verify ZK Proof and activate session
+- `GET /api/v1/session/:address` - Query session status
 
-### 使用统计和计费
+### Usage Statistics & Billing
 
-- `GET /api/v1/usage/stats` - 获取使用统计
-- `GET /api/v1/billing/plans` - 获取套餐列表
-- `POST /api/v1/billing/upgrade` - 升级套餐
-- `GET /api/v1/billing/invoices` - 获取账单历史
+- `GET /api/v1/usage/stats` - Get usage statistics
+- `GET /api/v1/billing/plans` - Get plans list
+- `POST /api/v1/billing/upgrade` - Upgrade plan
+- `GET /api/v1/billing/invoices` - Get billing history
 
-### 健康检查
+### Health Check
 
-- `GET /api/v1/health` - 服务健康检查
+- `GET /api/v1/health` - Service health check
 
-## 认证方式
+## Authentication Methods
 
-### JWT 认证（用于用户管理）
+### JWT Authentication (for user management)
 
-在请求头中包含 JWT Token：
+Include the JWT token in the request header:
 
-\`\`\`
+```
 Authorization: Bearer <your-jwt-token>
-\`\`\`
+```
 
-### API Key 认证（用于 API 调用）
+### API Key Authentication (for API calls)
 
-在请求头中包含 API Key：
+Include the API Key in the request header:
 
-\`\`\`
+```
 X-API-Key: ilal_live_xxxxxxxxxxxxx
-\`\`\`
+```
 
-## 套餐限制
+## Plan Limits
 
-| 套餐 | 月调用次数 | 限流 | 价格 |
-|------|-----------|------|------|
-| 免费版 | 100 | 10/min | $0 |
-| 专业版 | 10,000 | 100/min | $99/月 |
-| 企业版 | 无限制 | 1000/min | 定制 |
+| Plan | Monthly Calls | Rate Limit | Price |
+|------|--------------|------------|-------|
+| Free | 100 | 10/min | $0 |
+| Pro | 10,000 | 100/min | $99/mo |
+| Enterprise | Unlimited | 1000/min | Custom |
 
-## 开发
+## Development
 
-### 数据库操作
+### Database Operations
 
-\`\`\`bash
-# 创建新迁移
+```bash
+# Create new migration
 pnpm db:migrate
 
-# 重置数据库
+# Reset database
 prisma migrate reset
 
-# 推送 schema 变更（开发用）
+# Push schema changes (development)
 pnpm db:push
 
-# 打开 Prisma Studio
+# Open Prisma Studio
 pnpm db:studio
-\`\`\`
+```
 
-### 日志
+### Logging
 
-日志使用 Winston，输出到控制台和文件：
+Logging uses Winston, outputting to console and files:
 
-- `logs/error.log` - 错误日志
-- `logs/combined.log` - 所有日志
+- `logs/error.log` - Error logs
+- `logs/combined.log` - All logs
 
-### 目录结构
+### Directory Structure
 
-\`\`\`
+```
 src/
-├── config/         # 配置文件
+├── config/         # Configuration files
 │   ├── database.ts
 │   ├── constants.ts
 │   └── logger.ts
-├── controllers/    # 控制器
+├── controllers/    # Controllers
 │   ├── auth.controller.ts
 │   ├── apikey.controller.ts
 │   ├── verify.controller.ts
 │   └── billing.controller.ts
-├── middleware/     # 中间件
+├── middleware/     # Middleware
 │   ├── auth.middleware.ts
 │   ├── apikey.middleware.ts
 │   ├── ratelimit.middleware.ts
 │   └── usage.middleware.ts
-├── routes/         # 路由
+├── routes/         # Routes
 │   ├── auth.routes.ts
 │   ├── apikey.routes.ts
 │   ├── verify.routes.ts
 │   └── billing.routes.ts
-├── services/       # 服务层
+├── services/       # Service layer
 │   ├── blockchain.service.ts
 │   └── billing.service.ts
-├── utils/          # 工具函数
+├── utils/          # Utilities
 │   ├── apiKey.ts
 │   ├── jwt.ts
 │   └── password.ts
-├── server.ts       # Express 服务器
-└── index.ts        # 入口文件
-\`\`\`
+├── server.ts       # Express server
+└── index.ts        # Entry point
+```
 
-## 部署
+## Deployment
 
 ### Docker
 
-\`\`\`bash
+```bash
 docker build -t ilal-api .
 docker run -p 3001:3001 --env-file .env ilal-api
-\`\`\`
+```
 
-### 环境变量检查清单
+### Environment Variables Checklist
 
-- [ ] `DATABASE_URL` - PostgreSQL 连接字符串
-- [ ] `JWT_SECRET` - JWT 签名密钥
-- [ ] `API_KEY_SECRET` - API Key 加密盐
-- [ ] `VERIFIER_PRIVATE_KEY` - 验证者钱包私钥
-- [ ] `SESSION_MANAGER_ADDRESS` - SessionManager 合约地址
-- [ ] `VERIFIER_ADDRESS` - Verifier 合约地址
+- [ ] `DATABASE_URL` - PostgreSQL connection string
+- [ ] `JWT_SECRET` - JWT signing secret
+- [ ] `API_KEY_SECRET` - API Key encryption salt
+- [ ] `VERIFIER_PRIVATE_KEY` - Verifier wallet private key
+- [ ] `SESSION_MANAGER_ADDRESS` - SessionManager contract address
+- [ ] `VERIFIER_ADDRESS` - Verifier contract address
 
-## 监控和日志
+## Monitoring & Logging
 
-推荐使用：
+Recommended stack:
 
-- **日志**: Winston + ELK Stack
-- **监控**: Prometheus + Grafana
-- **错误追踪**: Sentry
+- **Logging**: Winston + ELK Stack
+- **Monitoring**: Prometheus + Grafana
+- **Error Tracking**: Sentry
 
-## 安全建议
+## Security Recommendations
 
-1. 使用强随机密钥作为 `JWT_SECRET` 和 `API_KEY_SECRET`
-2. 定期轮换 API Keys
-3. 启用 HTTPS（生产环境）
-4. 配置防火墙和 IP 白名单
-5. 定期备份数据库
-6. 监控异常访问模式
+1. Use strong random keys for `JWT_SECRET` and `API_KEY_SECRET`
+2. Rotate API Keys regularly
+3. Enable HTTPS (production)
+4. Configure firewall and IP whitelisting
+5. Back up database regularly
+6. Monitor for anomalous access patterns
 
 ## License
 

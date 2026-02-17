@@ -1,34 +1,34 @@
 # ILAL Web Demo
 
-> SDK 参考实现 - 展示如何使用 @ilal/sdk
+> SDK Reference Implementation - Demonstrates how to use @ilal/sdk
 
-## 🎯 定位
+## 🎯 Purpose
 
-这个前端应用是 **ILAL SDK 的参考实现**，用于：
+This frontend application is the **ILAL SDK reference implementation**, designed for:
 
-- ✅ 展示 SDK 使用模式
-- ✅ 快速测试和调试
-- ✅ 开发者参考
+- ✅ Demonstrating SDK usage patterns
+- ✅ Quick testing and debugging
+- ✅ Developer reference
 
-**⚠️ 注意**: 这不是生产级前端，而是 SDK 的示例和测试工具。
+**⚠️ Note**: This is not a production-grade frontend — it's an example and testing tool for the SDK.
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-### 在 Monorepo 中开发（推荐）
+### Development in Monorepo (Recommended)
 
 ```bash
-# 根目录安装依赖
+# Install dependencies from root
 npm install
 
-# 并行启动 SDK + Demo（热更新）
+# Start SDK + Demo in parallel (hot reload)
 npm run dev
 
-# 或单独启动 Demo
+# Or start Demo standalone
 cd apps/web-demo
 npm run dev
 ```
 
-### 独立开发
+### Standalone Development
 
 ```bash
 cd apps/web-demo
@@ -36,11 +36,11 @@ npm install
 npm run dev
 ```
 
-访问: http://localhost:3000
+Visit: http://localhost:3000
 
-## 📦 使用 SDK
+## 📦 Using the SDK
 
-### 基础设置
+### Basic Setup
 
 ```typescript
 'use client';
@@ -69,22 +69,22 @@ export default function Page() {
 }
 ```
 
-### Session 管理
+### Session Management
 
 ```typescript
-// 激活 Session
+// Activate session
 const handleActivateSession = async () => {
   if (!client) return;
   const hash = await client.session.activate();
   console.log('Session activated:', hash);
 };
 
-// 检查状态
+// Check status
 const info = await client.session.getInfo();
 console.log('Session active:', info.isActive);
 ```
 
-### 执行 Swap
+### Execute Swap
 
 ```typescript
 import { parseUnits } from 'viem';
@@ -104,37 +104,37 @@ const handleSwap = async () => {
 };
 ```
 
-## 🏗️ 项目结构
+## 🏗️ Project Structure
 
 ```
 apps/web-demo/
 ├── app/                    # Next.js App Router
-│   ├── page.tsx           # 主页
-│   └── layout.tsx         # 布局
-├── components/            # UI 组件（保留）
-├── lib/                   # 工具库
-│   ├── wagmi.ts          # Wagmi 配置
-│   ├── cache.ts          # 缓存工具
-│   ├── demo-mode.ts      # Demo 模式
-│   └── performance.ts    # 性能监控
-└── public/               # 静态资源
+│   ├── page.tsx           # Home page
+│   └── layout.tsx         # Layout
+├── components/            # UI components
+├── lib/                   # Utilities
+│   ├── wagmi.ts          # Wagmi config
+│   ├── cache.ts          # Cache utilities
+│   ├── demo-mode.ts      # Demo mode
+│   └── performance.ts    # Performance monitoring
+└── public/               # Static assets
 ```
 
-**已移除的文件**（现在使用 SDK）:
-- ~~`lib/contracts.ts`~~ → 使用 `@ilal/sdk` 的 `getContractAddresses()`
-- ~~`lib/eas.ts`~~ → 使用 `client.eas`
-- ~~`lib/eip712-signing.ts`~~ → 使用 SDK 的 `eip712` 工具
-- ~~`lib/zkProof.ts`~~ → 使用 `client.zkproof`
+**Removed files** (now using SDK):
+- ~~`lib/contracts.ts`~~ → Use `@ilal/sdk`'s `getContractAddresses()`
+- ~~`lib/eas.ts`~~ → Use `client.eas`
+- ~~`lib/eip712-signing.ts`~~ → Use SDK's `eip712` utilities
+- ~~`lib/zkProof.ts`~~ → Use `client.zkproof`
 
-## 📚 SDK 文档
+## 📚 SDK Documentation
 
-完整的 SDK 文档: [`../../packages/sdk/README.md`](../../packages/sdk/README.md)
+Full SDK docs: [`../../packages/sdk/README.md`](../../packages/sdk/README.md)
 
-## 🔗 相关链接
+## 🔗 Related Links
 
-- **SDK 文档**: [packages/sdk/README.md](../../packages/sdk/README.md)
-- **SDK 示例**: [packages/sdk/examples/](../../packages/sdk/examples/)
-- **Monorepo 根**: [../../README.md](../../README.md)
+- **SDK Documentation**: [packages/sdk/README.md](../../packages/sdk/README.md)
+- **SDK Examples**: [packages/sdk/examples/](../../packages/sdk/examples/)
+- **Monorepo Root**: [../../README.md](../../README.md)
 
 ---
 

@@ -1,10 +1,10 @@
 /**
- * 数据库配置和 Prisma Client
+ * Database configuration and Prisma Client
  */
 
 import { PrismaClient } from '@prisma/client';
 
-// 单例模式 - 避免开发环境 hot reload 时创建多个实例
+// Singleton pattern - avoid creating multiple instances during dev hot reload
 declare global {
   // eslint-disable-next-line no-var
   var prisma: PrismaClient | undefined;
@@ -20,7 +20,7 @@ if (process.env.NODE_ENV !== 'production') {
   global.prisma = prisma;
 }
 
-// 优雅关闭
+// Graceful shutdown
 process.on('beforeExit', async () => {
   await prisma.$disconnect();
 });
