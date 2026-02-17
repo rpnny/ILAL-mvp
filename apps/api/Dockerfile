@@ -7,7 +7,7 @@ COPY package.json package-lock.json* ./
 COPY prisma ./prisma/
 
 # Install dependencies
-RUN npm install
+RUN npm ci
 
 # Generate Prisma client
 RUN npx prisma generate
@@ -20,6 +20,9 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+# Install wget for healthcheck
+RUN apk add --no-cache wget
+
 # Copy from builder
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
@@ -27,12 +30,8 @@ COPY --from=builder /app/package.json ./
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/tsconfig.json ./
 
-# Expose port
+# Expose port (Railway will set $PORT)
 EXPOSE 3001
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3001/api/v1/health || exit 1
-
-# Start
-CMD ["npm", "run", "start"]
+# Start (use tsx to run TypeScript directly)
+CMD ["npx", "tsx", "src/index.ts"]
