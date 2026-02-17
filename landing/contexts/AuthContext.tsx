@@ -11,6 +11,7 @@ interface User {
   email: string;
   name?: string;
   plan: string;
+  emailVerified?: boolean;
 }
 
 interface AuthContextType {
@@ -20,6 +21,8 @@ interface AuthContextType {
   register: (email: string, password: string, name?: string, inviteCode?: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
+  verifyEmail: (email: string, code: string) => Promise<void>;
+  resendCode: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -67,6 +70,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       toast.success('Logged in successfully!');
       router.push('/dashboard');
     } catch (error: any) {
+      // Handle unverified email
+      if (error.message?.includes('not verified') || error.message?.includes('verification')) {
+        toast.error('Please verify your email first');
+        router.push(`/verify-email?email=${encodeURIComponent(email)}`);
+        return;
+      }
       toast.error(error.message || 'Login failed');
       throw error;
     }
@@ -80,10 +89,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       authLib.setUser(response.user);
       setUser(response.user);
 
-      toast.success('Registration successful!');
-      router.push('/dashboard');
+      toast.success('Registration successful! Please verify your email.');
+      // Redirect to verify-email page instead of dashboard
+      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch (error: any) {
       toast.error(error.message || 'Registration failed');
+      throw error;
+    }
+  };
+
+  const verifyEmailAction = async (email: string, code: string) => {
+    try {
+      const response = await api.verifyEmail(email, code);
+
+      authLib.setTokens(response.accessToken, response.refreshToken);
+      authLib.setUser(response.user);
+      setUser(response.user);
+
+      toast.success('Email verified! Welcome to ILAL.');
+      router.push('/dashboard');
+    } catch (error: any) {
+      toast.error(error.message || 'Verification failed');
+      throw error;
+    }
+  };
+
+  const resendCodeAction = async (email: string) => {
+    try {
+      await api.resendCode(email);
+      toast.success('Verification code sent! Check your email.');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to resend code');
       throw error;
     }
   };
@@ -110,7 +146,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser }}>
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      login,
+      register,
+      logout,
+      refreshUser,
+      verifyEmail: verifyEmailAction,
+      resendCode: resendCodeAction,
+    }}>
       {children}
     </AuthContext.Provider>
   );

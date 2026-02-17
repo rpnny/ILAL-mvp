@@ -1,5 +1,5 @@
 /**
- * Auth Controller - Register, login, token refresh
+ * Auth Controller - Register, login, token refresh, email verification
  */
 
 import type { Request, Response } from 'express';
@@ -8,6 +8,7 @@ import { prisma } from '../config/database.js';
 import { hashPassword, verifyPassword, validatePasswordStrength } from '../utils/password.js';
 import { generateAccessToken, generateRefreshToken, verifyToken } from '../utils/jwt.js';
 import { logger } from '../config/logger.js';
+import { generateVerificationCode, sendVerificationEmail } from '../services/email.service.js';
 
 // Request validation schemas
 const registerSchema = z.object({
@@ -15,6 +16,7 @@ const registerSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters'),
   name: z.string().optional(),
   walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address').optional(),
+  inviteCode: z.string().optional(),
 });
 
 const loginSchema = z.object({
@@ -24,6 +26,15 @@ const loginSchema = z.object({
 
 const refreshSchema = z.object({
   refreshToken: z.string(),
+});
+
+const verifyEmailSchema = z.object({
+  email: z.string().email(),
+  code: z.string().length(6),
+});
+
+const resendCodeSchema = z.object({
+  email: z.string().email(),
 });
 
 /**
@@ -74,7 +85,7 @@ export async function register(req: Request, res: Response): Promise<void> {
       }
     }
 
-    // Create user
+    // Create user (email NOT verified yet)
     const passwordHash = await hashPassword(body.password);
 
     const user = await prisma.user.create({
@@ -83,6 +94,7 @@ export async function register(req: Request, res: Response): Promise<void> {
         passwordHash,
         name: body.name,
         walletAddress: body.walletAddress,
+        emailVerified: false,
         plan: 'FREE',
       },
       select: {
@@ -91,11 +103,28 @@ export async function register(req: Request, res: Response): Promise<void> {
         name: true,
         walletAddress: true,
         plan: true,
+        emailVerified: true,
         createdAt: true,
       },
     });
 
-    // Generate tokens
+    // Generate verification code
+    const code = generateVerificationCode();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+    await prisma.verificationCode.create({
+      data: {
+        userId: user.id,
+        code,
+        type: 'EMAIL_VERIFY',
+        expiresAt,
+      },
+    });
+
+    // Send verification email
+    await sendVerificationEmail(user.email, code, user.name || undefined);
+
+    // Generate tokens (limited access until verified)
     const accessToken = generateAccessToken({
       userId: user.id,
       email: user.email,
@@ -108,12 +137,14 @@ export async function register(req: Request, res: Response): Promise<void> {
       plan: user.plan,
     });
 
-    logger.info('User registered', { userId: user.id, email: user.email });
+    logger.info('User registered, verification email sent', { userId: user.id, email: user.email });
 
     res.status(201).json({
       user,
       accessToken,
       refreshToken,
+      message: 'Registration successful. Please check your email for the verification code.',
+      requiresVerification: true,
     });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
@@ -129,6 +160,182 @@ export async function register(req: Request, res: Response): Promise<void> {
     res.status(500).json({
       error: 'Internal Server Error',
       message: 'Registration failed',
+    });
+  }
+}
+
+/**
+ * Verify email with 6-digit code
+ * POST /api/v1/auth/verify-email
+ */
+export async function verifyEmail(req: Request, res: Response): Promise<void> {
+  try {
+    const body = verifyEmailSchema.parse(req.body);
+
+    // Find the user
+    const user = await prisma.user.findUnique({
+      where: { email: body.email },
+    });
+
+    if (!user) {
+      res.status(404).json({ error: 'Not Found', message: 'User not found' });
+      return;
+    }
+
+    if (user.emailVerified) {
+      res.status(400).json({ error: 'Bad Request', message: 'Email already verified' });
+      return;
+    }
+
+    // Find valid verification code
+    const verificationCode = await prisma.verificationCode.findFirst({
+      where: {
+        userId: user.id,
+        code: body.code,
+        type: 'EMAIL_VERIFY',
+        used: false,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!verificationCode) {
+      res.status(400).json({
+        error: 'Bad Request',
+        message: 'Invalid or expired verification code',
+      });
+      return;
+    }
+
+    // Mark code as used and verify email
+    await prisma.$transaction([
+      prisma.verificationCode.update({
+        where: { id: verificationCode.id },
+        data: { used: true },
+      }),
+      prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerified: true },
+      }),
+    ]);
+
+    // Generate fresh tokens
+    const accessToken = generateAccessToken({
+      userId: user.id,
+      email: user.email,
+      plan: user.plan,
+    });
+
+    const refreshToken = generateRefreshToken({
+      userId: user.id,
+      email: user.email,
+      plan: user.plan,
+    });
+
+    logger.info('Email verified', { userId: user.id, email: user.email });
+
+    res.json({
+      message: 'Email verified successfully',
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        plan: user.plan,
+        emailVerified: true,
+      },
+      accessToken,
+      refreshToken,
+    });
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({
+        error: 'Bad Request',
+        message: 'Invalid request data',
+        details: error.errors,
+      });
+      return;
+    }
+
+    logger.error('Email verification failed', { error: error.message });
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Verification failed',
+    });
+  }
+}
+
+/**
+ * Resend verification code
+ * POST /api/v1/auth/resend-code
+ */
+export async function resendCode(req: Request, res: Response): Promise<void> {
+  try {
+    const body = resendCodeSchema.parse(req.body);
+
+    const user = await prisma.user.findUnique({
+      where: { email: body.email },
+    });
+
+    if (!user) {
+      // Don't reveal if user exists or not
+      res.json({ message: 'If the email is registered, a new code has been sent.' });
+      return;
+    }
+
+    if (user.emailVerified) {
+      res.status(400).json({ error: 'Bad Request', message: 'Email already verified' });
+      return;
+    }
+
+    // Rate limit: check recent codes (max 5 per hour)
+    const recentCodes = await prisma.verificationCode.count({
+      where: {
+        userId: user.id,
+        type: 'EMAIL_VERIFY',
+        createdAt: { gt: new Date(Date.now() - 60 * 60 * 1000) },
+      },
+    });
+
+    if (recentCodes >= 5) {
+      res.status(429).json({
+        error: 'Too Many Requests',
+        message: 'Too many verification attempts. Please wait an hour before trying again.',
+      });
+      return;
+    }
+
+    // Generate and send new code
+    const code = generateVerificationCode();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+    await prisma.verificationCode.create({
+      data: {
+        userId: user.id,
+        code,
+        type: 'EMAIL_VERIFY',
+        expiresAt,
+      },
+    });
+
+    await sendVerificationEmail(user.email, code, user.name || undefined);
+
+    logger.info('Verification code resent', { userId: user.id, email: user.email });
+
+    res.json({ message: 'Verification code sent. Please check your email.' });
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({
+        error: 'Bad Request',
+        message: 'Invalid request data',
+        details: error.errors,
+      });
+      return;
+    }
+
+    logger.error('Resend code failed', { error: error.message });
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Failed to resend code',
     });
   }
 }
@@ -166,6 +373,17 @@ export async function login(req: Request, res: Response): Promise<void> {
       return;
     }
 
+    // Check if email is verified
+    if (!user.emailVerified) {
+      res.status(403).json({
+        error: 'Forbidden',
+        message: 'Email not verified. Please check your email for the verification code.',
+        requiresVerification: true,
+        email: user.email,
+      });
+      return;
+    }
+
     // Generate tokens
     const accessToken = generateAccessToken({
       userId: user.id,
@@ -188,6 +406,7 @@ export async function login(req: Request, res: Response): Promise<void> {
         name: user.name,
         walletAddress: user.walletAddress,
         plan: user.plan,
+        emailVerified: user.emailVerified,
       },
       accessToken,
       refreshToken,
@@ -285,6 +504,7 @@ export async function getMe(req: Request, res: Response): Promise<void> {
         name: true,
         walletAddress: true,
         plan: true,
+        emailVerified: true,
         createdAt: true,
         updatedAt: true,
       },

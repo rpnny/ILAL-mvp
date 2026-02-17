@@ -67,6 +67,27 @@ export async function getMe(token: string): Promise<{ user: User }> {
   });
 }
 
+export async function verifyEmail(
+  email: string,
+  code: string
+): Promise<{ message: string; user: User; accessToken: string; refreshToken: string }> {
+  return apiFetch(`${API_URL}/api/v1/auth/verify-email`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, code }),
+  });
+}
+
+export async function resendCode(
+  email: string
+): Promise<{ message: string }> {
+  return apiFetch(`${API_URL}/api/v1/auth/resend-code`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+}
+
 // ── API Key Management ────────────────────────────────────────
 export async function getApiKeys(token: string): Promise<ApiKeysResponse> {
   return apiFetch(`${API_URL}/api/v1/apikeys`, {

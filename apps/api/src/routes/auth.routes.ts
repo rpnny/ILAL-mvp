@@ -15,6 +15,12 @@ router.post('/register', registerRateLimiter, authController.register);
 // POST /api/v1/auth/login - User login
 router.post('/login', authRateLimiter, authController.login);
 
+// POST /api/v1/auth/verify-email - Verify email with code
+router.post('/verify-email', authRateLimiter, authController.verifyEmail);
+
+// POST /api/v1/auth/resend-code - Resend verification code
+router.post('/resend-code', authRateLimiter, authController.resendCode);
+
 // POST /api/v1/auth/refresh - Refresh access token
 router.post('/refresh', authController.refresh);
 
