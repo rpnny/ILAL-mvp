@@ -21,6 +21,8 @@ export { EASModule } from './modules/eas';
 export type { IssuerType, KYCProviderConfig } from './modules/eas';
 
 // ============ 类型 ============
+export type { ChainConfig } from './constants';
+
 export type {
   // 配置
   ILALConfig,
@@ -61,10 +63,12 @@ export type {
 
 // ============ 常量 ============
 export {
-  // 地址
+  // 地址与链配置
   BASE_MAINNET_ADDRESSES,
   BASE_SEPOLIA_ADDRESSES,
   getContractAddresses,
+  getChainConfig,
+  CHAIN_RPC,
   isDeployed,
   COINBASE_ATTESTER_ADDRESS,
   EAS_SCHEMA_IDS,

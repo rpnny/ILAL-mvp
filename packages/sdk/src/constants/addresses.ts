@@ -1,5 +1,5 @@
 /**
- * ILAL 合约地址配置
+ * ILAL contract address configuration
  */
 
 import type { Address } from 'viem';
@@ -17,37 +17,58 @@ export const BASE_MAINNET_ADDRESSES: ContractAddresses = {
   poolManager: '0x0000000000000000000000000000000000000000' as Address,
 };
 
-// Base Sepolia (84532) - 最后更新: 2026-02-15
+// Base Sepolia (84532) - last updated: 2026-02-15
 export const BASE_SEPOLIA_ADDRESSES: ContractAddresses = {
   registry: '0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD' as Address,
   sessionManager: '0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2' as Address,
   verifier: '0x0cDcD82E5efba9De4aCc255402968397F323AFBB' as Address,
   complianceHook: '0xDeDcFDF10b03AB45eEbefD2D91EDE66D9E5c8a80' as Address,
   positionManager: '0x5b460c8Bd32951183a721bdaa3043495D8861f31' as Address,
-  simpleSwapRouter: '0xfBfc94f61b009C1DD39dB88A3b781199973E2e44' as Address, // 最新版本
+  simpleSwapRouter: '0xfBfc94f61b009C1DD39dB88A3b781199973E2e44' as Address,
   plonkVerifier: '0x2645C48A7DB734C9179A195C51Ea5F022B86261f' as Address,
   poolManager: '0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408' as Address,
 };
 
+/** Recommended RPC URL per chain */
+export const CHAIN_RPC: Record<number, string> = {
+  84532: 'https://base-sepolia-rpc.publicnode.com',
+  8453: 'https://mainnet.base.org',
+};
+
+/** Chain config: contract addresses + recommended RPC */
+export interface ChainConfig {
+  chainId: number;
+  addresses: ContractAddresses;
+  rpcUrl: string;
+}
+
 /**
- * 根据链 ID 获取合约地址
- * @param chainId - 链 ID
- * @returns 合约地址对象，如果链不支持则返回 null
+ * Get full chain config (addresses + recommended RPC) by chain ID.
+ */
+export function getChainConfig(chainId: number): ChainConfig | null {
+  const addresses = getContractAddresses(chainId);
+  const rpcUrl = CHAIN_RPC[chainId];
+  if (!addresses || !rpcUrl) return null;
+  return { chainId, addresses, rpcUrl };
+}
+
+/**
+ * Get contract addresses by chain ID.
+ * @returns Address set or null if chain is not supported
  */
 export function getContractAddresses(chainId: number): ContractAddresses | null {
   switch (chainId) {
     case 84532:
       return BASE_SEPOLIA_ADDRESSES;
     case 8453:
-      // 主网尚未部署
-      return null;
+      return BASE_MAINNET_ADDRESSES; // Mainnet placeholder, not deployed yet
     default:
       return null;
   }
 }
 
 /**
- * 验证合约地址是否已部署（非零地址）
+ * Check if an address is deployed (non-zero).
  */
 export function isDeployed(address: Address): boolean {
   return address !== '0x0000000000000000000000000000000000000000';
@@ -63,7 +84,7 @@ export const EAS_SCHEMA_IDS = {
   VERIFIED_COUNTRY: '0x1801901fabd0e6189356b4fb52bb0ab855276d84f7ec140839fbd1f6801ca065',
 } as const;
 
-// ============ 代币地址 ============
+// ============ Token addresses ============
 
 export const BASE_SEPOLIA_TOKENS = {
   USDC: '0x036CbD53842c5426634e7929541eC2318f3dCF7e' as Address,

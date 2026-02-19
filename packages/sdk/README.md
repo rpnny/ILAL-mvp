@@ -18,15 +18,40 @@
 
 ## Installation
 
+**Recommended**: Once published to npm, install with:
+
 ```bash
 npm install @ilal/sdk viem
-```
-
-Or using pnpm:
-
-```bash
+# or
 pnpm add @ilal/sdk viem
 ```
+
+> **About Git dependencies**: Using `"@ilal/sdk": "github:xxx/ILAL-mvp#main"` installs the whole repo root; **you cannot install only the `packages/sdk` subpackage**. Use the **npm package** (after publish) or **local `file:`** install instead.
+
+### Using the SDK in an external project (before npm publish)
+
+If `@ilal/sdk` is not yet published to npm, you can install it from a local path:
+
+1. **Clone the repo** (if needed):
+   ```bash
+   git clone https://github.com/your-org/ilal.git
+   cd ilal
+   ```
+
+2. **Build the SDK from the monorepo root**:
+   ```bash
+   pnpm install
+   pnpm build
+   # or build only the SDK: cd packages/sdk && pnpm build
+   ```
+
+3. **Add the SDK via `file:` in your project** (adjust the path to your machine):
+   ```bash
+   pnpm add file:../ilal/packages/sdk
+   # or absolute path example:
+   pnpm add file:/Users/you/ilal/packages/sdk
+   ```
+   Then use `import { ILALClient } from '@ilal/sdk'` as usual.
 
 ## Quick Start
 
@@ -66,10 +91,15 @@ const client = ILALClient.fromProvider({
 });
 ```
 
-### Session Management
+### Session Management (compliance)
+
+Swap and liquidity operations **require an active session first**. This is ILAL’s compliance design: the session is recorded on-chain with user authorization and expiry; the ComplianceHook checks that the current tx is within a valid session.
+
+- **Why activate first**: The contracts only allow swap/add-liquidity inside an active, non-expired session. Without it you get `SESSION_EXPIRED`.
+- **Expiry and refresh**: Default duration is 24 hours (`expiry` in seconds). After expiry, call `client.session.activate({ expiry })` again. You can use `client.session.activateIfNeeded()` or `client.session.ensureActive()` before critical operations.
 
 ```typescript
-// Activate session
+// Activate session (required before swap/liquidity)
 await client.session.activate({ expiry: 24 * 3600 });
 
 // Check status
@@ -86,6 +116,7 @@ console.log(`Remaining: ${Number(info.remainingTime) / 3600}h`);
 import { parseUnits } from 'viem';
 import { BASE_SEPOLIA_TOKENS } from '@ilal/sdk';
 
+// Ensure session is active first (see Session Management above)
 const result = await client.swap.execute({
   tokenIn: BASE_SEPOLIA_TOKENS.USDC,
   tokenOut: BASE_SEPOLIA_TOKENS.WETH,
@@ -101,6 +132,7 @@ console.log('Swap successful:', result.hash);
 ```typescript
 import { parseEther, parseUnits } from 'viem';
 
+// Ensure session is active first (see Session Management above)
 const result = await client.liquidity.add({
   poolKey: {
     currency0: BASE_SEPOLIA_TOKENS.USDC,
@@ -288,7 +320,25 @@ const client = new ILALClient({
 
 ## Error Handling
 
-The SDK provides detailed error types:
+All errors extend `ILALError` and include a `code` field for branching. Below is the full list of codes, when they occur, and suggested handling.
+
+| Code | Meaning | When it happens | Suggested handling |
+|------|--------|------------------|---------------------|
+| `SESSION_EXPIRED` | Session expired or not active | Swap/liquidity without `session.activate()` or after expiry | Ask user to reactivate or call `session.activateIfNeeded()` |
+| `SESSION_NOT_FOUND` | Session not found | Querying session that does not exist | Guide user to activate session first |
+| `INSUFFICIENT_LIQUIDITY` | Insufficient pool liquidity | Swap amount exceeds available liquidity | Ask user to reduce amount, use another pool, or retry later |
+| `SLIPPAGE_EXCEEDED` | Slippage tolerance exceeded | Execution price outside `slippageTolerance` | Ask user to increase slippage or retry; retry or reduce amount |
+| `INVALID_POOL` | Invalid or uninitialized pool | Pool not initialized or bad params | Check poolKey and chain/contract config |
+| `UNAUTHORIZED` | Unauthorized | Permission/compliance check failed | Check session and KYC/compliance status |
+| `ROUTER_NOT_APPROVED` | Router not approved | Token approval for router missing | Guide user to approve router |
+| `VERIFICATION_FAILED` | Verification failed | EAS/KYC verification not passed | Guide user to complete verification |
+| `INVALID_PROOF` | Invalid ZK proof | Proof verification failed | Regenerate proof or check circuit/inputs |
+| `INVALID_CONFIG` | Invalid config | Wrong SDK/chain/contract config | Check chainId, contract addresses, RPC |
+| `CONTRACT_NOT_DEPLOYED` | Contract not deployed | No contract on current chain | Switch chain or wait for deployment |
+| `TRANSACTION_FAILED` | Transaction failed | On-chain tx reverted | Use revert message to inform user or retry |
+| `GAS_ESTIMATION_FAILED` | Gas estimation failed | Tx would revert so estimation fails | Same as TRANSACTION_FAILED; check params and state |
+
+**Example: catch by type**:
 
 ```typescript
 import {
@@ -308,8 +358,31 @@ try {
     console.error('Not enough liquidity in pool');
   } else if (error instanceof SlippageExceededError) {
     console.error('Price moved too much');
+  } else if (error instanceof ILALError) {
+    console.error('ILAL error:', error.code, error.message);
   } else {
     console.error('Unexpected error:', error);
+  }
+}
+```
+
+**Example: branch by code** (for unified user messages):
+
+```typescript
+if (error instanceof ILALError) {
+  switch (error.code) {
+    case 'SESSION_EXPIRED':
+    case 'SESSION_NOT_FOUND':
+      showMessage('Please activate session first');
+      break;
+    case 'SLIPPAGE_EXCEEDED':
+      showMessage('Price moved; try higher slippage or retry');
+      break;
+    case 'INSUFFICIENT_LIQUIDITY':
+      showMessage('Insufficient liquidity; reduce amount');
+      break;
+    default:
+      showMessage(error.message);
   }
 }
 ```
@@ -331,6 +404,8 @@ See the [`examples/`](./examples/) directory for complete examples:
 |---------|----------|--------|
 | Base Sepolia | 84532 | ✅ Deployed |
 | Base Mainnet | 8453 | 🚧 Coming soon |
+
+Contract addresses and recommended RPC per chain are maintained in [docs/contracts.md](../docs/contracts.md). In code, use `getChainConfig(chainId)` or `getContractAddresses(chainId)`.
 
 ## Dependencies
 

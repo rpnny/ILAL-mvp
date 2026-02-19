@@ -44,6 +44,11 @@ await client.swap.execute({
 
 **📖 Full Documentation**: [`packages/sdk/README.md`](packages/sdk/README.md)
 
+### On-chain vs server integration
+
+- **On-chain / frontend (with wallet)**: Use the **SDK + wallet** (e.g. MetaMask); the user signs and the session is activated on-chain. See [SDK docs](packages/sdk/README.md).
+- **Server / middle-office (no wallet)**: Use **API Key + REST API**. Keys look like `ilal_live_xxx` and are passed in the `X-API-Key` header; create them in the Dashboard. See [SaaS API reference](docs/API.md) for base URL, auth, and swap/liquidity endpoints.
+
 ## ✨ Features
 
 - **🔐 Compliance First** - Session management + ZK Proofs + EAS verification
@@ -162,6 +167,8 @@ npm run build
 
 - **Documentation Index**: [`docs/INDEX.md`](docs/INDEX.md)
 - **SDK Documentation**: [`packages/sdk/README.md`](packages/sdk/README.md)
+- **SaaS API (API Key + REST)**: [`docs/API.md`](docs/API.md)
+- **Contracts & chain config (addresses, RPC)**: [`docs/contracts.md`](docs/contracts.md)
 - **Contract Documentation**: [`packages/contracts/README.md`](packages/contracts/README.md)
 - **Deployment Guide**: [`docs/guides/DEPLOYMENT.md`](docs/guides/DEPLOYMENT.md)
 - **Architecture Design**: [`docs/guides/ARCHITECTURE.md`](docs/guides/ARCHITECTURE.md)

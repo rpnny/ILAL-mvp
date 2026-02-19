@@ -1,6 +1,6 @@
 /**
  * Example 4: Add Liquidity
- * 展示如何添加流动性
+ * How to add liquidity
  */
 
 import { ILALClient, BASE_SEPOLIA_TOKENS } from '@ilal/sdk';
@@ -11,7 +11,8 @@ declare const client: ILALClient;
 async function addLiquidityExample() {
   const { USDC, WETH } = BASE_SEPOLIA_TOKENS;
 
-  // 定义 Pool Key
+  // Ensure session is active first: await client.session.activate({ expiry: 24 * 3600 });
+  // Define pool key
   const poolKey = {
     currency0: USDC,
     currency1: WETH,
@@ -20,17 +21,17 @@ async function addLiquidityExample() {
     hooks: client.addresses.complianceHook,
   };
 
-  // 1. 添加流动性到指定价格范围
+  // 1. Add liquidity in a price range
   console.log('Adding liquidity...');
   
   const result = await client.liquidity.add({
     poolKey,
-    tickLower: 190700, // 价格下界
-    tickUpper: 196250, // 价格上界
+    tickLower: 190700, // lower price bound
+    tickUpper: 196250, // upper price bound
     amount0Desired: parseUnits('100', 6), // 100 USDC
     amount1Desired: parseEther('0.05'), // 0.05 WETH
-    amount0Min: parseUnits('95', 6), // 最小 95 USDC（5% 滑点）
-    amount1Min: parseEther('0.0475'), // 最小 0.0475 WETH
+    amount0Min: parseUnits('95', 6), // min 95 USDC (5% slippage)
+    amount1Min: parseEther('0.0475'), // min 0.0475 WETH
   });
 
   console.log('Liquidity added!');
@@ -42,7 +43,7 @@ async function addLiquidityExample() {
     amount1: result.amount1,
   });
 
-  // 2. 查询流动性头寸
+  // 2. Query liquidity position
   if (result.tokenId) {
     const position = await client.liquidity.getPosition(result.tokenId);
     if (position) {
@@ -54,18 +55,18 @@ async function addLiquidityExample() {
     }
   }
 
-  // 3. 查询用户所有头寸
+  // 3. Query all user positions
   const userPositions = await client.liquidity.getUserPositions();
   console.log('Total positions:', userPositions.length);
 
-  // 4. 移除流动性
+  // 4. Remove liquidity
   if (result.tokenId) {
     console.log('Removing liquidity...');
     
     const removeResult = await client.liquidity.remove({
       tokenId: result.tokenId,
-      liquidity: result.liquidity, // 移除全部流动性
-      amount0Min: 0n, // 不设置最小值
+      liquidity: result.liquidity, // remove full liquidity
+      amount0Min: 0n, // no minimum
       amount1Min: 0n,
     });
 
@@ -77,7 +78,7 @@ async function addLiquidityExample() {
   }
 }
 
-// 单边流动性示例（仅 WETH）
+// Single-sided liquidity example (WETH only)
 async function singleSidedLiquidity() {
   const poolKey = {
     currency0: BASE_SEPOLIA_TOKENS.USDC,
@@ -87,13 +88,13 @@ async function singleSidedLiquidity() {
     hooks: client.addresses.complianceHook,
   };
 
-  // 仅提供 WETH，设置价格范围在当前价格之上
+  // WETH only; price range above current price
   await client.liquidity.add({
     poolKey,
-    tickLower: 196250, // 当前价格之上
+    tickLower: 196250, // above current price
     tickUpper: 201800,
-    amount0Desired: 0n, // 不提供 USDC
-    amount1Desired: parseEther('0.1'), // 仅 0.1 WETH
+    amount0Desired: 0n, // no USDC
+    amount1Desired: parseEther('0.1'), // 0.1 WETH only
   });
 }
 
