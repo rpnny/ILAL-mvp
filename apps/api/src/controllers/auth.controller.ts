@@ -8,7 +8,7 @@ import { prisma } from '../config/database.js';
 import { hashPassword, verifyPassword, validatePasswordStrength } from '../utils/password.js';
 import { generateAccessToken, generateRefreshToken, verifyToken } from '../utils/jwt.js';
 import { logger } from '../config/logger.js';
-import { generateVerificationCode, sendVerificationEmail } from '../services/email.service.js';
+import { generateVerificationCode, sendVerificationEmail, sendWelcomeEmail } from '../services/email.service.js';
 
 // Request validation schemas
 const registerSchema = z.object({
@@ -35,6 +35,16 @@ const verifyEmailSchema = z.object({
 
 const resendCodeSchema = z.object({
   email: z.string().email(),
+});
+
+const forgotPasswordSchema = z.object({
+  email: z.string().email('Invalid email address'),
+});
+
+const resetPasswordSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  code: z.string().length(6, 'Code must be 6 digits'),
+  newPassword: z.string().min(8, 'Password must be at least 8 characters'),
 });
 
 /**
@@ -94,7 +104,7 @@ export async function register(req: Request, res: Response): Promise<void> {
         passwordHash,
         name: body.name,
         walletAddress: body.walletAddress,
-        emailVerified: false,
+        emailVerified: 1 as any, // Auto-verified — no email verification required
         plan: 'FREE',
       },
       select: {
@@ -108,23 +118,7 @@ export async function register(req: Request, res: Response): Promise<void> {
       },
     });
 
-    // Generate verification code
-    const code = generateVerificationCode();
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
-
-    await prisma.verificationCode.create({
-      data: {
-        userId: user.id,
-        code,
-        type: 'EMAIL_VERIFY',
-        expiresAt,
-      },
-    });
-
-    // Send verification email
-    await sendVerificationEmail(user.email, code, user.name || undefined);
-
-    // Generate tokens (limited access until verified)
+    // Generate tokens
     const accessToken = generateAccessToken({
       userId: user.id,
       email: user.email,
@@ -137,14 +131,13 @@ export async function register(req: Request, res: Response): Promise<void> {
       plan: user.plan,
     });
 
-    logger.info('User registered, verification email sent', { userId: user.id, email: user.email });
+    logger.info('User registered', { userId: user.id, email: user.email });
 
     res.status(201).json({
       user,
       accessToken,
       refreshToken,
-      message: 'Registration successful. Please check your email for the verification code.',
-      requiresVerification: true,
+      message: 'Registration successful.',
     });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
@@ -193,11 +186,23 @@ export async function verifyEmail(req: Request, res: Response): Promise<void> {
         userId: user.id,
         code: body.code,
         type: 'EMAIL_VERIFY',
-        used: false,
-        expiresAt: { gt: new Date() },
+        used: 0 as any, // SQLite: 0=false
+        // Note: SQLite string comparison for dates
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    // Manually check expiration for SQLite
+    if (verificationCode) {
+      const expiryDate = new Date(verificationCode.expiresAt);
+      if (expiryDate < new Date()) {
+        res.status(400).json({
+          error: 'Bad Request',
+          message: 'Invalid or expired verification code',
+        });
+        return;
+      }
+    }
 
     if (!verificationCode) {
       res.status(400).json({
@@ -211,11 +216,11 @@ export async function verifyEmail(req: Request, res: Response): Promise<void> {
     await prisma.$transaction([
       prisma.verificationCode.update({
         where: { id: verificationCode.id },
-        data: { used: true },
+        data: { used: 1 as any }, // SQLite: 1=true
       }),
       prisma.user.update({
         where: { id: user.id },
-        data: { emailVerified: true },
+        data: { emailVerified: 1 as any }, // SQLite: 1=true
       }),
     ]);
 
@@ -233,6 +238,11 @@ export async function verifyEmail(req: Request, res: Response): Promise<void> {
     });
 
     logger.info('Email verified', { userId: user.id, email: user.email });
+
+    // Send welcome email (non-blocking)
+    sendWelcomeEmail(user.email, user.name || undefined).catch(err =>
+      logger.warn('Failed to send welcome email', { error: err.message })
+    );
 
     res.json({
       message: 'Email verified successfully',
@@ -313,7 +323,7 @@ export async function resendCode(req: Request, res: Response): Promise<void> {
         userId: user.id,
         code,
         type: 'EMAIL_VERIFY',
-        expiresAt,
+        expiresAt: expiresAt.toISOString(), // SQLite: store as ISO string
       },
     });
 
@@ -369,17 +379,6 @@ export async function login(req: Request, res: Response): Promise<void> {
       res.status(401).json({
         error: 'Unauthorized',
         message: 'Invalid email or password',
-      });
-      return;
-    }
-
-    // Check if email is verified
-    if (!user.emailVerified) {
-      res.status(403).json({
-        error: 'Forbidden',
-        message: 'Email not verified. Please check your email for the verification code.',
-        requiresVerification: true,
-        email: user.email,
       });
       return;
     }
@@ -525,5 +524,140 @@ export async function getMe(req: Request, res: Response): Promise<void> {
       error: 'Internal Server Error',
       message: 'Failed to retrieve user information',
     });
+  }
+}
+
+/**
+ * Forgot password — send reset code to email
+ * POST /api/v1/auth/forgot-password
+ */
+export async function forgotPassword(req: Request, res: Response): Promise<void> {
+  try {
+    const body = forgotPasswordSchema.parse(req.body);
+
+    const user = await prisma.user.findUnique({ where: { email: body.email } });
+
+    // Always respond with success to avoid email enumeration
+    if (!user) {
+      res.json({ message: 'If that email is registered, a reset code has been sent.' });
+      return;
+    }
+
+    // Rate limit: max 3 reset requests per hour
+    const recentCodes = await prisma.verificationCode.count({
+      where: {
+        userId: user.id,
+        type: 'PASSWORD_RESET',
+        createdAt: { gt: new Date(Date.now() - 60 * 60 * 1000) },
+      },
+    });
+
+    if (recentCodes >= 3) {
+      res.status(429).json({
+        error: 'Too Many Requests',
+        message: 'Too many reset attempts. Please wait before trying again.',
+      });
+      return;
+    }
+
+    const { generateVerificationCode: genCode, sendPasswordResetEmail } = await import('../services/email.service.js');
+    const code = genCode();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 min
+
+    await prisma.verificationCode.create({
+      data: {
+        userId: user.id,
+        code,
+        type: 'PASSWORD_RESET',
+        expiresAt: expiresAt.toISOString(),
+      },
+    });
+
+    await sendPasswordResetEmail(user.email, code);
+
+    logger.info('Password reset code sent', { userId: user.id, email: user.email });
+
+    res.json({ message: 'If that email is registered, a reset code has been sent.' });
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ error: 'Bad Request', message: 'Invalid email', details: error.errors });
+      return;
+    }
+    logger.error('Forgot password failed', { error: error.message });
+    res.status(500).json({ error: 'Internal Server Error', message: 'Failed to process request' });
+  }
+}
+
+/**
+ * Reset password with code
+ * POST /api/v1/auth/reset-password
+ */
+export async function resetPassword(req: Request, res: Response): Promise<void> {
+  try {
+    const body = resetPasswordSchema.parse(req.body);
+
+    const user = await prisma.user.findUnique({ where: { email: body.email } });
+    if (!user) {
+      res.status(400).json({ error: 'Bad Request', message: 'Invalid or expired reset code' });
+      return;
+    }
+
+    // Find valid reset code
+    const verificationCode = await prisma.verificationCode.findFirst({
+      where: {
+        userId: user.id,
+        code: body.code,
+        type: 'PASSWORD_RESET',
+        used: 0 as any,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!verificationCode) {
+      res.status(400).json({ error: 'Bad Request', message: 'Invalid or expired reset code' });
+      return;
+    }
+
+    // Check expiration
+    const expiryDate = new Date(verificationCode.expiresAt);
+    if (expiryDate < new Date()) {
+      res.status(400).json({ error: 'Bad Request', message: 'Invalid or expired reset code' });
+      return;
+    }
+
+    // Validate new password strength
+    const passwordValidation = validatePasswordStrength(body.newPassword);
+    if (!passwordValidation.valid) {
+      res.status(400).json({
+        error: 'Bad Request',
+        message: 'Password does not meet requirements',
+        details: passwordValidation.errors,
+      });
+      return;
+    }
+
+    const newHash = await hashPassword(body.newPassword);
+
+    await prisma.$transaction([
+      prisma.verificationCode.update({
+        where: { id: verificationCode.id },
+        data: { used: 1 as any },
+      }),
+      prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash: newHash },
+      }),
+    ]);
+
+    logger.info('Password reset successfully', { userId: user.id, email: user.email });
+
+    res.json({ message: 'Password reset successfully. You can now log in with your new password.' });
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ error: 'Bad Request', message: 'Invalid request data', details: error.errors });
+      return;
+    }
+    logger.error('Reset password failed', { error: error.message });
+    res.status(500).json({ error: 'Internal Server Error', message: 'Failed to reset password' });
   }
 }

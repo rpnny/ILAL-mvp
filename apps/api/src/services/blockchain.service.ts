@@ -27,7 +27,9 @@ class BlockchainService {
 
   constructor() {
     if (!VERIFIER_PRIVATE_KEY) {
-      throw new Error('VERIFIER_PRIVATE_KEY not configured');
+      logger.warn('VERIFIER_PRIVATE_KEY not configured - blockchain features disabled');
+      // Allow service to initialize without blockchain capabilities
+      return;
     }
 
     this.account = privateKeyToAccount(VERIFIER_PRIVATE_KEY);
@@ -55,7 +57,7 @@ class BlockchainService {
   async verifyProof(proof: Hex, publicInputs: bigint[]): Promise<boolean> {
     try {
       const isValid = await this.publicClient.readContract({
-        address: CONTRACTS.verifier,
+        address: CONTRACTS.verifier!,
         abi: verifierABI,
         functionName: 'verifyComplianceProof',
         args: [proof, publicInputs],
@@ -75,7 +77,7 @@ class BlockchainService {
   async isSessionActive(userAddress: Address): Promise<boolean> {
     try {
       const isActive = await this.publicClient.readContract({
-        address: CONTRACTS.sessionManager,
+        address: CONTRACTS.sessionManager!,
         abi: sessionManagerABI,
         functionName: 'isSessionActive',
         args: [userAddress],
@@ -94,7 +96,7 @@ class BlockchainService {
   async getRemainingTime(userAddress: Address): Promise<number> {
     try {
       const remaining = await this.publicClient.readContract({
-        address: CONTRACTS.sessionManager,
+        address: CONTRACTS.sessionManager!,
         abi: sessionManagerABI,
         functionName: 'getRemainingTime',
         args: [userAddress],
@@ -121,7 +123,7 @@ class BlockchainService {
       logger.info('Starting session', { userAddress, expiry });
 
       const hash = await this.walletClient.writeContract({
-        address: CONTRACTS.sessionManager,
+        address: CONTRACTS.sessionManager!,
         abi: sessionManagerABI,
         functionName: 'startSession',
         args: [userAddress, expiry],
@@ -159,7 +161,40 @@ class BlockchainService {
    * Get relay account address
    */
   getRelayAddress(): Address {
+    if (!this.account) throw new Error('Account not initialized');
     return this.account.address;
+  }
+
+  /**
+   * Execute raw contract write (for DeFi integration)
+   */
+  async executeContractWrite(params: {
+    address: Address;
+    abi: any;
+    functionName: string;
+    args: any[];
+    value?: bigint;
+  }): Promise<string> {
+    try {
+      const hash = await this.walletClient.writeContract({
+        address: params.address,
+        abi: params.abi,
+        functionName: params.functionName,
+        args: params.args,
+        value: params.value,
+      });
+
+      logger.info('Contract write executed', {
+        hash,
+        contract: params.address,
+        function: params.functionName
+      });
+
+      return hash;
+    } catch (error: any) {
+      logger.error('Contract write failed', { error: error.message });
+      throw error;
+    }
   }
 }
 

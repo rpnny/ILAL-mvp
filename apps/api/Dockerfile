@@ -1,40 +1,54 @@
-FROM node:20-alpine AS builder
+# Multi-stage build for ILAL API
+
+# Stage 1: Build
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
 # Copy package files
-COPY package.json package-lock.json* ./
+COPY package*.json ./
 COPY prisma ./prisma/
 
 # Install dependencies
 RUN npm ci
 
-# Generate Prisma client
-RUN npx prisma generate
-
-# Copy source
+# Copy source code
 COPY . .
 
-# Production stage
-FROM node:20-alpine
-
-WORKDIR /app
-
-# Install wget and openssl for healthcheck and prisma
-RUN apk add --no-cache wget openssl
-
-# Copy from builder
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/src ./src
-COPY --from=builder /app/tsconfig.json ./
+# Generate Prisma Client
+RUN npx prisma generate
 
 # Build TypeScript
 RUN npm run build
 
-# Expose port (Railway will set $PORT)
+# Stage 2: Production
+FROM node:18-alpine AS production
+
+WORKDIR /app
+
+# Install production dependencies only
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy built files and Prisma schema
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+
+# Generate Prisma Client in production
+RUN npx prisma generate
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nodejs -u 1001
+USER nodejs
+
+# Expose port
 EXPOSE 3001
 
-# Start
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s \
+  CMD node -e "require('http').get('http://localhost:3001/api/v1/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+
+# Start the application
 CMD ["node", "dist/index.js"]

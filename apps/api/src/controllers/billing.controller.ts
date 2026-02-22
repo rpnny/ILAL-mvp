@@ -8,7 +8,6 @@ import { billingService } from '../services/billing.service.js';
 import { prisma } from '../config/database.js';
 import { PLAN_PRICING, RATE_LIMITS } from '../config/constants.js';
 import { logger } from '../config/logger.js';
-import type { Plan } from '@prisma/client';
 
 /**
  * Get usage statistics
@@ -25,8 +24,8 @@ export async function getUsageStats(req: Request, res: Response): Promise<void> 
     }
 
     const stats = await billingService.getMonthlyStats(req.user.userId);
-    const quota = await billingService.checkQuota(req.user.userId, req.user.plan as Plan);
-    const planLimits = billingService.getPlanLimits(req.user.plan as Plan);
+    const quota = await billingService.checkQuota(req.user.userId, req.user.plan);
+    const planLimits = billingService.getPlanLimits(req.user.plan);
 
     res.json({
       usage: stats,
@@ -138,7 +137,7 @@ export async function upgradePlan(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    if (!billingService.canUpgradePlan(user.plan, body.targetPlan as Plan)) {
+    if (!billingService.canUpgradePlan(user.plan, body.targetPlan)) {
       res.status(400).json({
         error: 'Bad Request',
         message: 'Cannot downgrade or same plan',
@@ -147,7 +146,7 @@ export async function upgradePlan(req: Request, res: Response): Promise<void> {
     }
 
     // Perform upgrade
-    await billingService.upgradePlan(req.user.userId, body.targetPlan as Plan);
+    await billingService.upgradePlan(req.user.userId, body.targetPlan);
 
     logger.info('Plan upgraded', {
       userId: req.user.userId,

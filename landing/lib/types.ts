@@ -6,6 +6,7 @@
 export interface User {
     id: string;
     email: string;
+    walletAddress?: string;
     name?: string;
     plan: 'FREE' | 'PRO' | 'ENTERPRISE';
     createdAt?: string;

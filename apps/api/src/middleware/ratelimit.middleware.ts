@@ -5,7 +5,7 @@
 import rateLimit from 'express-rate-limit';
 import type { Request, Response } from 'express';
 import { RATE_LIMITS } from '../config/constants.js';
-import type { Plan } from '@prisma/client';
+// Plan is a string: 'FREE' | 'PRO' | 'ENTERPRISE'
 
 /**
  * Dynamic rate limiter - adjusts rate limits based on user plan
@@ -15,8 +15,8 @@ export const dynamicRateLimiter = rateLimit({
   max: (req: Request) => {
     // If user info is present, return plan-based limit
     if (req.user?.plan) {
-      const plan = req.user.plan as Plan;
-      return RATE_LIMITS[plan]?.max || RATE_LIMITS.FREE.max;
+      const plan = req.user.plan as string;
+      return RATE_LIMITS[plan as keyof typeof RATE_LIMITS]?.max || RATE_LIMITS.FREE.max;
     }
 
     // Default to free plan limit

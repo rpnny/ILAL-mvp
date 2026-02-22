@@ -12,14 +12,34 @@ import authRoutes from './routes/auth.routes.js';
 import apikeyRoutes from './routes/apikey.routes.js';
 import verifyRoutes from './routes/verify.routes.js';
 import billingRoutes from './routes/billing.routes.js';
+import stripeRoutes from './routes/stripe.routes.js';
 
 // Import controllers
 import * as verifyController from './controllers/verify.controller.js';
 
-export function createServer(): express.Application {
+export async function createServer(): Promise<express.Application> {
   const app = express();
 
   // ============ Middleware ============
+
+  // IMPORTANT: Stripe webhook must be registered BEFORE express.json()
+  // because it needs the raw request body for signature verification
+  const { handleWebhook } = await import('./services/stripe.service.js');
+  const { logger: log } = await import('./config/logger.js');
+  app.post('/api/v1/stripe/webhook',
+    express.raw({ type: 'application/json' }),
+    async (req, res) => {
+      const sig = req.headers['stripe-signature'] as string;
+      if (!sig) { res.status(400).json({ error: 'Missing Stripe-Signature header' }); return; }
+      try {
+        await handleWebhook(req.body as Buffer, sig);
+        res.json({ received: true });
+      } catch (err: any) {
+        log.error('Stripe webhook error', { error: err.message });
+        res.status(400).json({ error: err.message });
+      }
+    }
+  );
 
   // Security headers
   app.use(helmet());
@@ -73,6 +93,13 @@ export function createServer(): express.Application {
 
   // Billing routes
   app.use('/api/v1/billing', billingRoutes);
+
+  // Stripe routes (create-session, etc. — webhook is handled above)
+  app.use('/api/v1/stripe', stripeRoutes);
+
+  // DeFi routes (Infrastructure)
+  const { default: defiRoutes } = await import('./routes/defi.routes.js');
+  app.use('/api/v1/defi', defiRoutes);
 
   // Root path
   app.get('/', (req: Request, res: Response) => {

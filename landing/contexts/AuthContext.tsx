@@ -11,6 +11,7 @@ interface User {
   email: string;
   name?: string;
   plan: string;
+  walletAddress?: string;
   emailVerified?: boolean;
 }
 
@@ -23,6 +24,7 @@ interface AuthContextType {
   refreshUser: () => Promise<void>;
   verifyEmail: (email: string, code: string) => Promise<void>;
   resendCode: (email: string) => Promise<void>;
+  getAccessToken: () => string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -89,9 +91,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       authLib.setUser(response.user);
       setUser(response.user);
 
-      toast.success('Registration successful! Please verify your email.');
-      // Redirect to verify-email page instead of dashboard
-      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
+      toast.success('Registration successful! Welcome to ILAL.');
+      router.push('/dashboard');
     } catch (error: any) {
       toast.error(error.message || 'Registration failed');
       throw error;
@@ -155,6 +156,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       refreshUser,
       verifyEmail: verifyEmailAction,
       resendCode: resendCodeAction,
+      getAccessToken: authLib.getAccessToken,
     }}>
       {children}
     </AuthContext.Provider>

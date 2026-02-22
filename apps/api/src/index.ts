@@ -9,10 +9,19 @@
  * - Billing and quota management
  */
 
+import * as Sentry from '@sentry/node';
 import { createServer } from './server.js';
 import { prisma } from './config/database.js';
 import { PORT, validateConfig } from './config/constants.js';
 import { logger } from './config/logger.js';
+
+// Initialize Sentry (before anything else)
+// When SENTRY_DSN is set, errors will be automatically reported
+Sentry.init({
+  dsn: process.env.SENTRY_DSN, // Silently disabled if undefined
+  environment: process.env.NODE_ENV || 'development',
+  tracesSampleRate: 0.1,
+});
 
 async function start() {
   try {
@@ -26,7 +35,7 @@ async function start() {
     logger.info('Database connected successfully');
 
     // 3. Create Express server
-    const app = createServer();
+    const app = await createServer();
 
     // 4. Start server
     const server = app.listen(PORT, () => {

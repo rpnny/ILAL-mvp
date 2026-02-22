@@ -181,17 +181,31 @@ export async function getSessionStatus(req: Request, res: Response): Promise<voi
  */
 export async function healthCheck(req: Request, res: Response): Promise<void> {
   try {
-    const block = await blockchainService.getBlockNumber();
-    const relayAddress = blockchainService.getRelayAddress();
-
-    res.json({
+    const response: any = {
       status: 'ok',
       service: 'ILAL API',
-      relay: relayAddress,
-      network: 'base-sepolia',
-      latestBlock: block.toString(),
       timestamp: new Date().toISOString(),
-    });
+      database: 'connected',
+    };
+
+    // Test blockchain connection (if available)
+    try {
+      const block = await blockchainService.getBlockNumber();
+      const relayAddress = blockchainService.getRelayAddress();
+      response.blockchain = {
+        connected: true,
+        relay: relayAddress,
+        network: 'base-sepolia',
+        latestBlock: block.toString(),
+      };
+    } catch (error) {
+      response.blockchain = {
+        connected: false,
+        note: 'Blockchain features disabled (VERIFIER_PRIVATE_KEY not configured)',
+      };
+    }
+
+    res.json(response);
   } catch (error: any) {
     logger.error('Health check failed', { error: error.message });
     res.status(503).json({
