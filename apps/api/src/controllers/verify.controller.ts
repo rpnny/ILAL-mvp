@@ -144,7 +144,7 @@ export async function getSessionStatus(req: Request, res: Response): Promise<voi
     const address = req.params.address;
 
     // Validate address format
-    if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address)) {
+    if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address as string)) {
       res.status(400).json({
         error: 'Bad Request',
         message: 'Invalid Ethereum address',

@@ -94,12 +94,12 @@ class BillingService {
     });
 
     const totalCalls = records.length;
-    const successfulCalls = records.filter(r => r.statusCode >= 200 && r.statusCode < 300).length;
+    const successfulCalls = records.filter((r: any) => r.statusCode >= 200 && r.statusCode < 300).length;
     const failedCalls = totalCalls - successfulCalls;
-    const totalCost = records.reduce((sum, r) => sum + r.cost, 0);
+    const totalCost = records.reduce((sum: number, r: any) => sum + r.cost, 0);
 
     const byEndpoint: Record<string, number> = {};
-    records.forEach(r => { byEndpoint[r.endpoint] = (byEndpoint[r.endpoint] || 0) + 1; });
+    records.forEach((r: any) => { byEndpoint[r.endpoint] = (byEndpoint[r.endpoint] || 0) + 1; });
 
     return { totalCalls, successfulCalls, failedCalls, totalCost, byEndpoint };
   }

@@ -171,7 +171,7 @@ export async function deleteApiKey(req: Request, res: Response): Promise<void> {
     // Check if API Key exists and belongs to current user
     const apiKey = await prisma.apiKey.findFirst({
       where: {
-        id,
+        id: id as string,
         userId: req.user.userId,
       },
     });
@@ -186,7 +186,7 @@ export async function deleteApiKey(req: Request, res: Response): Promise<void> {
 
     // Soft delete: set to inactive
     await prisma.apiKey.update({
-      where: { id },
+      where: { id: id as string },
       data: { isActive: 0 as any }, // SQLite: 0=false
     });
 
@@ -233,7 +233,7 @@ export async function updateApiKey(req: Request, res: Response): Promise<void> {
     // Check if API Key exists and belongs to current user
     const apiKey = await prisma.apiKey.findFirst({
       where: {
-        id,
+        id: id as string,
         userId: req.user.userId,
         isActive: 1 as any, // SQLite: 1=true
       },
@@ -252,10 +252,14 @@ export async function updateApiKey(req: Request, res: Response): Promise<void> {
     if (body.permissions) {
       updateData.permissions = body.permissions.join(',');
     }
-    
+
     const updated = await prisma.apiKey.update({
-      where: { id },
-      data: updateData,
+      where: { id: id as string },
+      data: {
+        name: body.name,
+        permissions: body.permissions ? body.permissions.join(',') : undefined,
+        rateLimit: body.rateLimit
+      },
       select: {
         id: true,
         name: true,

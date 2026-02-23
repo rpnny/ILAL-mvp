@@ -1,5 +1,5 @@
 {
-  "name": "@ilal/sdk",
+  "name": "ilal-sdk",
   "version": "0.1.0",
   "description": "ILAL Protocol SDK - Compliant DeFi infrastructure",
   "main": "dist/index.js",

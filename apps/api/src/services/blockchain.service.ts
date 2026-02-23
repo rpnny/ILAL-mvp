@@ -2,7 +2,7 @@
  * Blockchain Service - Preserves original relay on-chain interaction logic
  */
 
-import { createPublicClient, createWalletClient, http, type Address, type Hex } from 'viem';
+import { createPublicClient, createWalletClient, http, getAddress, type Address, type Hex } from 'viem';
 import { baseSepolia } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
 import { RPC_URL, CONTRACTS, VERIFIER_PRIVATE_KEY } from '../config/constants.js';
@@ -56,7 +56,7 @@ class BlockchainService {
    */
   async verifyProof(proof: Hex, publicInputs: bigint[]): Promise<boolean> {
     try {
-      const isValid = await this.publicClient.readContract({
+      const isValid = await this.publicClient!.readContract({
         address: CONTRACTS.verifier!,
         abi: verifierABI,
         functionName: 'verifyComplianceProof',
@@ -76,11 +76,12 @@ class BlockchainService {
    */
   async isSessionActive(userAddress: Address): Promise<boolean> {
     try {
-      const isActive = await this.publicClient.readContract({
+      const checksummedAddress = getAddress(userAddress);
+      const isActive = await this.publicClient!.readContract({
         address: CONTRACTS.sessionManager!,
         abi: sessionManagerABI,
         functionName: 'isSessionActive',
-        args: [userAddress],
+        args: [checksummedAddress],
       });
 
       return isActive as boolean;
@@ -95,11 +96,12 @@ class BlockchainService {
    */
   async getRemainingTime(userAddress: Address): Promise<number> {
     try {
-      const remaining = await this.publicClient.readContract({
+      const checksummedAddress = getAddress(userAddress);
+      const remaining = await this.publicClient!.readContract({
         address: CONTRACTS.sessionManager!,
         abi: sessionManagerABI,
         functionName: 'getRemainingTime',
-        args: [userAddress],
+        args: [checksummedAddress],
       });
 
       return Number(remaining);
@@ -118,20 +120,21 @@ class BlockchainService {
     gasUsed: bigint;
   }> {
     try {
+      const checksummedAddress = getAddress(userAddress);
       const expiry = BigInt(Math.floor(Date.now() / 1000) + durationSeconds);
 
-      logger.info('Starting session', { userAddress, expiry });
+      logger.info('Starting session', { userAddress: checksummedAddress, expiry });
 
-      const hash = await this.walletClient.writeContract({
+      const hash = await this.walletClient!.writeContract({
         address: CONTRACTS.sessionManager!,
         abi: sessionManagerABI,
         functionName: 'startSession',
-        args: [userAddress, expiry],
+        args: [checksummedAddress, expiry],
       });
 
       logger.info('Session start transaction sent', { hash });
 
-      const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await this.publicClient!.waitForTransactionReceipt({ hash });
 
       logger.info('Session start confirmed', {
         hash,
@@ -154,7 +157,7 @@ class BlockchainService {
    * Get current block number (for health check)
    */
   async getBlockNumber(): Promise<bigint> {
-    return await this.publicClient.getBlockNumber();
+    return await this.publicClient!.getBlockNumber();
   }
 
   /**
@@ -176,7 +179,7 @@ class BlockchainService {
     value?: bigint;
   }): Promise<string> {
     try {
-      const hash = await this.walletClient.writeContract({
+      const hash = await this.walletClient!.writeContract({
         address: params.address,
         abi: params.abi,
         functionName: params.functionName,

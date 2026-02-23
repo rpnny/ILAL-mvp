@@ -93,8 +93,8 @@ export async function apiKeyMiddleware(
     // Update last used time (async, non-blocking)
     prisma.apiKey.update({
       where: { id: matchedKey.id },
-      data: { lastUsedAt: new Date() },
-    }).catch(err => {
+      data: { lastUsedAt: new Date().toISOString() },
+    }).catch((err: any) => {
       logger.error('Failed to update API Key lastUsedAt', { error: err.message });
     });
 
