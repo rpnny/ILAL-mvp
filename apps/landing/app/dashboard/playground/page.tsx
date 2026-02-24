@@ -76,7 +76,7 @@ export default function PlaygroundPage() {
     }
 
     const selectedKey = apiKeys[selectedKeyIndex];
-    const keyDisplay = selectedKey ? `${selectedKey.prefix}...` : 'YOUR_API_KEY';
+    const keyDisplay = selectedKey ? `${selectedKey.keyPrefix}...` : 'YOUR_API_KEY';
 
     const curlCode = `curl -X ${endpoint.method} ${baseUrl}${endpoint.path} \\
   -H "Authorization: Bearer ${keyDisplay}" \\
@@ -117,9 +117,9 @@ print(response.json())`;
     return (
         <motion.div className="p-8" variants={containerVariants} initial="hidden" animate="visible">
             <motion.div variants={itemVariants} className="mb-8">
-                <h1 className="text-3xl font-bold mb-2 flex items-center">
-                    <div className="w-9 h-9 bg-[#2962FF]/15 rounded-lg flex items-center justify-center mr-3">
-                        <Play className="w-5 h-5 text-[#2962FF]" />
+                <h1 className="font-heading text-3xl font-bold mb-2 flex items-center">
+                    <div className="w-9 h-9 bg-[#00F0FF]/15 rounded-lg flex items-center justify-center mr-3">
+                        <Play className="w-5 h-5 text-[#00F0FF]" />
                     </div>
                     API Playground
                 </h1>
@@ -134,12 +134,12 @@ print(response.json())`;
                         {loadingKeys ? (
                             <div className="flex items-center text-sm text-gray-500"><Loader2 className="w-4 h-4 mr-2 animate-spin" />Loading...</div>
                         ) : apiKeys.length === 0 ? (
-                            <div className="text-sm text-yellow-400">⚠ Please create a key first on the <a href="/dashboard/api-keys" className="text-[#2962FF] hover:underline">API Keys</a> page</div>
+                            <div className="text-sm text-yellow-400">⚠ Please create a key first on the <a href="/dashboard/api-keys" className="text-[#00F0FF] hover:underline">API Keys</a> page</div>
                         ) : (
                             <select value={selectedKeyIndex} onChange={(e) => setSelectedKeyIndex(Number(e.target.value))}
-                                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#2962FF]/50 transition-all appearance-none cursor-pointer"
+                                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#00F0FF]/50 transition-all appearance-none cursor-pointer"
                             >
-                                {apiKeys.map((key, i) => <option key={key.id} value={i} className="bg-[#1A1A1A]">{key.name} ({key.prefix}...)</option>)}
+                                {apiKeys.map((key, i) => <option key={key.id} value={i} className="bg-[#1A1A1A]">{key.name} ({key.keyPrefix}...)</option>)}
                             </select>
                         )}
                     </div>
@@ -153,7 +153,7 @@ print(response.json())`;
                                     whileHover={{ x: 4 }}
                                     onClick={() => setSelectedEndpoint(i)}
                                     className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm transition-all ${selectedEndpoint === i
-                                        ? 'bg-[#2962FF]/10 border border-[#2962FF]/30'
+                                        ? 'bg-[#00F0FF]/10 border border-[#00F0FF]/30'
                                         : 'border border-white/[0.06] hover:border-white/[0.12] hover:bg-white/[0.02]'
                                         }`}
                                 >
@@ -169,7 +169,7 @@ print(response.json())`;
                             {endpoint.method === 'GET' ? 'Query Parameters' : 'Request Body'} (JSON)
                         </label>
                         <textarea value={requestBody} onChange={(e) => setRequestBody(e.target.value)} rows={8}
-                            className="w-full bg-[#111] border border-white/[0.08] rounded-lg p-4 text-sm font-mono text-gray-300 focus:outline-none focus:border-[#2962FF]/50 focus:shadow-[0_0_20px_rgba(41,98,255,0.08)] transition-all resize-none"
+                            className="w-full bg-[#111] border border-white/[0.08] rounded-lg p-4 text-sm font-mono text-gray-300 focus:outline-none focus:border-[#00F0FF]/50 focus:shadow-[0_0_20px_rgba(41,98,255,0.08)] transition-all resize-none"
                             spellCheck={false}
                         />
                     </div>
@@ -179,9 +179,9 @@ print(response.json())`;
                         whileTap={{ scale: 0.98 }}
                         onClick={handleSend}
                         disabled={loading}
-                        className="w-full py-3 bg-[#2962FF] hover:bg-[#2962FF]/90 rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-lg shadow-[#2962FF]/20 relative overflow-hidden group"
+                        className="w-full py-3 bg-[#00F0FF] hover:bg-[#00F0FF]/90 rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-lg shadow-[#00F0FF]/20 relative overflow-hidden group"
                     >
-                        <div className="absolute inset-0 bg-gradient-to-r from-[#2962FF] to-[#7C4DFF] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-[#00F0FF] to-[#A855F7] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                         <span className="relative z-10 flex items-center space-x-2">
                             {loading ? (<><Loader2 className="w-5 h-5 animate-spin" /><span>Sending...</span></>) :
                                 (<><Play className="w-5 h-5" /><span>Send Request</span></>)}
@@ -194,11 +194,11 @@ print(response.json())`;
                     <div className="flex items-center border-b border-white/[0.06] overflow-x-auto">
                         {(['response', 'curl', 'js', 'python'] as const).map((tab) => (
                             <button key={tab} onClick={() => setActiveTab(tab)}
-                                className={`px-5 py-3 text-sm font-medium whitespace-nowrap transition-colors relative ${activeTab === tab ? 'text-[#2962FF]' : 'text-gray-400 hover:text-white'}`}
+                                className={`px-5 py-3 text-sm font-medium whitespace-nowrap transition-colors relative ${activeTab === tab ? 'text-[#00F0FF]' : 'text-gray-400 hover:text-white'}`}
                             >
                                 {tab === 'response' ? 'Response' : tab === 'curl' ? 'cURL' : tab === 'js' ? 'JavaScript' : 'Python'}
                                 {activeTab === tab && (
-                                    <motion.div layoutId="playground-tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2962FF]" transition={{ type: 'spring', stiffness: 300, damping: 30 }} />
+                                    <motion.div layoutId="playground-tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#00F0FF]" transition={{ type: 'spring', stiffness: 300, damping: 30 }} />
                                 )}
                             </button>
                         ))}

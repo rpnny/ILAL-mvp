@@ -64,7 +64,7 @@ export default function CreateApiKeyDialog({ isOpen, onClose, onCreate }: Create
 
         {!createdKey ? (
           <>
-            <h2 className="text-xl font-bold mb-4">Create New API Key</h2>
+            <h2 className="font-heading text-xl font-bold mb-4">Create New API Key</h2>
             <p className="text-sm text-gray-400 mb-6">
               Give your API Key an easily recognizable name.
             </p>
@@ -78,7 +78,7 @@ export default function CreateApiKeyDialog({ isOpen, onClose, onCreate }: Create
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Production API"
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:border-[#2962FF] transition-colors text-white placeholder-gray-500"
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:border-[#00F0FF] transition-colors text-white placeholder-gray-500"
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !loading) {
@@ -98,7 +98,7 @@ export default function CreateApiKeyDialog({ isOpen, onClose, onCreate }: Create
               <button
                 onClick={handleCreate}
                 disabled={loading || !name.trim()}
-                className="flex-1 px-4 py-2 bg-[#2962FF] hover:bg-[#2962FF]/90 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                className="flex-1 px-4 py-2 bg-[#00F0FF] hover:bg-[#00F0FF]/90 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
                 {loading ? (
                   <>
@@ -117,7 +117,7 @@ export default function CreateApiKeyDialog({ isOpen, onClose, onCreate }: Create
               <CheckCircle2 className="w-6 h-6 text-green-400" />
             </div>
 
-            <h2 className="text-xl font-bold mb-2 text-center">API Key Created!</h2>
+            <h2 className="font-heading text-xl font-bold mb-2 text-center">API Key Created!</h2>
             <p className="text-sm text-gray-400 mb-6 text-center">
               Please copy and save your API Key now.<br />
               For security reasons, you won&apos;t be able to view it again.
@@ -126,7 +126,7 @@ export default function CreateApiKeyDialog({ isOpen, onClose, onCreate }: Create
             <div className="mb-6 p-4 bg-white/5 border border-white/10 rounded-lg">
               <div className="text-xs text-gray-400 mb-2">Your API Key</div>
               <div className="flex items-center space-x-2">
-                <code className="flex-1 text-sm font-mono text-[#2962FF] break-all">
+                <code className="flex-1 text-sm font-mono text-[#00F0FF] break-all">
                   {createdKey}
                 </code>
                 <button
@@ -150,7 +150,7 @@ export default function CreateApiKeyDialog({ isOpen, onClose, onCreate }: Create
 
             <button
               onClick={handleClose}
-              className="w-full px-4 py-2 bg-[#2962FF] hover:bg-[#2962FF]/90 rounded-lg font-medium transition-colors"
+              className="w-full px-4 py-2 bg-[#00F0FF] hover:bg-[#00F0FF]/90 rounded-lg font-medium transition-colors"
             >
               I&apos;ve Saved It, Close
             </button>

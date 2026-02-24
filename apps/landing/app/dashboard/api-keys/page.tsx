@@ -56,7 +56,7 @@ export default function ApiKeysPage() {
     if (!token) throw new Error('Not logged in');
     const response = await createApiKey(token, name);
     await loadApiKeys();
-    return { key: response.apiKey.key || '', prefix: response.apiKey.prefix };
+    return { key: response.apiKey || '', prefix: response.keyPrefix };
   }
 
   async function handleRevokeKey(keyId: string) {
@@ -91,9 +91,9 @@ export default function ApiKeysPage() {
       {/* Header */}
       <motion.div variants={itemVariants} className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold mb-2 flex items-center">
-            <div className="w-9 h-9 bg-[#2962FF]/15 rounded-lg flex items-center justify-center mr-3">
-              <Key className="w-5 h-5 text-[#2962FF]" />
+          <h1 className="font-heading text-3xl font-bold mb-2 flex items-center">
+            <div className="w-9 h-9 bg-[#00F0FF]/15 rounded-lg flex items-center justify-center mr-3">
+              <Key className="w-5 h-5 text-[#00F0FF]" />
             </div>
             API Keys
           </h1>
@@ -105,7 +105,7 @@ export default function ApiKeysPage() {
           whileTap={{ scale: 0.97 }}
           onClick={() => setShowCreateDialog(true)}
           disabled={!canCreateMore}
-          className="px-6 py-3 bg-[#2962FF] hover:bg-[#2962FF]/90 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center shadow-lg shadow-[#2962FF]/20"
+          className="px-6 py-3 bg-[#00F0FF] hover:bg-[#00F0FF]/90 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center shadow-lg shadow-[#00F0FF]/20"
         >
           <Plus className="w-5 h-5 mr-2" />
           Create API Key
@@ -116,9 +116,9 @@ export default function ApiKeysPage() {
       {limits && (
         <motion.div
           variants={itemVariants}
-          className="mb-6 p-4 bg-[#2962FF]/[0.06] backdrop-blur-xl border border-[#2962FF]/20 rounded-xl flex items-start"
+          className="mb-6 p-4 bg-[#00F0FF]/[0.06] backdrop-blur-xl border border-[#00F0FF]/20 rounded-xl flex items-start"
         >
-          <AlertCircle className="w-5 h-5 text-[#2962FF] mr-3 mt-0.5 flex-shrink-0" />
+          <AlertCircle className="w-5 h-5 text-[#00F0FF] mr-3 mt-0.5 flex-shrink-0" />
           <div className="text-sm">
             <div className="text-gray-300 mb-1">
               You are using <span className="font-semibold text-white">{apiKeys.length}</span> / {limits.maxApiKeys} API Keys
@@ -143,7 +143,7 @@ export default function ApiKeysPage() {
           >
             <Key className="w-8 h-8 text-gray-500" />
           </motion.div>
-          <h3 className="text-xl font-semibold mb-2">No API Keys Yet</h3>
+          <h3 className="font-heading text-xl font-semibold mb-2">No API Keys Yet</h3>
           <p className="text-gray-400 mb-6 max-w-md mx-auto">
             Create your first API Key to start using the ILAL API.
           </p>
@@ -151,7 +151,7 @@ export default function ApiKeysPage() {
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
             onClick={() => setShowCreateDialog(true)}
-            className="px-6 py-3 bg-[#2962FF] hover:bg-[#2962FF]/90 rounded-lg font-medium transition-all inline-flex items-center shadow-lg shadow-[#2962FF]/20"
+            className="px-6 py-3 bg-[#00F0FF] hover:bg-[#00F0FF]/90 rounded-lg font-medium transition-all inline-flex items-center shadow-lg shadow-[#00F0FF]/20"
           >
             <Plus className="w-5 h-5 mr-2" />
             Create First API Key

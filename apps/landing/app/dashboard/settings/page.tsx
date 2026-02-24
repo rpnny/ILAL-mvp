@@ -21,7 +21,7 @@ const PLANS = [
     id: 'PRO',
     name: 'Pro',
     price: '$49',
-    color: '#2962FF',
+    color: '#00F0FF',
     features: ['10,000 API calls / month', '100 requests / minute', 'Up to 20 API Keys', 'Email support'],
   },
   {
@@ -69,9 +69,9 @@ export default function SettingsPage() {
     <motion.div className="p-8 max-w-4xl mx-auto" variants={containerVariants} initial="hidden" animate="visible">
       {/* Header */}
       <motion.div variants={itemVariants} className="mb-8">
-        <h1 className="text-3xl font-bold mb-2 flex items-center">
-          <div className="w-9 h-9 bg-[#2962FF]/15 rounded-lg flex items-center justify-center mr-3">
-            <Settings className="w-5 h-5 text-[#2962FF]" />
+        <h1 className="font-heading text-3xl font-bold mb-2 flex items-center">
+          <div className="w-9 h-9 bg-[#00F0FF]/15 rounded-lg flex items-center justify-center mr-3">
+            <Settings className="w-5 h-5 text-[#00F0FF]" />
           </div>
           Account Settings
         </h1>
@@ -83,10 +83,10 @@ export default function SettingsPage() {
         variants={itemVariants}
         className="bg-white/[0.02] backdrop-blur-xl border border-white/[0.08] rounded-xl p-6 mb-6 relative overflow-hidden"
       >
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#2962FF]/30 to-transparent" />
-        <h2 className="text-xl font-bold mb-6 flex items-center">
-          <div className="w-7 h-7 bg-[#2962FF]/15 rounded flex items-center justify-center mr-2">
-            <User className="w-4 h-4 text-[#2962FF]" />
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00F0FF]/30 to-transparent" />
+        <h2 className="font-heading text-xl font-bold mb-6 flex items-center">
+          <div className="w-7 h-7 bg-[#00F0FF]/15 rounded flex items-center justify-center mr-2">
+            <User className="w-4 h-4 text-[#00F0FF]" />
           </div>
           Account Information
         </h2>
@@ -122,7 +122,7 @@ export default function SettingsPage() {
         className="bg-white/[0.02] backdrop-blur-xl border border-white/[0.08] rounded-xl p-6 mb-6 relative overflow-hidden"
       >
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/30 to-transparent" />
-        <h2 className="text-xl font-bold mb-6 flex items-center">
+        <h2 className="font-heading text-xl font-bold mb-6 flex items-center">
           <div className="w-7 h-7 bg-purple-500/15 rounded flex items-center justify-center mr-2">
             <Zap className="w-4 h-4 text-purple-400" />
           </div>
@@ -130,14 +130,14 @@ export default function SettingsPage() {
         </h2>
 
         {/* Current plan badge */}
-        <div className="border border-[#2962FF]/25 bg-gradient-to-br from-[#2962FF]/[0.08] to-transparent rounded-xl p-5 mb-6 relative overflow-hidden">
-          <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#2962FF]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="border border-[#00F0FF]/25 bg-gradient-to-br from-[#00F0FF]/[0.08] to-transparent rounded-xl p-5 mb-6 relative overflow-hidden">
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#00F0FF]/10 rounded-full blur-3xl pointer-events-none" />
           <div className="flex items-center justify-between relative z-10">
             <div>
-              <h3 className="text-2xl font-bold mb-1">{user.plan || 'FREE'} Plan</h3>
+              <h3 className="font-heading text-2xl font-bold mb-1">{user.plan || 'FREE'} Plan</h3>
               <p className="text-sm text-gray-400">{user.plan === 'FREE' ? 'Free forever' : 'Monthly subscription'}</p>
             </div>
-            <div className="px-4 py-2 bg-[#2962FF]/20 text-[#2962FF] rounded-lg font-medium border border-[#2962FF]/20">
+            <div className="px-4 py-2 bg-[#00F0FF]/20 text-[#00F0FF] rounded-lg font-medium border border-[#00F0FF]/20">
               Active
             </div>
           </div>
@@ -164,8 +164,8 @@ export default function SettingsPage() {
                   />
                   <div className="relative z-10">
                     <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-lg font-bold">{plan.name}</h3>
-                      <span className="text-xl font-bold" style={{ color: plan.color }}>
+                      <h3 className="font-heading text-lg font-bold">{plan.name}</h3>
+                      <span className="font-heading text-xl font-bold" style={{ color: plan.color }}>
                         {plan.price}<span className="text-xs text-gray-400 font-normal">/mo</span>
                       </span>
                     </div>
@@ -204,7 +204,7 @@ export default function SettingsPage() {
         className="bg-white/[0.02] backdrop-blur-xl border border-white/[0.08] rounded-xl p-6 relative overflow-hidden"
       >
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-green-500/30 to-transparent" />
-        <h2 className="text-xl font-bold mb-6 flex items-center">
+        <h2 className="font-heading text-xl font-bold mb-6 flex items-center">
           <div className="w-7 h-7 bg-green-500/15 rounded flex items-center justify-center mr-2">
             <Lock className="w-4 h-4 text-green-400" />
           </div>
@@ -241,7 +241,7 @@ export default function SettingsPage() {
               href="/dashboard/api-keys"
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
-              className="px-4 py-2 bg-[#2962FF] hover:bg-[#2962FF]/90 rounded-lg transition-all shadow-lg shadow-[#2962FF]/20"
+              className="px-4 py-2 bg-[#00F0FF] hover:bg-[#00F0FF]/90 rounded-lg transition-all shadow-lg shadow-[#00F0FF]/20"
             >
               Manage
             </motion.a>

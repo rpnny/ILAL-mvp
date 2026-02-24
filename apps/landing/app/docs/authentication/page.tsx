@@ -3,7 +3,7 @@ import { Shield, Key, AlertTriangle, CheckCircle2 } from 'lucide-react';
 export default function AuthenticationPage() {
   return (
     <div className="p-8 max-w-4xl mx-auto">
-      <h1 className="text-4xl font-bold mb-4">Authentication</h1>
+      <h1 className="font-heading text-4xl font-bold mb-4">Authentication</h1>
       <p className="text-xl text-gray-400 mb-12">
         Learn how to securely access the ILAL API using your API Key
       </p>
@@ -11,14 +11,14 @@ export default function AuthenticationPage() {
       <div className="space-y-8">
         {/* Overview */}
         <div>
-          <h2 className="text-2xl font-bold mb-4">Authentication Method</h2>
+          <h2 className="font-heading text-2xl font-bold mb-4">Authentication Method</h2>
           <p className="text-gray-400 mb-6">
             The ILAL API uses Bearer Token authentication. Every request must include your API Key in the HTTP header.
           </p>
 
           <div className="bg-white/[0.02] border border-white/10 rounded-xl p-6">
             <div className="text-sm text-gray-400 mb-2">Header format:</div>
-            <code className="text-[#2962FF] bg-white/5 px-3 py-1.5 rounded block">
+            <code className="text-[#00F0FF] bg-white/5 px-3 py-1.5 rounded block">
               Authorization: Bearer YOUR_API_KEY
             </code>
           </div>
@@ -26,7 +26,7 @@ export default function AuthenticationPage() {
 
         {/* Example */}
         <div>
-          <h2 className="text-2xl font-bold mb-4">Example</h2>
+          <h2 className="font-heading text-2xl font-bold mb-4">Example</h2>
           <pre className="bg-[#1A1A1A] border border-white/10 rounded-lg p-4 overflow-x-auto text-sm">
             <code className="text-gray-300">{`curl -X GET https://api.ilal.tech/api/v1/session/status \\
   -H "Authorization: Bearer ilal_live_1234567890abcdef" \\
@@ -36,8 +36,8 @@ export default function AuthenticationPage() {
 
         {/* Security Best Practices */}
         <div>
-          <h2 className="text-2xl font-bold mb-4 flex items-center">
-            <Shield className="w-7 h-7 mr-3 text-[#2962FF]" />
+          <h2 className="font-heading text-2xl font-bold mb-4 flex items-center">
+            <Shield className="w-7 h-7 mr-3 text-[#00F0FF]" />
             Security Best Practices
           </h2>
 
@@ -95,7 +95,7 @@ const apiKey = process.env.ILAL_API_KEY;`}</code>
 
         {/* Error Handling */}
         <div>
-          <h2 className="text-2xl font-bold mb-4">Error Handling</h2>
+          <h2 className="font-heading text-2xl font-bold mb-4">Error Handling</h2>
 
           <div className="space-y-4">
             <div className="bg-white/[0.02] border border-white/10 rounded-lg p-4">
@@ -128,9 +128,9 @@ const apiKey = process.env.ILAL_API_KEY;`}</code>
         </div>
 
         {/* API Key Management */}
-        <div className="bg-[#2962FF]/10 border border-[#2962FF]/20 rounded-xl p-6">
-          <h3 className="text-xl font-semibold mb-4 flex items-center">
-            <Key className="w-6 h-6 mr-2 text-[#2962FF]" />
+        <div className="bg-[#00F0FF]/10 border border-[#00F0FF]/20 rounded-xl p-6">
+          <h3 className="font-heading text-xl font-semibold mb-4 flex items-center">
+            <Key className="w-6 h-6 mr-2 text-[#00F0FF]" />
             Manage Your API Keys
           </h3>
           <p className="text-gray-300 mb-4">
@@ -138,7 +138,7 @@ const apiKey = process.env.ILAL_API_KEY;`}</code>
           </p>
           <a
             href="/dashboard/api-keys"
-            className="inline-flex items-center px-4 py-2 bg-[#2962FF] hover:bg-[#2962FF]/90 rounded-lg transition-colors"
+            className="inline-flex items-center px-4 py-2 bg-[#00F0FF] hover:bg-[#00F0FF]/90 rounded-lg transition-colors"
           >
             Go to API Keys Management
           </a>

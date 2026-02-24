@@ -4,7 +4,7 @@ import { Code, Key, Terminal, CheckCircle2 } from 'lucide-react';
 export default function QuickstartPage() {
   return (
     <div className="p-8 max-w-4xl mx-auto">
-      <h1 className="text-4xl font-bold mb-4">Quick Start</h1>
+      <h1 className="font-heading text-4xl font-bold mb-4">Quick Start</h1>
       <p className="text-xl text-gray-400 mb-12">
         Make your first API call in 5 minutes
       </p>
@@ -13,22 +13,22 @@ export default function QuickstartPage() {
         {/* Step 1 */}
         <div>
           <div className="flex items-center space-x-3 mb-4">
-            <div className="w-8 h-8 bg-[#2962FF] rounded-full flex items-center justify-center text-sm font-bold">
+            <div className="w-8 h-8 bg-[#00F0FF] rounded-full flex items-center justify-center text-sm font-bold">
               1
             </div>
-            <h2 className="text-2xl font-bold">Get Your API Key</h2>
+            <h2 className="font-heading text-2xl font-bold">Get Your API Key</h2>
           </div>
           <p className="text-gray-400 mb-4 ml-11">
-            Create a new API Key in the <Link href="/dashboard/api-keys" className="text-[#2962FF] hover:underline">Dashboard</Link>.
+            Create a new API Key in the <Link href="/dashboard/api-keys" className="text-[#00F0FF] hover:underline">Dashboard</Link>.
           </p>
           <div className="ml-11 bg-white/[0.02] border border-white/10 rounded-xl p-6">
             <div className="flex items-start space-x-3">
-              <Key className="w-5 h-5 text-[#2962FF] mt-0.5 flex-shrink-0" />
+              <Key className="w-5 h-5 text-[#00F0FF] mt-0.5 flex-shrink-0" />
               <div>
                 <p className="text-sm text-gray-400 mb-2">
                   Your API Key will look like:
                 </p>
-                <code className="text-[#2962FF] bg-white/5 px-3 py-1.5 rounded block">
+                <code className="text-[#00F0FF] bg-white/5 px-3 py-1.5 rounded block">
                   ilal_live_1234567890abcdef1234567890abcdef
                 </code>
               </div>
@@ -39,10 +39,10 @@ export default function QuickstartPage() {
         {/* Step 2 */}
         <div>
           <div className="flex items-center space-x-3 mb-4">
-            <div className="w-8 h-8 bg-[#2962FF] rounded-full flex items-center justify-center text-sm font-bold">
+            <div className="w-8 h-8 bg-[#00F0FF] rounded-full flex items-center justify-center text-sm font-bold">
               2
             </div>
-            <h2 className="text-2xl font-bold">Make Your First Request</h2>
+            <h2 className="font-heading text-2xl font-bold">Make Your First Request</h2>
           </div>
           <p className="text-gray-400 mb-4 ml-11">
             Use your API Key to send a request to the ILAL API.
@@ -123,10 +123,10 @@ print(response.json())`}</code>
         {/* Step 3 */}
         <div>
           <div className="flex items-center space-x-3 mb-4">
-            <div className="w-8 h-8 bg-[#2962FF] rounded-full flex items-center justify-center text-sm font-bold">
+            <div className="w-8 h-8 bg-[#00F0FF] rounded-full flex items-center justify-center text-sm font-bold">
               3
             </div>
-            <h2 className="text-2xl font-bold">Handle the Response</h2>
+            <h2 className="font-heading text-2xl font-bold">Handle the Response</h2>
           </div>
           <p className="text-gray-400 mb-4 ml-11">
             The API returns responses in JSON format.
@@ -146,9 +146,9 @@ print(response.json())`}</code>
         </div>
 
         {/* Next Steps */}
-        <div className="bg-[#2962FF]/10 border border-[#2962FF]/20 rounded-xl p-6 mt-12">
-          <h3 className="text-xl font-semibold mb-4 flex items-center">
-            <CheckCircle2 className="w-6 h-6 mr-2 text-[#2962FF]" />
+        <div className="bg-[#00F0FF]/10 border border-[#00F0FF]/20 rounded-xl p-6 mt-12">
+          <h3 className="font-heading text-xl font-semibold mb-4 flex items-center">
+            <CheckCircle2 className="w-6 h-6 mr-2 text-[#00F0FF]" />
             Next Steps
           </h3>
           <div className="space-y-3">
@@ -156,19 +156,19 @@ print(response.json())`}</code>
               href="/docs/authentication"
               className="block text-gray-300 hover:text-white transition-colors"
             >
-              → Learn about <span className="text-[#2962FF]">Authentication</span>
+              → Learn about <span className="text-[#00F0FF]">Authentication</span>
             </Link>
             <Link
               href="/docs/endpoints"
               className="block text-gray-300 hover:text-white transition-colors"
             >
-              → View the full <span className="text-[#2962FF]">API Endpoints Reference</span>
+              → View the full <span className="text-[#00F0FF]">API Endpoints Reference</span>
             </Link>
             <Link
               href="/dashboard/usage"
               className="block text-gray-300 hover:text-white transition-colors"
             >
-              → Monitor your <span className="text-[#2962FF]">API Usage</span>
+              → Monitor your <span className="text-[#00F0FF]">API Usage</span>
             </Link>
           </div>
         </div>

@@ -1,151 +1,101 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CheckCircle2, FileText, Github, ExternalLink, Code, Zap, Users, Calendar } from "lucide-react";
+import { CheckCircle2, FileText, Github, ExternalLink, Code, Zap, Users, Calendar, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import Nav from "../../components/Nav";
+import Footer from "../../components/Footer";
 
 export default function IntegrationsPage() {
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white">
-      <div className="fixed inset-0 opacity-[0.015] pointer-events-none" style={{
-        backgroundImage: `linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)`,
-        backgroundSize: '48px 48px'
-      }} />
+    <div className="min-h-screen flex flex-col font-sans selection:bg-primary/30 selection:text-primary">
+      {/* Background Data Flow Animation */}
+      <div className="fixed inset-0 z-[-1] bg-data-flow pointer-events-none opacity-40" />
 
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#0A0A0A]/80 backdrop-blur-xl">
-        <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center space-x-3">
-            <div className="w-7 h-7 bg-[#2962FF] rounded-md flex items-center justify-center">
-              <span className="font-bold text-white text-sm">I</span>
-            </div>
-            <span className="text-lg font-semibold tracking-tight">ILAL</span>
-          </Link>
-          <div className="hidden md:flex items-center space-x-8 text-sm">
-            <Link href="/about" className="text-gray-400 hover:text-white transition-colors">About</Link>
-            <Link href="/technology" className="text-gray-400 hover:text-white transition-colors">Technology</Link>
-            <Link href="/integrations" className="text-white font-medium">Integrations</Link>
-            <Link href="/roadmap" className="text-gray-400 hover:text-white transition-colors">Roadmap</Link>
-          </div>
-        </div>
-      </nav>
+      {/* Navigation */}
+      <Nav />
 
-      <div className="relative z-10 pt-24 pb-20">
+      {/* Main Content */}
+      <main className="flex-grow pt-32 pb-20">
         <div className="container mx-auto px-6">
           <div className="max-w-6xl mx-auto">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Integration Guide</h1>
-            <p className="text-xl text-gray-400 mb-16">
+            <h1 className="font-heading text-4xl md:text-5xl font-bold mb-4">Integration Guide</h1>
+            <p className="text-xl text-gray-400 mb-16 font-light">
               How RWA protocols integrate ILAL in 8 weeks. Complete developer resources and step-by-step process.
             </p>
 
             {/* Use Case: Ondo Finance */}
-            <section className="mb-20">
-              <h2 className="text-3xl font-bold mb-8">Use Case: Ondo Finance</h2>
-              <motion.div 
+            <section className="mb-24">
+              <h2 className="font-heading text-3xl font-bold mb-8">Use Case: Ondo Finance</h2>
+              <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
-                whileHover={{ scale: 1.01, boxShadow: "0 0 40px rgba(41, 98, 255, 0.1)" }}
-                className="border border-white/10 rounded-lg p-8 bg-white/[0.02] hover:border-[#2962FF]/30 transition-all"
+                whileHover={{ scale: 1.01, boxShadow: "0 0 30px rgba(0, 240, 255, 0.1)" }}
+                className="glass-card p-8 group transition-all"
               >
                 <div className="grid md:grid-cols-2 gap-8">
                   {/* Challenge */}
-                  <div>
-                    <h3 className="text-xl font-bold mb-4 flex items-center">
-                      <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center mr-3">
-                        <span className="text-red-400">!</span>
+                  <div className="p-6 bg-black/40 rounded-xl border border-white/5">
+                    <h3 className="text-xl font-bold mb-6 flex items-center">
+                      <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center mr-3 border border-red-500/20">
+                        <span className="text-red-400 font-bold">!</span>
                       </div>
                       The Challenge
                     </h3>
-                    <div className="space-y-4">
+                    <div className="space-y-5">
                       {[
-                        {
-                          title: "High Gas Costs",
-                          desc: "OUSG/USDY holders pay $50-100 per transaction on traditional DEXs"
-                        },
-                        {
-                          title: "Manual KYC",
-                          desc: "Each user requires $2,000 compliance check + 48-72 hour delays"
-                        },
-                        {
-                          title: "Limited Liquidity",
-                          desc: "Ondo tokens can't access Uniswap v4 liquidity without compliance layer"
-                        },
-                        {
-                          title: "Privacy Concerns",
-                          desc: "Traditional solutions expose PII on-chain, regulatory risk"
-                        }
+                        { title: "High Gas Costs", desc: "OUSG/USDY holders pay $50-100 per transaction on traditional DEXs" },
+                        { title: "Manual KYC", desc: "Each user requires $2,000 compliance check + 48-72 hour delays" },
+                        { title: "Limited Liquidity", desc: "Ondo tokens can't access Uniswap v4 liquidity without compliance layer" },
+                        { title: "Privacy Concerns", desc: "Traditional solutions expose PII on-chain, creating regulatory risk" }
                       ].map((item, i) => (
-                        <motion.div
-                          key={i}
-                          initial={{ opacity: 0, x: -20 }}
-                          whileInView={{ opacity: 1, x: 0 }}
-                          viewport={{ once: true }}
-                          transition={{ delay: i * 0.1 }}
-                          className="border-l-4 border-red-500/30 pl-4"
-                        >
-                          <div className="text-sm font-semibold mb-1">{item.title}</div>
-                          <div className="text-xs text-gray-500">{item.desc}</div>
-                        </motion.div>
+                        <div key={i} className="border-l-2 border-red-500/50 pl-4">
+                          <div className="text-sm font-semibold mb-1 text-gray-200">{item.title}</div>
+                          <div className="text-xs text-gray-400 leading-relaxed font-light">{item.desc}</div>
+                        </div>
                       ))}
                     </div>
                   </div>
 
                   {/* Solution */}
-                  <div>
-                    <h3 className="text-xl font-bold mb-4 flex items-center">
-                      <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center mr-3">
-                        <CheckCircle2 className="w-5 h-5 text-green-400" />
+                  <div className="p-6 bg-primary/5 rounded-xl border border-primary/20 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-[40px] pointer-events-none" />
+                    <h3 className="text-xl font-bold mb-6 flex items-center">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mr-3 border border-primary/20">
+                        <CheckCircle2 className="w-5 h-5 text-primary" />
                       </div>
                       ILAL Solution
                     </h3>
-                    <div className="space-y-4">
+                    <div className="space-y-5 relative z-10">
                       {[
-                        {
-                          title: "99.4% Lower Costs",
-                          desc: "$0.37/month vs $2,000/month through session caching"
-                        },
-                        {
-                          title: "Instant Trading",
-                          desc: "One-time verification, then unlimited 24h trading window"
-                        },
-                        {
-                          title: "Native UX",
-                          desc: "OUSG/USDY swaps like any other token on Uniswap v4"
-                        },
-                        {
-                          title: "Full Compliance",
-                          desc: "ZK-proofs maintain privacy while ensuring regulatory adherence"
-                        }
+                        { title: "99.4% Lower Costs", desc: "$0.37/month vs $2,000/month through session caching" },
+                        { title: "Instant Trading", desc: "One-time verification, then unlimited 24h trading window" },
+                        { title: "Native UX", desc: "OUSG/USDY swaps like any other token on Uniswap v4" },
+                        { title: "Full Compliance", desc: "ZK-proofs maintain privacy while ensuring regulatory adherence" }
                       ].map((item, i) => (
-                        <motion.div
-                          key={i}
-                          initial={{ opacity: 0, x: 20 }}
-                          whileInView={{ opacity: 1, x: 0 }}
-                          viewport={{ once: true }}
-                          transition={{ delay: i * 0.1 }}
-                          className="border-l-4 border-green-500/30 pl-4"
-                        >
-                          <div className="text-sm font-semibold mb-1">{item.title}</div>
-                          <div className="text-xs text-gray-500">{item.desc}</div>
-                        </motion.div>
+                        <div key={i} className="border-l-2 border-primary/50 pl-4">
+                          <div className="text-sm font-semibold mb-1 text-primary">{item.title}</div>
+                          <div className="text-xs text-gray-300 leading-relaxed font-light">{item.desc}</div>
+                        </div>
                       ))}
                     </div>
                   </div>
                 </div>
 
                 {/* Results */}
-                <div className="mt-8 pt-8 border-t border-white/10">
-                  <h4 className="text-sm font-semibold mb-4 text-gray-400">PROJECTED IMPACT</h4>
+                <div className="mt-8 pt-8 border-t border-white/5">
+                  <h4 className="text-xs font-semibold mb-6 text-gray-500 tracking-widest uppercase">Projected Impact</h4>
                   <div className="grid grid-cols-3 gap-6">
                     {[
                       { metric: "Cost Savings", value: "$1,979/mo", desc: "Per active user" },
                       { metric: "Time Saved", value: "99%", desc: "Transaction speed" },
                       { metric: "TVL Increase", value: "5-10x", desc: "Access to DeFi liquidity" },
                     ].map((item, i) => (
-                      <div key={i} className="text-center">
-                        <div className="text-2xl font-bold text-[#2962FF] mb-1">{item.value}</div>
-                        <div className="text-xs text-gray-500 mb-1">{item.metric}</div>
-                        <div className="text-xs text-gray-600">{item.desc}</div>
+                      <div key={i} className="text-center group">
+                        <div className="text-3xl font-heading font-bold text-primary mb-1 group-hover:scale-105 transition-transform">{item.value}</div>
+                        <div className="text-[13px] text-gray-300 mb-1 font-medium">{item.metric}</div>
+                        <div className="text-xs text-secondary font-light">{item.desc}</div>
                       </div>
                     ))}
                   </div>
@@ -154,16 +104,14 @@ export default function IntegrationsPage() {
             </section>
 
             {/* Integration Process */}
-            <section className="mb-20">
-              <h2 className="text-3xl font-bold mb-8">Integration Process (8 Weeks)</h2>
-              
+            <section className="mb-24">
+              <h2 className="font-heading text-3xl font-bold mb-8">Integration Process (8 Weeks)</h2>
+
               <div className="space-y-6">
                 {[
                   {
-                    phase: "Phase 1",
-                    duration: "Week 1-2",
-                    title: "Discovery & Planning",
-                    icon: Users,
+                    phase: "Phase 1", duration: "Week 1-2",
+                    title: "Discovery & Planning", icon: Users,
                     tasks: [
                       "Technical kickoff meeting with ILAL team",
                       "Review protocol requirements and compliance needs",
@@ -174,10 +122,8 @@ export default function IntegrationsPage() {
                     deliverables: ["Integration plan document", "Technical specifications", "Timeline agreement"]
                   },
                   {
-                    phase: "Phase 2",
-                    duration: "Week 3-4",
-                    title: "Smart Contract Integration",
-                    icon: Code,
+                    phase: "Phase 2", duration: "Week 3-4",
+                    title: "Smart Contract Integration", icon: Code,
                     tasks: [
                       "Deploy Registry and SessionManager proxies",
                       "Configure ComplianceHook for your pools",
@@ -188,10 +134,8 @@ export default function IntegrationsPage() {
                     deliverables: ["Testnet deployment", "Contract test suite (>90% coverage)", "Gas optimization report"]
                   },
                   {
-                    phase: "Phase 3",
-                    duration: "Week 5-6",
-                    title: "Frontend & UX Integration",
-                    icon: Zap,
+                    phase: "Phase 3", duration: "Week 5-6",
+                    title: "Frontend & UX Integration", icon: Zap,
                     tasks: [
                       "Integrate ILAL SDK (@ilal/sdk) into your dApp",
                       "Implement wallet connection flow (RainbowKit)",
@@ -202,10 +146,8 @@ export default function IntegrationsPage() {
                     deliverables: ["Working frontend demo", "User flow documentation", "Performance benchmarks"]
                   },
                   {
-                    phase: "Phase 4",
-                    duration: "Week 7-8",
-                    title: "Testing & Launch",
-                    icon: Calendar,
+                    phase: "Phase 4", duration: "Week 7-8",
+                    title: "Testing & Launch", icon: Calendar,
                     tasks: [
                       "End-to-end testing on Base Sepolia",
                       "Security audit review (if required)",
@@ -218,33 +160,33 @@ export default function IntegrationsPage() {
                 ].map((phase, i) => (
                   <motion.div
                     key={i}
-                    initial={{ opacity: 0, x: -30 }}
+                    initial={{ opacity: 0, x: -20 }}
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true }}
                     transition={{ delay: i * 0.1 }}
                     whileHover={{ x: 5 }}
-                    className="border border-white/10 rounded-lg p-6 bg-white/[0.02] hover:border-[#2962FF]/30 hover:bg-white/[0.04] transition-all"
+                    className="glass-card p-6 flex flex-col md:flex-row gap-6 relative overflow-hidden"
                   >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 rounded-lg bg-[#2962FF]/20 flex items-center justify-center">
-                          <phase.icon className="w-6 h-6 text-[#2962FF]" />
+                    <div className="md:w-1/3 border-r border-white/5 pr-6">
+                      <div className="flex items-center space-x-4 mb-4">
+                        <div className="w-12 h-12 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                          <phase.icon className="w-6 h-6 text-primary" />
                         </div>
                         <div>
-                          <div className="text-xs text-gray-500 mb-1">{phase.phase}</div>
-                          <h3 className="text-lg font-bold">{phase.title}</h3>
+                          <div className="text-[10px] text-primary uppercase font-bold tracking-widest mb-1">{phase.phase}</div>
+                          <h3 className="text-lg font-bold leading-tight">{phase.title}</h3>
                         </div>
                       </div>
-                      <div className="text-xs text-gray-600 bg-white/[0.02] px-3 py-1 rounded">{phase.duration}</div>
+                      <div className="inline-block text-xs text-secondary bg-secondary/10 px-3 py-1 rounded border border-secondary/20">{phase.duration}</div>
                     </div>
 
-                    <div className="ml-16">
-                      <div className="mb-4">
-                        <div className="text-sm font-semibold text-gray-400 mb-2">Tasks</div>
+                    <div className="md:w-2/3 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      <div>
+                        <div className="text-[11px] uppercase tracking-widest font-semibold text-gray-500 mb-3">Tasks</div>
                         <ul className="space-y-2">
                           {phase.tasks.map((task, j) => (
-                            <li key={j} className="flex items-start text-sm text-gray-500">
-                              <CheckCircle2 className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 text-[#2962FF]" />
+                            <li key={j} className="flex items-start text-[13px] text-gray-400 font-light">
+                              <CheckCircle2 className="w-3 h-3 mr-2 mt-0.5 flex-shrink-0 text-primary" />
                               {task}
                             </li>
                           ))}
@@ -252,10 +194,10 @@ export default function IntegrationsPage() {
                       </div>
 
                       <div>
-                        <div className="text-sm font-semibold text-gray-400 mb-2">Deliverables</div>
+                        <div className="text-[11px] uppercase tracking-widest font-semibold text-gray-500 mb-3">Deliverables</div>
                         <div className="flex flex-wrap gap-2">
                           {phase.deliverables.map((deliverable, j) => (
-                            <div key={j} className="text-xs bg-[#2962FF]/10 text-[#2962FF] px-3 py-1 rounded">
+                            <div key={j} className="text-[11px] bg-white/5 border border-white/10 text-gray-300 px-3 py-1.5 rounded-md backdrop-blur-md">
                               {deliverable}
                             </div>
                           ))}
@@ -268,251 +210,138 @@ export default function IntegrationsPage() {
             </section>
 
             {/* Technical Requirements */}
-            <section className="mb-20">
-              <h2 className="text-3xl font-bold mb-8">Technical Requirements</h2>
-              
+            <section className="mb-24">
+              <h2 className="font-heading text-3xl font-bold mb-8">Technical Stack Requirements</h2>
+
               <div className="grid md:grid-cols-2 gap-6">
-                {/* Smart Contracts */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  className="border border-white/10 rounded-lg p-6 bg-white/[0.02]"
-                >
-                  <h3 className="font-semibold mb-4 flex items-center">
-                    <Code className="w-5 h-5 mr-2 text-[#2962FF]" />
-                    Smart Contract Stack
-                  </h3>
-                  <div className="space-y-3">
-                    {[
+                {[
+                  {
+                    icon: Code, title: "Smart Contract Stack", color: "text-primary", bg: "bg-primary/10", border: "border-primary/20",
+                    deps: [
                       { name: "Solidity", version: "^0.8.26" },
                       { name: "Foundry", version: "Latest" },
                       { name: "Uniswap v4 Core", version: "v4.0.0" },
                       { name: "OpenZeppelin", version: "^5.0.0" },
-                      { name: "EAS SDK", version: "^2.0.0" },
-                    ].map((dep, i) => (
-                      <div key={i} className="flex items-center justify-between text-sm">
-                        <span className="text-gray-400">{dep.name}</span>
-                        <span className="font-mono text-xs text-gray-600">{dep.version}</span>
-                      </div>
-                    ))}
-                  </div>
-                </motion.div>
-
-                {/* Frontend */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.1 }}
-                  className="border border-white/10 rounded-lg p-6 bg-white/[0.02]"
-                >
-                  <h3 className="font-semibold mb-4 flex items-center">
-                    <Zap className="w-5 h-5 mr-2 text-[#2962FF]" />
-                    Frontend Stack
-                  </h3>
-                  <div className="space-y-3">
-                    {[
+                      { name: "EAS SDK", version: "^2.0.0" }
+                    ]
+                  },
+                  {
+                    icon: Zap, title: "Frontend Stack", color: "text-secondary", bg: "bg-secondary/10", border: "border-secondary/20",
+                    deps: [
                       { name: "Next.js", version: "14+" },
                       { name: "React", version: "^18.0.0" },
                       { name: "Wagmi", version: "^2.0.0" },
                       { name: "Viem", version: "^2.0.0" },
-                      { name: "RainbowKit", version: "^2.0.0" },
-                    ].map((dep, i) => (
-                      <div key={i} className="flex items-center justify-between text-sm">
-                        <span className="text-gray-400">{dep.name}</span>
-                        <span className="font-mono text-xs text-gray-600">{dep.version}</span>
-                      </div>
-                    ))}
-                  </div>
-                </motion.div>
-              </div>
-
-              {/* Infrastructure */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="mt-6 border border-white/10 rounded-lg p-6 bg-white/[0.02]"
-              >
-                <h3 className="font-semibold mb-4">Infrastructure & Services</h3>
-                <div className="grid md:grid-cols-3 gap-6">
-                  {[
-                    {
-                      category: "Network",
-                      items: ["Base Sepolia (testnet)", "Base Mainnet (production)", "RPC provider (Alchemy/Infura)"]
-                    },
-                    {
-                      category: "KYC Providers",
-                      items: ["Coinbase Verifications", "Circle Verite (optional)", "Polygon ID (optional)"]
-                    },
-                    {
-                      category: "Monitoring",
-                      items: ["The Graph (indexing)", "Tenderly (debugging)", "Sentry (error tracking)"]
-                    },
-                  ].map((cat, i) => (
-                    <div key={i}>
-                      <div className="text-sm font-semibold mb-3 text-gray-400">{cat.category}</div>
-                      <ul className="space-y-2">
-                        {cat.items.map((item, j) => (
-                          <li key={j} className="flex items-start text-xs text-gray-500">
-                            <CheckCircle2 className="w-3 h-3 mr-2 mt-0.5 flex-shrink-0 text-[#2962FF]" />
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            </section>
-
-            {/* Developer Resources */}
-            <section className="mb-20">
-              <h2 className="text-3xl font-bold mb-8">Developer Resources</h2>
-              
-              <div className="grid md:grid-cols-2 gap-6">
-                <motion.a 
-                  href="https://github.com/rpnny/ILAL-mvp"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  whileHover={{ scale: 1.03, y: -5 }}
-                  className="border border-white/10 rounded-lg p-6 hover:border-[#2962FF]/50 hover:bg-white/[0.04] transition-all bg-white/[0.02] group block"
-                >
-                  <Github className="w-8 h-8 text-[#2962FF] mb-4 group-hover:rotate-12 transition-transform" />
-                  <h3 className="text-lg font-semibold mb-2 group-hover:text-[#2962FF] transition-colors">GitHub Repository</h3>
-                  <p className="text-sm text-gray-500 mb-4">
-                    Complete source code, smart contracts, frontend, and integration examples
-                  </p>
-                  <div className="flex items-center text-[#2962FF] text-sm">
-                    View Repository <ExternalLink className="w-4 h-4 ml-2 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                  </div>
-                </motion.a>
-
-                <motion.a 
-                  href="https://github.com/rpnny/ILAL-mvp/blob/main/docs/outreach/ILAL_EXECUTIVE_BRIEF.md"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.1 }}
-                  whileHover={{ scale: 1.03, y: -5 }}
-                  className="border border-white/10 rounded-lg p-6 hover:border-[#2962FF]/50 hover:bg-white/[0.04] transition-all bg-white/[0.02] group block"
-                >
-                  <FileText className="w-8 h-8 text-[#2962FF] mb-4 group-hover:scale-110 transition-transform" />
-                  <h3 className="text-lg font-semibold mb-2 group-hover:text-[#2962FF] transition-colors">Technical Documentation</h3>
-                  <p className="text-sm text-gray-500 mb-4">
-                    Architecture guides, API references, deployment instructions, and best practices
-                  </p>
-                  <div className="flex items-center text-[#2962FF] text-sm">
-                    Read Docs <ExternalLink className="w-4 h-4 ml-2 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                  </div>
-                </motion.a>
-              </div>
-
-              {/* Additional Resources */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="mt-6 border border-white/10 rounded-lg p-6 bg-white/[0.02]"
-              >
-                <h3 className="font-semibold mb-4">Additional Resources</h3>
-                <div className="grid md:grid-cols-2 gap-4">
-                  {[
-                    { title: "Architecture Guide", link: "/docs/ARCHITECTURE.md" },
-                    { title: "Test Report", link: "/docs/TEST_REPORT.md" },
-                    { title: "Deployment Guide", link: "/docs/DEPLOYMENT.md" },
-                    { title: "Security Audit", link: "/docs/AUDIT_REPORT.md" },
-                  ].map((resource, i) => (
-                    <a
-                      key={i}
-                      href={`https://github.com/rpnny/ILAL-mvp/blob/main${resource.link}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between text-sm text-gray-400 hover:text-white transition-colors p-3 rounded hover:bg-white/[0.02]"
-                    >
-                      <span>{resource.title}</span>
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
-                  ))}
-                </div>
-              </motion.div>
-            </section>
-
-            {/* Support */}
-            <section className="mb-20">
-              <h2 className="text-3xl font-bold mb-8">Integration Support</h2>
-              
-              <div className="grid md:grid-cols-3 gap-6">
-                {[
-                  {
-                    title: "Technical Support",
-                    desc: "Direct access to core engineering team",
-                    features: ["Slack/Discord channel", "Weekly sync calls", "Code review assistance"]
-                  },
-                  {
-                    title: "Custom Development",
-                    desc: "Tailored solutions for your protocol",
-                    features: ["Custom Hook logic", "Multi-chain deployment", "Advanced compliance rules"]
-                  },
-                  {
-                    title: "Training & Onboarding",
-                    desc: "Comprehensive team enablement",
-                    features: ["Technical workshops", "Documentation review", "Hands-on integration sessions"]
-                  },
-                ].map((service, i) => (
+                      { name: "RainbowKit", version: "^2.0.0" }
+                    ]
+                  }
+                ].map((stack, i) => (
                   <motion.div
                     key={i}
-                    initial={{ opacity: 0, y: 30 }}
+                    initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ delay: i * 0.1 }}
-                    whileHover={{ y: -5 }}
-                    className="border border-white/10 rounded-lg p-6 bg-white/[0.02] hover:border-[#2962FF]/30 transition-all"
+                    className="glass-card p-6"
                   >
-                    <h3 className="font-semibold mb-2">{service.title}</h3>
-                    <p className="text-sm text-gray-500 mb-4">{service.desc}</p>
-                    <ul className="space-y-2">
-                      {service.features.map((feature, j) => (
-                        <li key={j} className="flex items-start text-xs text-gray-400">
-                          <CheckCircle2 className="w-3 h-3 mr-2 mt-0.5 flex-shrink-0 text-[#2962FF]" />
-                          {feature}
-                        </li>
+                    <h3 className="font-semibold mb-6 flex items-center text-lg">
+                      <div className={`w-8 h-8 rounded border ${stack.bg} ${stack.border} flex items-center justify-center mr-3`}>
+                        <stack.icon className={`w-4 h-4 ${stack.color}`} />
+                      </div>
+                      {stack.title}
+                    </h3>
+                    <div className="space-y-1 bg-black/40 rounded-lg p-2 border border-white/5">
+                      {stack.deps.map((dep, j) => (
+                        <div key={j} className="flex items-center justify-between text-[13px] p-2 hover:bg-white/5 rounded transition-colors">
+                          <span className="text-gray-400">{dep.name}</span>
+                          <span className={`font-mono text-xs ${stack.color}`}>{dep.version}</span>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   </motion.div>
                 ))}
               </div>
             </section>
 
-            {/* CTA */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="border-t border-white/5 pt-12 text-center"
-            >
-              <h3 className="text-2xl font-bold mb-4">Ready to Integrate?</h3>
-              <p className="text-gray-400 mb-6">
-                Contact our technical team to discuss your specific requirements and timeline.
-              </p>
-              <div className="flex flex-col sm:flex-row justify-center gap-4">
-                <a 
-                  href="mailto:contact@ilal.tech?subject=Integration Inquiry" 
-                  className="btn-ripple px-8 py-3 bg-[#2962FF] text-white rounded font-medium hover:bg-[#2962FF]/90 hover:shadow-lg hover:shadow-[#2962FF]/20 hover:scale-105 transition-all"
+            {/* Developer Resources & CTA */}
+            <section>
+              <h2 className="font-heading text-3xl font-bold mb-8">Developer Resources</h2>
+
+              <div className="grid md:grid-cols-2 gap-6 mb-12">
+                <motion.a
+                  href="https://github.com/rpnny/ILAL-mvp"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  className="glass-card p-8 group block text-center sm:text-left flex flex-col sm:flex-row items-center sm:items-start gap-4"
                 >
-                  Contact Integration Team
-                </a>
+                  <div className="w-16 h-16 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                    <Github className="w-8 h-8 text-white group-hover:text-primary transition-colors" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">GitHub Repository</h3>
+                    <p className="text-sm text-gray-500 mb-4 font-light">
+                      Source code, smart contracts, frontend, and integration examples.
+                    </p>
+                    <div className="flex items-center justify-center sm:justify-start text-primary text-sm font-medium">
+                      View Repository <ExternalLink className="w-4 h-4 ml-1 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                    </div>
+                  </div>
+                </motion.a>
+
+                <motion.a
+                  href="https://github.com/rpnny/ILAL-mvp/blob/main/docs/outreach/ILAL_EXECUTIVE_BRIEF.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.1 }}
+                  className="glass-card p-8 group block text-center sm:text-left flex flex-col sm:flex-row items-center sm:items-start gap-4"
+                >
+                  <div className="w-16 h-16 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                    <FileText className="w-8 h-8 text-white group-hover:text-secondary transition-colors" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold mb-2 group-hover:text-secondary transition-colors">Documentation</h3>
+                    <p className="text-sm text-gray-500 mb-4 font-light">
+                      Architecture guides, API references, and deployment instructions.
+                    </p>
+                    <div className="flex items-center justify-center sm:justify-start text-secondary text-sm font-medium">
+                      Read Docs <ExternalLink className="w-4 h-4 ml-1 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                    </div>
+                  </div>
+                </motion.a>
               </div>
-            </motion.div>
+
+              {/* CTA */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className="mt-12 text-center"
+              >
+                <div className="inline-block p-1 rounded-2xl bg-gradient-to-r from-primary/20 via-transparent to-secondary/20 p-8 glass-card w-full max-w-3xl mx-auto border-t-primary/50 border-b-secondary/50">
+                  <h3 className="text-2xl font-bold mb-4 font-heading">Ready to Integrate?</h3>
+                  <p className="text-gray-400 mb-8 font-light">
+                    Transform your protocol's compliance posture in just 8 weeks.
+                  </p>
+                  <div className="flex justify-center flex-wrap gap-4">
+                    <a href="mailto:contact@ilal.tech" className="glass-button glass-button-primary px-8 py-3.5 flex items-center">
+                      Contact Integration Team <ArrowRight className="w-4 h-4 ml-2" />
+                    </a>
+                  </div>
+                </div>
+              </motion.div>
+            </section>
           </div>
         </div>
-      </div>
+      </main>
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }

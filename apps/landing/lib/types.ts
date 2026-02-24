@@ -16,7 +16,7 @@ export interface User {
 export interface ApiKey {
     id: string;
     name: string;
-    prefix: string;
+    keyPrefix: string;
     key?: string; // Only returned on creation
     createdAt: string;
     lastUsedAt?: string;
@@ -34,7 +34,15 @@ export interface ApiKeysResponse {
 }
 
 export interface CreateApiKeyResponse {
-    apiKey: ApiKey;
+    apiKey: string;
+    id: string;
+    name: string;
+    keyPrefix: string;
+    permissions: string;
+    rateLimit: number;
+    createdAt: string;
+    expiresAt: string | null;
+    warning: string;
 }
 
 // ── Usage Stats ───────────────────────────────────────────────

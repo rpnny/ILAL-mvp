@@ -1,7 +1,7 @@
-import { 
-  createPublicClient, 
-  createWalletClient, 
-  http, 
+import {
+  createPublicClient,
+  createWalletClient,
+  http,
   type Address,
   type Chain,
 } from 'viem';
@@ -28,7 +28,7 @@ export const SESSION_MANAGER_ABI = [
   },
   {
     inputs: [{ name: 'user', type: 'address' }],
-    name: 'getSessionExpiry',
+    name: 'sessionExpiry',
     outputs: [{ name: '', type: 'uint256' }],
     stateMutability: 'view',
     type: 'function',
@@ -47,8 +47,8 @@ export const SESSION_MANAGER_ABI = [
 
 export const REGISTRY_ABI = [
   {
-    inputs: [{ name: 'user', type: 'address' }],
-    name: 'isVerified',
+    inputs: [{ name: 'attester', type: 'address' }],
+    name: 'isIssuerActive',
     outputs: [{ name: '', type: 'bool' }],
     stateMutability: 'view',
     type: 'function',
@@ -119,9 +119,16 @@ export const POSITION_MANAGER_ABI = [
     type: 'function',
   },
   {
-    inputs: [{ name: 'owner', type: 'address' }],
-    name: 'balanceOf',
+    inputs: [],
+    name: 'nextTokenId',
     outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ name: 'tokenId', type: 'uint256' }],
+    name: 'ownerOf',
+    outputs: [{ name: '', type: 'address' }],
     stateMutability: 'view',
     type: 'function',
   },

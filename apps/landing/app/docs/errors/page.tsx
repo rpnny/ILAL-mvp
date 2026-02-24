@@ -128,15 +128,15 @@ const errorCodes = [
 export default function ErrorsPage() {
     return (
         <div className="p-8 max-w-5xl mx-auto">
-            <h1 className="text-4xl font-bold mb-4">Error Codes Reference</h1>
+            <h1 className="font-heading text-4xl font-bold mb-4">Error Codes Reference</h1>
             <p className="text-xl text-gray-400 mb-6">
                 Complete reference for all ILAL API error codes
             </p>
 
             {/* Response Format */}
             <div className="bg-white/[0.02] border border-white/10 rounded-xl p-6 mb-10">
-                <h2 className="text-lg font-semibold mb-3 flex items-center">
-                    <Info className="w-5 h-5 mr-2 text-[#2962FF]" />
+                <h2 className="font-heading text-lg font-semibold mb-3 flex items-center">
+                    <Info className="w-5 h-5 mr-2 text-[#00F0FF]" />
                     Error Response Format
                 </h2>
                 <p className="text-sm text-gray-400 mb-4">
@@ -157,7 +157,7 @@ export default function ErrorsPage() {
             <div className="space-y-10">
                 {errorCodes.map((category) => (
                     <div key={category.category}>
-                        <h2 className="text-2xl font-bold mb-6">{category.category}</h2>
+                        <h2 className="font-heading text-2xl font-bold mb-6">{category.category}</h2>
                         <div className="space-y-4">
                             {category.errors.map((error) => (
                                 <div
@@ -167,7 +167,7 @@ export default function ErrorsPage() {
                                     <div className="bg-white/[0.02] px-6 py-4 border-b border-white/10">
                                         <div className="flex items-center justify-between flex-wrap gap-2">
                                             <div className="flex items-center space-x-3">
-                                                <code className="text-[#2962FF] font-mono font-semibold text-sm">
+                                                <code className="text-[#00F0FF] font-mono font-semibold text-sm">
                                                     {error.code}
                                                 </code>
                                                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${error.status >= 500 ? 'bg-red-500/20 text-red-400' :
@@ -204,30 +204,30 @@ export default function ErrorsPage() {
             </div>
 
             {/* Best Practices */}
-            <div className="mt-12 bg-[#2962FF]/10 border border-[#2962FF]/20 rounded-xl p-6">
-                <h3 className="text-xl font-semibold mb-4 flex items-center">
-                    <AlertTriangle className="w-6 h-6 mr-2 text-[#2962FF]" />
+            <div className="mt-12 bg-[#00F0FF]/10 border border-[#00F0FF]/20 rounded-xl p-6">
+                <h3 className="font-heading text-xl font-semibold mb-4 flex items-center">
+                    <AlertTriangle className="w-6 h-6 mr-2 text-[#00F0FF]" />
                     Error Handling Best Practices
                 </h3>
                 <ul className="space-y-3 text-sm text-gray-300">
                     <li className="flex items-start">
-                        <span className="text-[#2962FF] mr-2">•</span>
+                        <span className="text-[#00F0FF] mr-2">•</span>
                         <span>Always check the HTTP status code, not just the response body</span>
                     </li>
                     <li className="flex items-start">
-                        <span className="text-[#2962FF] mr-2">•</span>
+                        <span className="text-[#00F0FF] mr-2">•</span>
                         <span>For 429 errors, use the retryAfter field for exponential backoff</span>
                     </li>
                     <li className="flex items-start">
-                        <span className="text-[#2962FF] mr-2">•</span>
+                        <span className="text-[#00F0FF] mr-2">•</span>
                         <span>For 5xx errors, implement automatic retry logic (up to 3 retries recommended)</span>
                     </li>
                     <li className="flex items-start">
-                        <span className="text-[#2962FF] mr-2">•</span>
+                        <span className="text-[#00F0FF] mr-2">•</span>
                         <span>Log the error code field from all error responses for debugging and support tickets</span>
                     </li>
                     <li className="flex items-start">
-                        <span className="text-[#2962FF] mr-2">•</span>
+                        <span className="text-[#00F0FF] mr-2">•</span>
                         <span>Use the SDK&apos;s built-in error types for granular error handling (recommended)</span>
                     </li>
                 </ul>

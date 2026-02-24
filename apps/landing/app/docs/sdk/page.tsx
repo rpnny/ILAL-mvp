@@ -4,7 +4,7 @@ import { Code, Terminal, Package, CheckCircle2, Zap, BookOpen } from 'lucide-rea
 export default function SdkPage() {
     return (
         <div className="p-8 max-w-4xl mx-auto">
-            <h1 className="text-4xl font-bold mb-4">SDK Guide</h1>
+            <h1 className="font-heading text-4xl font-bold mb-4">SDK Guide</h1>
             <p className="text-xl text-gray-400 mb-12">
                 Integrate compliant DeFi features quickly with the ILAL TypeScript SDK
             </p>
@@ -13,10 +13,10 @@ export default function SdkPage() {
                 {/* Installation */}
                 <div>
                     <div className="flex items-center space-x-3 mb-4">
-                        <div className="w-8 h-8 bg-[#2962FF] rounded-full flex items-center justify-center text-sm font-bold">
+                        <div className="w-8 h-8 bg-[#00F0FF] rounded-full flex items-center justify-center text-sm font-bold">
                             1
                         </div>
-                        <h2 className="text-2xl font-bold">Installation</h2>
+                        <h2 className="font-heading text-2xl font-bold">Installation</h2>
                     </div>
                     <div className="ml-11 space-y-3">
                         <div>
@@ -52,10 +52,10 @@ export default function SdkPage() {
                 {/* Initialization */}
                 <div>
                     <div className="flex items-center space-x-3 mb-4">
-                        <div className="w-8 h-8 bg-[#2962FF] rounded-full flex items-center justify-center text-sm font-bold">
+                        <div className="w-8 h-8 bg-[#00F0FF] rounded-full flex items-center justify-center text-sm font-bold">
                             2
                         </div>
-                        <h2 className="text-2xl font-bold">Initialization</h2>
+                        <h2 className="font-heading text-2xl font-bold">Initialization</h2>
                     </div>
                     <div className="ml-11">
                         <pre className="bg-[#1A1A1A] border border-white/10 rounded-lg p-4 overflow-x-auto text-sm">
@@ -75,18 +75,18 @@ const client = new ILALClient({
                 {/* Core Modules */}
                 <div>
                     <div className="flex items-center space-x-3 mb-4">
-                        <div className="w-8 h-8 bg-[#2962FF] rounded-full flex items-center justify-center text-sm font-bold">
+                        <div className="w-8 h-8 bg-[#00F0FF] rounded-full flex items-center justify-center text-sm font-bold">
                             3
                         </div>
-                        <h2 className="text-2xl font-bold">Core Modules</h2>
+                        <h2 className="font-heading text-2xl font-bold">Core Modules</h2>
                     </div>
 
                     <div className="ml-11 space-y-6">
                         {/* Session Module */}
                         <div className="border border-white/10 rounded-xl overflow-hidden">
                             <div className="bg-white/[0.02] p-4 border-b border-white/10">
-                                <h3 className="text-lg font-semibold flex items-center">
-                                    <Package className="w-5 h-5 mr-2 text-[#2962FF]" />
+                                <h3 className="font-heading text-lg font-semibold flex items-center">
+                                    <Package className="w-5 h-5 mr-2 text-[#00F0FF]" />
                                     Session Module
                                 </h3>
                                 <p className="text-sm text-gray-400 mt-1">Manage the lifecycle of ZK verification sessions</p>
@@ -115,7 +115,7 @@ console.log(extended.newExpiresAt);`}</code>
                         {/* Compliance Module */}
                         <div className="border border-white/10 rounded-xl overflow-hidden">
                             <div className="bg-white/[0.02] p-4 border-b border-white/10">
-                                <h3 className="text-lg font-semibold flex items-center">
+                                <h3 className="font-heading text-lg font-semibold flex items-center">
                                     <Package className="w-5 h-5 mr-2 text-green-400" />
                                     Compliance Module
                                 </h3>
@@ -136,7 +136,7 @@ if (result.isCompliant) {
                         {/* Swap Module */}
                         <div className="border border-white/10 rounded-xl overflow-hidden">
                             <div className="bg-white/[0.02] p-4 border-b border-white/10">
-                                <h3 className="text-lg font-semibold flex items-center">
+                                <h3 className="font-heading text-lg font-semibold flex items-center">
                                     <Package className="w-5 h-5 mr-2 text-purple-400" />
                                     Swap Module
                                 </h3>
@@ -161,10 +161,10 @@ console.log(swap.amountOut); // Tokens received`}</code>
                 {/* Error Handling */}
                 <div>
                     <div className="flex items-center space-x-3 mb-4">
-                        <div className="w-8 h-8 bg-[#2962FF] rounded-full flex items-center justify-center text-sm font-bold">
+                        <div className="w-8 h-8 bg-[#00F0FF] rounded-full flex items-center justify-center text-sm font-bold">
                             4
                         </div>
-                        <h2 className="text-2xl font-bold">Error Handling</h2>
+                        <h2 className="font-heading text-2xl font-bold">Error Handling</h2>
                     </div>
                     <div className="ml-11">
                         <pre className="bg-[#1A1A1A] border border-white/10 rounded-lg p-4 overflow-x-auto text-sm">
@@ -185,9 +185,9 @@ try {
                 </div>
 
                 {/* TypeScript Support */}
-                <div className="bg-[#2962FF]/10 border border-[#2962FF]/20 rounded-xl p-6">
-                    <h3 className="text-xl font-semibold mb-4 flex items-center">
-                        <Zap className="w-6 h-6 mr-2 text-[#2962FF]" />
+                <div className="bg-[#00F0FF]/10 border border-[#00F0FF]/20 rounded-xl p-6">
+                    <h3 className="font-heading text-xl font-semibold mb-4 flex items-center">
+                        <Zap className="w-6 h-6 mr-2 text-[#00F0FF]" />
                         TypeScript Support
                     </h3>
                     <p className="text-gray-300 mb-4">
@@ -211,25 +211,25 @@ try {
 
                 {/* Next Steps */}
                 <div className="border-t border-white/10 pt-8">
-                    <h3 className="text-lg font-semibold mb-4">Next Steps</h3>
+                    <h3 className="font-heading text-lg font-semibold mb-4">Next Steps</h3>
                     <div className="space-y-3">
                         <Link
                             href="/docs/endpoints"
                             className="block text-gray-300 hover:text-white transition-colors"
                         >
-                            → View the full <span className="text-[#2962FF]">API Endpoint Reference</span>
+                            → View the full <span className="text-[#00F0FF]">API Endpoint Reference</span>
                         </Link>
                         <Link
                             href="/docs/errors"
                             className="block text-gray-300 hover:text-white transition-colors"
                         >
-                            → Browse <span className="text-[#2962FF]">Error Codes Reference</span>
+                            → Browse <span className="text-[#00F0FF]">Error Codes Reference</span>
                         </Link>
                         <Link
                             href="/dashboard/playground"
                             className="block text-gray-300 hover:text-white transition-colors"
                         >
-                            → Try the <span className="text-[#2962FF]">API Playground</span> for live testing
+                            → Try the <span className="text-[#00F0FF]">API Playground</span> for live testing
                         </Link>
                     </div>
                 </div>

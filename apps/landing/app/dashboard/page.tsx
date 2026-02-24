@@ -116,8 +116,8 @@ export default function DashboardPage() {
       sub: `Max ${stats?.limits?.maxApiKeys || 2} keys`,
       link: '/dashboard/api-keys',
       linkText: 'Manage →',
-      color: '#2962FF',
-      gradient: 'from-[#2962FF]/20 to-[#2962FF]/5',
+      color: '#00F0FF',
+      gradient: 'from-[#00F0FF]/20 to-[#00F0FF]/5',
     },
     {
       icon: TrendingUp,
@@ -150,7 +150,7 @@ export default function DashboardPage() {
     >
       {/* Header */}
       <motion.div variants={itemVariants} className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Welcome back, {user?.name || user?.email}</h1>
+        <h1 className="font-heading text-3xl font-bold mb-2">Welcome back, {user?.name || user?.email}</h1>
         <p className="text-gray-400">Manage your API Keys and view usage statistics</p>
       </motion.div>
 
@@ -180,7 +180,7 @@ export default function DashboardPage() {
                   </Link>
                 )}
               </div>
-              <div className="text-3xl font-bold mb-1">
+              <div className="font-heading text-3xl font-bold mb-1">
                 {card.valueText || <Counter value={card.value!} />}
               </div>
               <div className="text-sm text-gray-400">{card.label}</div>
@@ -207,11 +207,11 @@ export default function DashboardPage() {
         className="bg-white/[0.02] backdrop-blur-xl border border-white/[0.08] rounded-xl p-6 mb-8 relative overflow-hidden"
       >
         {/* Decorative gradient */}
-        <div className="absolute top-0 right-0 w-60 h-60 bg-[#2962FF]/[0.03] rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-60 h-60 bg-[#00F0FF]/[0.03] rounded-full blur-3xl pointer-events-none" />
 
-        <h2 className="text-xl font-bold mb-4 flex items-center relative z-10">
-          <div className="w-8 h-8 bg-[#2962FF]/15 rounded-lg flex items-center justify-center mr-3">
-            <Zap className="w-4 h-4 text-[#2962FF]" />
+        <h2 className="font-heading text-xl font-bold mb-4 flex items-center relative z-10">
+          <div className="w-8 h-8 bg-[#00F0FF]/15 rounded-lg flex items-center justify-center mr-3">
+            <Zap className="w-4 h-4 text-[#00F0FF]" />
           </div>
           Quick Start
         </h2>
@@ -224,7 +224,7 @@ export default function DashboardPage() {
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               <Link
                 href="/dashboard/api-keys"
-                className="inline-flex items-center px-5 py-2.5 bg-[#2962FF] hover:bg-[#2962FF]/90 rounded-lg font-medium transition-all shadow-lg shadow-[#2962FF]/20 group"
+                className="inline-flex items-center px-5 py-2.5 bg-[#00F0FF] hover:bg-[#00F0FF]/90 rounded-lg font-medium transition-all shadow-lg shadow-[#00F0FF]/20 group"
               >
                 Create Your First API Key
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
@@ -256,7 +256,7 @@ export default function DashboardPage() {
                   {step.link && (
                     <Link
                       href={step.link.href}
-                      className="inline-flex items-center text-[#2962FF] text-sm hover:underline mt-1 group"
+                      className="inline-flex items-center text-[#00F0FF] text-sm hover:underline mt-1 group"
                     >
                       {step.link.text}
                       <ArrowRight className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
@@ -276,15 +276,15 @@ export default function DashboardPage() {
           className="bg-white/[0.02] backdrop-blur-xl border border-white/[0.08] rounded-xl p-6 relative overflow-hidden"
         >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold flex items-center">
-              <div className="w-8 h-8 bg-[#2962FF]/15 rounded-lg flex items-center justify-center mr-3">
-                <Key className="w-4 h-4 text-[#2962FF]" />
+            <h2 className="font-heading text-xl font-bold flex items-center">
+              <div className="w-8 h-8 bg-[#00F0FF]/15 rounded-lg flex items-center justify-center mr-3">
+                <Key className="w-4 h-4 text-[#00F0FF]" />
               </div>
               Your API Keys
             </h2>
             <Link
               href="/dashboard/api-keys"
-              className="text-[#2962FF] text-sm hover:underline"
+              className="text-[#00F0FF] text-sm hover:underline"
             >
               View All →
             </Link>
@@ -298,7 +298,7 @@ export default function DashboardPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 * i }}
                 whileHover={{ scale: 1.01, x: 4 }}
-                className="border border-white/[0.08] rounded-lg p-4 hover:border-[#2962FF]/30 hover:bg-white/[0.02] transition-all duration-200 cursor-default"
+                className="border border-white/[0.08] rounded-lg p-4 hover:border-[#00F0FF]/30 hover:bg-white/[0.02] transition-all duration-200 cursor-default"
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="font-medium">{key.name}</div>

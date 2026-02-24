@@ -40,8 +40,8 @@ export const CONTRACTS = {
 export const RATE_LIMITS = {
   FREE: {
     windowMs: 60000, // 1 minute
-    max: Number(process.env.RATE_LIMIT_MAX_REQUESTS_FREE) || 10,
-    monthlyQuota: 100,
+    max: Number(process.env.RATE_LIMIT_MAX_REQUESTS_FREE) || 100, // Increased for free early access
+    monthlyQuota: 10000, // Increased for free early access
   },
   PRO: {
     windowMs: 60000,

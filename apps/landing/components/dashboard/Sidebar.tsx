@@ -37,18 +37,18 @@ export default function Sidebar() {
       className="w-64 bg-white/[0.02] backdrop-blur-xl border-r border-white/[0.06] flex flex-col flex-shrink-0 relative"
     >
       {/* Subtle gradient accent at top */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#2962FF]/40 to-transparent" />
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00F0FF]/40 to-transparent" />
 
       <div className="h-16 flex items-center px-6 border-b border-white/[0.06]">
         <Link href="/" className="flex items-center space-x-3 group">
           <motion.div
             whileHover={{ scale: 1.1, rotate: 5 }}
             transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-            className="w-7 h-7 bg-[#2962FF] rounded-md flex items-center justify-center shadow-lg shadow-[#2962FF]/20"
+            className="w-7 h-7 bg-[#00F0FF] rounded-md flex items-center justify-center shadow-lg shadow-[#00F0FF]/20"
           >
             <span className="font-bold text-white text-sm">I</span>
           </motion.div>
-          <span className="text-lg font-semibold tracking-tight group-hover:text-[#2962FF] transition-colors">ILAL</span>
+          <span className="font-heading text-lg font-semibold tracking-tight group-hover:text-[#00F0FF] transition-colors">ILAL</span>
         </Link>
       </div>
 
@@ -77,13 +77,13 @@ export default function Sidebar() {
                 {isActive && (
                   <motion.div
                     layoutId="sidebar-active"
-                    className="absolute inset-0 bg-[#2962FF]/15 border border-[#2962FF]/25 rounded-lg"
+                    className="absolute inset-0 bg-[#00F0FF]/15 border border-[#00F0FF]/25 rounded-lg"
                     transition={{ type: 'spring', stiffness: 350, damping: 30 }}
                   />
                 )}
                 <item.icon className={cn(
                   'w-[18px] h-[18px] relative z-10 transition-colors',
-                  isActive ? 'text-[#2962FF]' : 'group-hover:text-[#2962FF]/70'
+                  isActive ? 'text-[#00F0FF]' : 'group-hover:text-[#00F0FF]/70'
                 )} />
                 <span className="relative z-10">{item.name}</span>
               </Link>
@@ -100,7 +100,7 @@ export default function Sidebar() {
             transition={{ delay: 0.3 }}
             className="flex items-center space-x-3 px-3 py-2.5 rounded-lg bg-white/[0.03] mb-2"
           >
-            <div className="w-8 h-8 bg-gradient-to-br from-[#2962FF] to-[#7C4DFF] rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 shadow-lg shadow-[#2962FF]/20">
+            <div className="w-8 h-8 bg-gradient-to-br from-[#00F0FF] to-[#A855F7] rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 shadow-lg shadow-[#00F0FF]/20">
               {user.name?.[0] || user.email?.[0]?.toUpperCase() || 'U'}
             </div>
             <div className="min-w-0">

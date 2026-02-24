@@ -9,7 +9,7 @@ interface ApiKeyCardProps {
   apiKey: {
     id: string;
     name: string;
-    prefix: string;
+    keyPrefix: string;
     createdAt: string;
     lastUsedAt?: string;
     isActive: boolean;
@@ -23,7 +23,7 @@ export default function ApiKeyCard({ apiKey, onRevoke }: ApiKeyCardProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(apiKey.prefix);
+    navigator.clipboard.writeText(apiKey.keyPrefix);
     setCopied(true);
     toast.success('Prefix copied');
     setTimeout(() => setCopied(false), 2000);
@@ -43,13 +43,13 @@ export default function ApiKeyCard({ apiKey, onRevoke }: ApiKeyCardProps) {
   };
 
   return (
-    <div className="border border-white/10 rounded-xl p-5 hover:border-[#2962FF]/30 transition-all bg-white/[0.02]">
+    <div className="border border-white/10 rounded-xl p-5 hover:border-[#00F0FF]/30 transition-all bg-white/[0.02]">
       <div className="flex items-start justify-between mb-3">
         <div>
           <h3 className="font-semibold text-lg mb-1">{apiKey.name}</h3>
           <div className="flex items-center space-x-2">
             <code className="text-sm text-gray-400 bg-white/5 px-2 py-1 rounded">
-              {apiKey.prefix}...
+              {apiKey.keyPrefix}...
             </code>
             <button
               onClick={handleCopy}

@@ -1,7 +1,7 @@
-import { 
-  publicClient, 
-  walletClient, 
-  botAddress, 
+import {
+  publicClient,
+  walletClient,
+  botAddress,
   contracts,
   SESSION_MANAGER_ABI,
   REGISTRY_ABI,
@@ -35,7 +35,7 @@ export async function checkSession(): Promise<SessionStatus> {
       publicClient.readContract({
         address: contracts.sessionManager,
         abi: SESSION_MANAGER_ABI,
-        functionName: 'getSessionExpiry',
+        functionName: 'sessionExpiry',
         args: [botAddress],
       }),
     ]);
@@ -71,7 +71,7 @@ export async function checkVerification(): Promise<boolean> {
     const isVerified = await publicClient.readContract({
       address: contracts.registry,
       abi: REGISTRY_ABI,
-      functionName: 'isVerified',
+      functionName: 'isIssuerActive',
       args: [botAddress],
     });
 
@@ -96,7 +96,7 @@ export async function renewSession(): Promise<string> {
 
     const expiry = BigInt(Math.floor(Date.now() / 1000) + config.session.duration);
 
-    log.info('正在续期 Session', { 
+    log.info('正在续期 Session', {
       address: botAddress,
       expiry: expiry.toString(),
       duration: config.session.duration,
@@ -150,10 +150,10 @@ export async function ensureActiveSession(): Promise<void> {
  */
 export function formatRemainingTime(seconds: number): string {
   if (seconds <= 0) return '已过期';
-  
+
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
-  
+
   if (hours > 0) {
     return `${hours}小时${minutes}分钟`;
   }

@@ -84,7 +84,7 @@ export default function UsagePage() {
   });
 
   const statCards = [
-    { icon: TrendingUp, value: totalCalls, label: 'Monthly Total Calls', sub: `${totalCalls} / ${callLimit} (${usagePercent.toFixed(1)}%)`, color: '#2962FF', gradient: 'from-[#2962FF]/20 to-[#2962FF]/5', progress: usagePercent },
+    { icon: TrendingUp, value: totalCalls, label: 'Monthly Total Calls', sub: `${totalCalls} / ${callLimit} (${usagePercent.toFixed(1)}%)`, color: '#00F0FF', gradient: 'from-[#00F0FF]/20 to-[#00F0FF]/5', progress: usagePercent },
     { icon: Zap, value: rateLimit, label: 'Requests / Minute', sub: 'Current plan limit', color: '#10B981', gradient: 'from-green-500/20 to-green-500/5' },
     { icon: Calendar, value: callLimit - totalCalls, label: 'Remaining Calls', sub: 'Monthly quota remaining', color: '#A855F7', gradient: 'from-purple-500/20 to-purple-500/5' },
   ];
@@ -93,9 +93,9 @@ export default function UsagePage() {
     <motion.div className="p-8" variants={containerVariants} initial="hidden" animate="visible">
       {/* Header */}
       <motion.div variants={itemVariants} className="mb-8">
-        <h1 className="text-3xl font-bold mb-2 flex items-center">
-          <div className="w-9 h-9 bg-[#2962FF]/15 rounded-lg flex items-center justify-center mr-3">
-            <BarChart3 className="w-5 h-5 text-[#2962FF]" />
+        <h1 className="font-heading text-3xl font-bold mb-2 flex items-center">
+          <div className="w-9 h-9 bg-[#00F0FF]/15 rounded-lg flex items-center justify-center mr-3">
+            <BarChart3 className="w-5 h-5 text-[#00F0FF]" />
           </div>
           Usage Statistics
         </h1>
@@ -120,7 +120,7 @@ export default function UsagePage() {
                   <card.icon className="w-5 h-5" style={{ color: card.color }} />
                 </div>
               </div>
-              <div className="text-3xl font-bold mb-1"><Counter value={card.value} /></div>
+              <div className="font-heading text-3xl font-bold mb-1"><Counter value={card.value} /></div>
               <div className="text-sm text-gray-400 mb-3">{card.label}</div>
               {card.progress !== undefined && (
                 <div className="bg-white/[0.06] rounded-full h-1.5 overflow-hidden">
@@ -141,13 +141,13 @@ export default function UsagePage() {
 
       {/* Usage Chart */}
       <motion.div variants={itemVariants} className="bg-white/[0.02] backdrop-blur-xl border border-white/[0.08] rounded-xl p-6 mb-8">
-        <h2 className="text-xl font-bold mb-6">Last 7 Days Usage Trend</h2>
+        <h2 className="font-heading text-xl font-bold mb-6">Last 7 Days Usage Trend</h2>
         <UsageChart data={chartData} />
       </motion.div>
 
       {/* Recent Usage */}
       <motion.div variants={itemVariants} className="bg-white/[0.02] backdrop-blur-xl border border-white/[0.08] rounded-xl p-6">
-        <h2 className="text-xl font-bold mb-6">Recent API Calls</h2>
+        <h2 className="font-heading text-xl font-bold mb-6">Recent API Calls</h2>
         {stats?.recentCalls && stats.recentCalls.length > 0 ? (
           <div className="space-y-3">
             {stats.recentCalls.map((call: any, index: number) => (
@@ -157,7 +157,7 @@ export default function UsagePage() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
                 whileHover={{ x: 4 }}
-                className="border border-white/[0.08] rounded-lg p-4 hover:border-[#2962FF]/30 hover:bg-white/[0.02] transition-all duration-200"
+                className="border border-white/[0.08] rounded-lg p-4 hover:border-[#00F0FF]/30 hover:bg-white/[0.02] transition-all duration-200"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
@@ -185,7 +185,7 @@ export default function UsagePage() {
             >
               <Clock className="w-8 h-8 text-gray-500" />
             </motion.div>
-            <h3 className="text-lg font-semibold mb-2">No Records Yet</h3>
+            <h3 className="font-heading text-lg font-semibold mb-2">No Records Yet</h3>
             <p className="text-gray-400 max-w-md mx-auto">
               Once you start using the API, call records will appear here.
             </p>
@@ -196,17 +196,17 @@ export default function UsagePage() {
       {/* Usage Tips */}
       <motion.div
         variants={itemVariants}
-        className="mt-8 bg-[#2962FF]/[0.06] backdrop-blur-xl border border-[#2962FF]/20 rounded-xl p-6 relative overflow-hidden"
+        className="mt-8 bg-[#00F0FF]/[0.06] backdrop-blur-xl border border-[#00F0FF]/20 rounded-xl p-6 relative overflow-hidden"
       >
-        <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#2962FF]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#00F0FF]/10 rounded-full blur-3xl pointer-events-none" />
         <h3 className="font-semibold mb-3 flex items-center relative z-10">
-          <Zap className="w-5 h-5 mr-2 text-[#2962FF]" />
+          <Zap className="w-5 h-5 mr-2 text-[#00F0FF]" />
           Optimization Tips
         </h3>
         <ul className="space-y-2 text-sm text-gray-300 relative z-10">
-          <li className="flex items-start"><span className="text-[#2962FF] mr-2">•</span><span>Implement client-side caching to reduce redundant API calls</span></li>
-          <li className="flex items-start"><span className="text-[#2962FF] mr-2">•</span><span>Use batch API endpoints to handle multiple requests at once</span></li>
-          <li className="flex items-start"><span className="text-[#2962FF] mr-2">•</span><span>Monitor your usage to avoid exceeding rate limits</span></li>
+          <li className="flex items-start"><span className="text-[#00F0FF] mr-2">•</span><span>Implement client-side caching to reduce redundant API calls</span></li>
+          <li className="flex items-start"><span className="text-[#00F0FF] mr-2">•</span><span>Use batch API endpoints to handle multiple requests at once</span></li>
+          <li className="flex items-start"><span className="text-[#00F0FF] mr-2">•</span><span>Monitor your usage to avoid exceeding rate limits</span></li>
         </ul>
       </motion.div>
     </motion.div>

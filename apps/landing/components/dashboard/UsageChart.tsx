@@ -23,8 +23,8 @@ export default function UsageChart({ data }: UsageChartProps) {
       <AreaChart data={data}>
         <defs>
           <linearGradient id="colorCalls" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#2962FF" stopOpacity={0.3} />
-            <stop offset="95%" stopColor="#2962FF" stopOpacity={0} />
+            <stop offset="5%" stopColor="#00F0FF" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="#00F0FF" stopOpacity={0} />
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
@@ -48,7 +48,7 @@ export default function UsageChart({ data }: UsageChartProps) {
         <Area
           type="monotone"
           dataKey="calls"
-          stroke="#2962FF"
+          stroke="#00F0FF"
           strokeWidth={2}
           fillOpacity={1}
           fill="url(#colorCalls)"

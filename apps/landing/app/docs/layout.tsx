@@ -42,18 +42,18 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
           className="w-64 bg-white/[0.02] backdrop-blur-xl border-r border-white/[0.06] flex flex-col fixed h-screen relative"
         >
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#2962FF]/40 to-transparent" />
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00F0FF]/40 to-transparent" />
 
           <div className="h-16 flex items-center px-6 border-b border-white/[0.06]">
             <Link href="/" className="flex items-center space-x-3 group">
               <motion.div
                 whileHover={{ scale: 1.1, rotate: 5 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-                className="w-7 h-7 bg-[#2962FF] rounded-md flex items-center justify-center shadow-lg shadow-[#2962FF]/20"
+                className="w-7 h-7 bg-[#00F0FF] rounded-md flex items-center justify-center shadow-lg shadow-[#00F0FF]/20"
               >
                 <span className="font-bold text-white text-sm">I</span>
               </motion.div>
-              <span className="text-lg font-semibold tracking-tight group-hover:text-[#2962FF] transition-colors">ILAL Docs</span>
+              <span className="font-heading text-lg font-semibold tracking-tight group-hover:text-[#00F0FF] transition-colors">ILAL Docs</span>
             </Link>
           </div>
 
@@ -80,13 +80,13 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
                     {isActive && (
                       <motion.div
                         layoutId="docs-active"
-                        className="absolute inset-0 bg-[#2962FF]/15 border border-[#2962FF]/25 rounded-lg"
+                        className="absolute inset-0 bg-[#00F0FF]/15 border border-[#00F0FF]/25 rounded-lg"
                         transition={{ type: 'spring', stiffness: 350, damping: 30 }}
                       />
                     )}
                     <item.icon className={cn(
                       'w-[18px] h-[18px] relative z-10 transition-colors',
-                      isActive ? 'text-[#2962FF]' : 'group-hover:text-[#2962FF]/70'
+                      isActive ? 'text-[#00F0FF]' : 'group-hover:text-[#00F0FF]/70'
                     )} />
                     <span className="relative z-10">{item.name}</span>
                   </Link>

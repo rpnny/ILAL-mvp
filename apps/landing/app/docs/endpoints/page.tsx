@@ -63,7 +63,7 @@ const endpoints = [
 export default function EndpointsPage() {
   return (
     <div className="p-8 max-w-5xl mx-auto">
-      <h1 className="text-4xl font-bold mb-4">API Endpoints</h1>
+      <h1 className="font-heading text-4xl font-bold mb-4">API Endpoints</h1>
       <p className="text-xl text-gray-400 mb-12">
         Complete ILAL API endpoint reference
       </p>
@@ -71,7 +71,7 @@ export default function EndpointsPage() {
       {/* Base URL */}
       <div className="bg-white/[0.02] border border-white/10 rounded-xl p-6 mb-8">
         <div className="text-sm text-gray-400 mb-2">Base URL</div>
-        <code className="text-[#2962FF] text-lg">
+        <code className="text-[#00F0FF] text-lg">
           https://api.ilal.tech/api/v1
         </code>
       </div>
@@ -95,7 +95,7 @@ export default function EndpointsPage() {
                   </code>
                 </div>
                 {endpoint.auth && (
-                  <span className="px-2 py-1 bg-[#2962FF]/20 text-[#2962FF] text-xs rounded-full">
+                  <span className="px-2 py-1 bg-[#00F0FF]/20 text-[#00F0FF] text-xs rounded-full">
                     Auth Required
                   </span>
                 )}
@@ -164,7 +164,7 @@ export default function EndpointsPage() {
 
       {/* Status Codes */}
       <div className="mt-12">
-        <h2 className="text-2xl font-bold mb-6">HTTP Status Codes</h2>
+        <h2 className="font-heading text-2xl font-bold mb-6">HTTP Status Codes</h2>
         <div className="space-y-3">
           <div className="border border-white/10 rounded-lg p-4 flex items-start space-x-3">
             <CheckCircle2 className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />

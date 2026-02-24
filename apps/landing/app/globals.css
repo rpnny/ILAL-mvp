@@ -27,6 +27,7 @@ html {
 }
 
 /* Subtle animations */
+/* Glassmorphism OKX Style */
 @layer utilities {
   .animate-float {
     animation: float 6s ease-in-out infinite;
@@ -37,51 +38,60 @@ html {
     50% { transform: translateY(-10px); }
   }
   
-  .glass-border {
-    @apply border border-white/10 backdrop-blur-sm;
+  /* Glass Card */
+  .glass-card {
+    @apply bg-glass-bg border border-glass-border backdrop-blur-md rounded-2xl transition-all duration-300;
   }
   
-  .hover-lift {
-    @apply transition-all duration-300 ease-out;
+  .glass-card:hover {
+    @apply bg-glass-hover border-white/20 shadow-[0_0_30px_rgba(0,240,255,0.05)] -translate-y-1;
   }
-  
-  .hover-lift:hover {
-    @apply -translate-y-1 shadow-xl;
+
+  /* Glass Button */
+  .glass-button {
+    @apply relative overflow-hidden bg-glass-bg border border-glass-border backdrop-blur-md rounded-xl font-medium transition-all duration-300;
+  }
+
+  .glass-button:hover {
+    @apply border-primary/50 text-white shadow-[0_0_20px_rgba(0,240,255,0.2)] -translate-y-0.5;
+  }
+
+  .glass-button-primary {
+    @apply bg-primary/10 text-primary border-primary/30 hover:bg-primary/20 hover:border-primary hover:text-white hover:shadow-[0_0_20px_rgba(0,240,255,0.4)];
+  }
+
+  .glass-button-purple {
+    @apply bg-secondary/10 text-secondary border-secondary/30 hover:bg-secondary/20 hover:border-secondary hover:text-white hover:shadow-[0_0_20px_rgba(168,85,247,0.4)];
+  }
+
+  /* Text Gradients */
+  .text-gradient-cyan {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-white to-primary;
+  }
+
+  .text-gradient-purple {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-white to-secondary;
   }
 }
 
-/* Button ripple effect */
-@keyframes ripple {
+/* Background Data Flow Animation */
+.bg-data-flow {
+  background-color: var(--background);
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(0, 240, 255, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.08) 0%, transparent 50%),
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+  background-position: 0 0, 0 0, 0 0, 0 0;
+  animation: dataFlow 40s linear infinite;
+}
+
+@keyframes dataFlow {
   0% {
-    transform: scale(0);
-    opacity: 1;
+    background-position: 0 0, 0 0, 0 0, 0 0;
   }
   100% {
-    transform: scale(4);
-    opacity: 0;
+    background-position: 100% 100%, -100% 100%, 40px 40px, 40px 40px;
   }
-}
-
-.btn-ripple {
-  position: relative;
-  overflow: hidden;
-}
-
-.btn-ripple::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0;
-  height: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.5);
-  transform: translate(-50%, -50%);
-  transition: width 0.6s, height 0.6s;
-}
-
-.btn-ripple:active::after {
-  width: 300px;
-  height: 300px;
-  animation: ripple 0.6s ease-out;
 }

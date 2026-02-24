@@ -1,375 +1,191 @@
 "use client";
 
-import { motion, useScroll, useTransform } from "framer-motion";
-import { ArrowRight, Github, ExternalLink, Zap, Lock, TrendingUp, CheckCircle2 } from "lucide-react";
+import { motion } from "framer-motion";
+import { ArrowRight, Lock, Zap, ShieldCheck, Activity, Terminal, Database } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useAuth } from "../hooks/useAuth";
-import UserMenu from "../components/UserMenu";
+import Nav from "../components/Nav";
+import Footer from "../components/Footer";
 
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } }
+  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } }
 };
 
-// Number counter animation
-function Counter({ value, suffix = "" }: { value: string; suffix?: string }) {
-  const [count, setCount] = useState(0);
-  const numValue = parseFloat(value.replace(/[^0-9.]/g, ''));
-
-  useEffect(() => {
-    const duration = 1500;
-    const steps = 60;
-    const increment = numValue / steps;
-    let current = 0;
-
-    const timer = setInterval(() => {
-      current += increment;
-      if (current >= numValue) {
-        setCount(numValue);
-        clearInterval(timer);
-      } else {
-        setCount(current);
-      }
-    }, duration / steps);
-
-    return () => clearInterval(timer);
-  }, [numValue]);
-
-  return <span>{Math.round(count)}{suffix}</span>;
-}
-
 export default function Home() {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const { user } = useAuth();
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
-
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white font-sans antialiased">
-      {/* Subtle grid background */}
-      <div className="fixed inset-0 opacity-[0.015] pointer-events-none" style={{
-        backgroundImage: `linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)`,
-        backgroundSize: '48px 48px'
-      }} />
+    <div className="min-h-screen flex flex-col font-sans selection:bg-primary/30 selection:text-primary">
+      {/* Background Data Flow Animation */}
+      <div className="fixed inset-0 z-[-1] bg-data-flow pointer-events-none opacity-60" />
 
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#0A0A0A]/80 backdrop-blur-xl">
-        <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center space-x-3">
-            <div className="w-7 h-7 bg-[#2962FF] rounded-md flex items-center justify-center">
-              <span className="font-bold text-white text-sm">I</span>
-            </div>
-            <span className="text-lg font-semibold tracking-tight">ILAL</span>
-          </Link>
-          <div className="hidden md:flex items-center space-x-8 text-sm">
-            <Link href="/about" className="text-gray-400 hover:text-white transition-colors">About</Link>
-            <Link href="/technology" className="text-gray-400 hover:text-white transition-colors">Technology</Link>
-            <Link href="/integrations" className="text-gray-400 hover:text-white transition-colors">Integrations</Link>
-            <Link href="/roadmap" className="text-gray-400 hover:text-white transition-colors">Roadmap</Link>
-            <a href="https://github.com/rpnny/ILAL-mvp" className="text-gray-400 hover:text-white transition-colors flex items-center">
-              Docs <ExternalLink className="w-3 h-3 ml-1" />
-            </a>
-            <Link href="/dashboard/api-keys" className="px-4 py-2 bg-[#2962FF] hover:bg-[#2962FF]/90 rounded font-medium transition-colors">
-              Get API Key
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <Nav />
 
-      {/* Hero */}
-      <section className="relative pt-32 pb-20 overflow-hidden">
-        {/* Signature element: subtle blue glow with mouse tracking */}
-        <motion.div
-          className="absolute top-20 w-[600px] h-[400px] bg-[#2962FF]/5 rounded-full blur-[100px] pointer-events-none"
-          animate={{
-            x: mousePosition.x / 20 - 300,
-            y: mousePosition.y / 20 + 80,
-          }}
-          transition={{ type: "spring", stiffness: 50, damping: 30 }}
-        />
+      {/* Main Content */}
+      <main className="flex-grow pt-24">
 
-        <div className="container mx-auto px-6 relative z-10">
-          <motion.div initial="hidden" animate="visible" variants={fadeIn} className="max-w-4xl mx-auto text-center">
-            <div className="inline-flex items-center space-x-2 border border-white/10 bg-white/5 rounded-full px-3 py-1 mb-8">
-              <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-              <span className="text-xs text-gray-400 font-medium">Deployed on Base Sepolia</span>
-            </div>
+        {/* HERO SECTION */}
+        <section className="relative pt-20 pb-24 md:pt-32 md:pb-32 overflow-hidden px-6">
+          <div className="container mx-auto relative z-10">
+            <motion.div initial="hidden" animate="visible" variants={fadeIn} className="max-w-5xl mx-auto text-center">
 
-            <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-6 leading-[1.1]">
-              Zero-Knowledge Compliance<br />
-              Infrastructure for Uniswap v4
-            </h1>
+              {/* Badge */}
+              <div className="inline-flex items-center space-x-2 glass-border rounded-full px-4 py-1.5 mb-8 bg-glass-bg">
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse blur-[1px]" />
+                <span className="text-xs text-gray-300 font-medium tracking-wide">ILAL v1.0 • Live on Base Sepolia</span>
+              </div>
 
-            <p className="text-lg text-gray-400 max-w-2xl mx-auto mb-8 leading-relaxed">
-              On-chain verification layer enabling institutional access to DeFi liquidity
-              while maintaining regulatory compliance and user privacy through ZK-SNARKs.
-            </p>
+              {/* Headlines */}
+              <h1 className="font-heading text-5xl md:text-7xl font-bold tracking-tight mb-8 leading-[1.1]">
+                <span className="text-white">Institutions Trade Onchain.</span>
+                <br />
+                <span className="text-gradient-cyan">Securely.</span>
+              </h1>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12"
-            >
-              <Link
-                href="/dashboard/api-keys"
-                className="btn-ripple px-6 py-2.5 bg-[#2962FF] text-white rounded font-medium hover:bg-[#2962FF]/90 hover:shadow-lg hover:shadow-[#2962FF]/20 transition-all flex items-center group"
+              <p className="text-lg md:text-xl text-gray-400 max-w-3xl mx-auto mb-10 leading-relaxed font-light">
+                Zero-Knowledge Compliance for Uniswap V4.
+                <br className="hidden md:block" /> One Session. 97% Less Gas. Full Regulatory Safety.
+              </p>
+
+              {/* Call to Actions */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.3, duration: 0.5 }}
+                className="flex flex-col sm:flex-row items-center justify-center gap-5"
               >
-                Get API Key
-                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-              </Link>
-              <Link
-                href="/technology"
-                className="px-6 py-2.5 border border-white/10 rounded font-medium hover:bg-white/5 hover:border-white/20 transition-all"
-              >
-                View Architecture
-              </Link>
-              <a
-                href="https://github.com/rpnny/ILAL-mvp"
-                className="px-6 py-2.5 border border-white/10 rounded font-medium hover:bg-white/5 hover:border-white/20 transition-all flex items-center group"
-              >
-                <Github className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform" />
-                GitHub
-              </a>
+                <Link href="/dashboard" className="w-full sm:w-auto glass-button glass-button-primary px-8 py-3.5 flex items-center justify-center text-[15px]">
+                  Launch Session
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Link>
+                <Link href="/technology" className="w-full sm:w-auto glass-button glass-button-purple px-8 py-3.5 flex items-center justify-center text-[15px]">
+                  For Institutions
+                </Link>
+              </motion.div>
+
             </motion.div>
+          </div>
 
-            {/* Key metrics - with animation */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.6 }}
-              className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto"
-            >
+          {/* Subtle bottom gradient to fade into next section */}
+          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent pointer-events-none" />
+        </section>
+
+        {/* LIVE DATA GRID (OKX Style Data Strip) */}
+        <section className="py-8 border-y border-white/5 bg-black/40 backdrop-blur-md">
+          <div className="container mx-auto px-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 divide-x divide-white/5">
               {[
-                { value: "96.8", label: "Gas Reduction", suffix: "%" },
-                { value: "99", label: "Test Coverage", suffix: "%" },
-                { value: "18", label: "Lines of Code", suffix: "k+" },
-                { value: "127", label: "Tests Passing", suffix: "" },
+                { value: "97%", label: "Gas Reduction", color: "text-primary" },
+                { value: "99%", label: "Test Coverage", color: "text-white" },
+                { value: "18k+", label: "Lines of Code", color: "text-white" },
+                { value: "Active", label: "Live on Base Sepolia", color: "text-secondary" },
               ].map((stat, i) => (
                 <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
                   key={i}
-                  whileHover={{ scale: 1.05, y: -5 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                  className="border border-white/5 bg-white/[0.02] rounded-lg p-4 hover:border-[#2962FF]/30 hover:bg-white/[0.05] transition-all cursor-default"
+                  className={`pl-6 ${i === 0 || i === 2 ? 'pl-0 lg:pl-6' : ''} ${i === 0 ? 'pl-0' : ''} group cursor-default`}
                 >
-                  <div className="text-2xl font-bold mb-1">
-                    <Counter value={stat.value} suffix={stat.suffix} />
+                  <div className={`font-heading text-3xl font-bold mb-1 tracking-tight ${stat.color} group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.5)] transition-all`}>
+                    {stat.value}
                   </div>
-                  <div className="text-xs text-gray-500 uppercase tracking-wider">{stat.label}</div>
+                  <div className="text-xs text-gray-500 uppercase tracking-widest font-medium">
+                    {stat.label}
+                  </div>
                 </motion.div>
               ))}
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
+            </div>
+          </div>
+        </section>
 
-      {/* Problem & Solution - With animations */}
-      <section className="py-20 border-t border-white/5">
-        <div className="container mx-auto px-6">
-          <div className="max-w-5xl mx-auto">
-            <div className="grid md:grid-cols-2 gap-12">
-              {/* Problem */}
-              <div>
-                <motion.h2
-                  initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  className="text-2xl font-bold mb-6"
-                >
-                  The Challenge
-                </motion.h2>
-                <div className="space-y-4">
-                  {[
-                    { icon: TrendingUp, title: "High Gas Cost", desc: "252k Gas per transaction = $50-$100 at peak" },
-                    { icon: Lock, title: "Privacy Risk", desc: "Traditional solutions expose PII on-chain" },
-                    { icon: Zap, title: "Manual KYC", desc: "$2,000 per user, 48-72 hour delays" },
-                  ].map((item, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, x: -20 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: i * 0.1 }}
-                      whileHover={{ x: 5 }}
-                      className="flex items-start space-x-4 group"
-                    >
-                      <div className="w-10 h-10 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0 group-hover:border-red-500/40 transition-colors">
-                        <item.icon className="w-5 h-5 text-red-400" />
-                      </div>
-                      <div>
-                        <div className="font-semibold mb-1">{item.title}</div>
-                        <div className="text-sm text-gray-500">{item.desc}</div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
+        {/* CORE FEATURES MODULE */}
+        <section className="py-32 relative">
+          <div className="container mx-auto px-6">
+            <div className="mb-16 text-center lg:text-left flex flex-col lg:flex-row justify-between items-end gap-6">
+              <div className="max-w-2xl">
+                <h2 className="font-heading text-3xl md:text-5xl font-bold mb-4">Infrastructure Layer Core</h2>
+                <p className="text-gray-400 text-lg font-light">Built directly on Uniswap V4 native hooks. We never take custody. We only provide the gateway.</p>
               </div>
-
-              {/* Solution */}
-              <div>
-                <motion.h2
-                  initial={{ opacity: 0, x: 20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  className="text-2xl font-bold mb-6"
-                >
-                  The ILAL Solution
-                </motion.h2>
-                <div className="space-y-4">
-                  {[
-                    { icon: Zap, title: "Session Caching", desc: "Verify once, trade for 24 hours. 96.8% gas savings." },
-                    { icon: Lock, title: "Zero-Knowledge", desc: "PLONK proofs ensure no PII touches the chain." },
-                    { icon: CheckCircle2, title: "Uniswap Native", desc: "Built directly into v4 via Hooks. No wrappers." },
-                  ].map((item, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, x: 20 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: i * 0.1 }}
-                      whileHover={{ x: -5 }}
-                      className="flex items-start space-x-4 group"
-                    >
-                      <div className="w-10 h-10 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center flex-shrink-0 group-hover:border-green-500/40 group-hover:bg-green-500/20 transition-all">
-                        <item.icon className="w-5 h-5 text-green-400" />
-                      </div>
-                      <div>
-                        <div className="font-semibold mb-1">{item.title}</div>
-                        <div className="text-sm text-gray-500">{item.desc}</div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
+              <Link href="/technology" className="group flex items-center text-primary hover:text-white transition-colors text-sm font-medium tracking-wide">
+                View Full Documentation <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+              </Link>
             </div>
 
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              className="mt-12 text-center"
-            >
-              <Link
-                href="/technology"
-                className="inline-flex items-center text-[#2962FF] hover:text-[#2962FF]/80 transition-colors group"
-              >
-                Explore technical architecture
-                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Quick Links to Deep Pages - Enhanced animations */}
-      <section className="py-20 border-t border-white/5 bg-white/[0.01]">
-        <div className="container mx-auto px-6">
-          <div className="max-w-5xl mx-auto">
-            <motion.h2
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-3xl font-bold mb-12 text-center"
-            >
-              Learn More
-            </motion.h2>
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
                 {
-                  title: "Market & Vision",
-                  desc: "$400T opportunity. How ILAL becomes the compliance standard.",
-                  link: "/about",
-                  icon: TrendingUp
+                  icon: ShieldCheck,
+                  title: "ZK Compliance",
+                  desc: "Submit PLONK proofs off-chain to instantly verify your jurisdiction and KYC status, completely trustlessly."
                 },
                 {
-                  title: "Technology",
-                  desc: "Architecture deep dive, benchmarks, and security audits.",
-                  link: "/technology",
-                  icon: Lock
+                  icon: Terminal,
+                  title: "API Execution",
+                  desc: "Provide liquidity and execute swaps programmatically through our robust SaaS API using developer API keys."
                 },
                 {
-                  title: "Integration Guide",
-                  desc: "How RWA protocols integrate ILAL in 8 weeks.",
-                  link: "/integrations",
-                  icon: CheckCircle2
+                  icon: Activity,
+                  title: "Session Management",
+                  desc: "Cache your verified state on-chain for 24 hours. Enjoy native Uniswap V4 gas fees for all subsequent trades."
                 },
-              ].map((card, i) => (
-                <div key={i} className="border border-white/10 rounded-lg p-6 hover:border-[#2962FF]/50 hover:bg-white/[0.02] transition-all group">
-                  <card.icon className="w-8 h-8 text-[#2962FF] mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">{card.title}</h3>
-                  <p className="text-sm text-gray-500 mb-4">{card.desc}</p>
-                  <Link
-                    href={card.link}
-                    className="text-[#2962FF] text-sm inline-flex items-center hover:underline"
-                  >
-                    Read more <ArrowRight className="w-4 h-4 ml-1" />
+                {
+                  icon: Lock,
+                  title: "Compliance Hooks",
+                  desc: "The ILAL Gateway intercepts trades at the pool level, ensuring non-compliant orders are atomically reverted."
+                },
+              ].map((feature, i) => (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                  key={i}
+                  className="glass-card p-8 flex flex-col h-full"
+                >
+                  <div className="w-12 h-12 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center mb-6 text-primary">
+                    <feature.icon className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
+                  <p className="text-sm text-gray-400 font-light flex-grow leading-relaxed mb-6">
+                    {feature.desc}
+                  </p>
+                  <Link href="/docs" className="text-sm text-gray-500 hover:text-primary transition-colors inline-flex items-center">
+                    Learn More <ArrowRight className="w-3 h-3 ml-1" />
                   </Link>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* CTA - Enhanced */}
-      <section className="py-20 border-t border-white/5">
-        <div className="container mx-auto px-6">
-          <div className="max-w-4xl mx-auto text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-            >
-              <h2 className="text-3xl font-bold mb-4">Ready to Build Compliant DeFi?</h2>
-              <p className="text-gray-400 mb-8 max-w-2xl mx-auto">
-                Join leading RWA protocols in enabling institutional access to DeFi liquidity.
-              </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link
-                  href="/integrations"
-                  className="btn-ripple px-8 py-3 bg-[#2962FF] text-white rounded font-medium hover:bg-[#2962FF]/90 hover:shadow-lg hover:shadow-[#2962FF]/20 hover:scale-105 transition-all"
-                >
-                  View Integration Guide
-                </Link>
-                <a
-                  href="https://github.com/rpnny/ILAL-mvp"
-                  className="px-8 py-3 border border-white/10 rounded font-medium hover:bg-white/5 hover:border-white/20 hover:scale-105 transition-all flex items-center group"
-                >
-                  <Github className="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform" />
-                  View Source
-                </a>
+        {/* TRUSTED BY / INTEGRATIONS PREVIEW */}
+        <section className="py-24 border-t border-white/5 bg-gradient-to-b from-transparent to-[#050505]">
+          <div className="container mx-auto px-6 text-center">
+            <h3 className="text-sm text-gray-500 uppercase tracking-widest font-medium mb-10">Powering Compliant Markets On</h3>
+
+            <div className="flex flex-wrap justify-center items-center gap-12 md:gap-24 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-full bg-pink-500 flex items-center justify-center"><Database className="w-4 h-4 text-white" /></div>
+                <span className="font-bold text-xl tracking-tight text-white">Uniswap <span className="text-pink-500">V4</span></span>
               </div>
-            </motion.div>
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center"><span className="text-white font-bold font-serif italic text-sm">O</span></div>
+                <span className="font-bold text-xl tracking-tight text-white">Base</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-6 h-6 border-2 border-purple-500 flex items-center justify-center"><span className="text-white font-bold text-xs">EAS</span></div>
+                <span className="font-bold text-xl tracking-tight text-white">Attestations</span>
+              </div>
+            </div>
+
           </div>
-        </div>
-      </section>
+        </section>
+
+      </main>
 
       {/* Footer */}
-      <footer className="border-t border-white/5 py-8">
-        <div className="container mx-auto px-6">
-          <div className="flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
-            <div className="mb-4 md:mb-0 flex items-center space-x-3">
-              <div className="w-5 h-5 bg-[#2962FF] rounded flex items-center justify-center">
-                <span className="font-bold text-white text-xs">I</span>
-              </div>
-              <span>ILAL © 2026</span>
-            </div>
-            <div className="flex space-x-6">
-              <Link href="/about" className="hover:text-white transition-colors">About</Link>
-              <Link href="/technology" className="hover:text-white transition-colors">Technology</Link>
-              <Link href="/roadmap" className="hover:text-white transition-colors">Roadmap</Link>
-              <a href="https://github.com/rpnny/ILAL-mvp" className="hover:text-white transition-colors">GitHub</a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

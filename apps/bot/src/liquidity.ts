@@ -1,12 +1,12 @@
-import { 
+import {
   type Address,
   parseUnits,
   formatUnits,
 } from 'viem';
-import { 
-  publicClient, 
-  walletClient, 
-  botAddress, 
+import {
+  publicClient,
+  walletClient,
+  botAddress,
   contracts,
   POSITION_MANAGER_ABI,
 } from './contracts.js';
@@ -47,48 +47,54 @@ export interface RemoveLiquidityParams {
  */
 export async function getPositions(): Promise<Position[]> {
   try {
-    const balance = await publicClient.readContract({
+    // The VerifiedPoolsPositionManager does not have balanceOf.
+    // Instead we query nextTokenId and loop over all NFTs up to nextTokenId.
+    const nextTokenId = await publicClient.readContract({
       address: contracts.positionManager,
       abi: POSITION_MANAGER_ABI,
-      functionName: 'balanceOf',
-      args: [botAddress],
-    });
+      functionName: 'nextTokenId',
+    }) as bigint;
 
-    log.debug('持仓数量', { balance: balance.toString() });
+    log.debug('目前最大的 tokenId (下一个待分配)', { nextTokenId: nextTokenId.toString() });
 
-    // 遍历获取每个 position 的详细信息
     const positions: Position[] = [];
-    
-    for (let i = 0n; i < balance; i++) {
-      try {
-        // 获取 tokenId
-        // 注意：需要 PositionManager 支持 ERC721Enumerable
-        const tokenId = 1n + i; // 简化实现：假设 tokenId 从 1 开始连续
-        // 实际应该使用 tokenOfOwnerByIndex，但需要合约支持该接口
 
-        // 获取 position 详情
+    // Iterate from 1 up to nextTokenId - 1
+    for (let i = 1n; i < nextTokenId; i++) {
+      try {
+        const owner = await publicClient.readContract({
+          address: contracts.positionManager,
+          abi: POSITION_MANAGER_ABI,
+          functionName: 'ownerOf',
+          args: [i],
+        });
+
+        // 仅收集本 bot 的持仓
+        if ((owner as string).toLowerCase() !== botAddress.toLowerCase()) {
+          continue;
+        }
+
         const positionData = await publicClient.readContract({
           address: contracts.positionManager,
           abi: POSITION_MANAGER_ABI,
           functionName: 'getPosition',
-          args: [tokenId],
+          args: [i],
         }) as any;
 
-        // 查找对应的池子配置
         const poolKey = positionData.poolKey;
-        const pool = config.strategy.pools.find(p => 
-          p.token0.toLowerCase() === poolKey.currency0.toLowerCase() && 
+        const pool = config.strategy.pools.find(p =>
+          p.token0.toLowerCase() === poolKey.currency0.toLowerCase() &&
           p.token1.toLowerCase() === poolKey.currency1.toLowerCase() &&
           p.fee === poolKey.fee
         );
 
         if (!pool) {
-          log.warn('找不到对应的池子配置', { tokenId: tokenId.toString() });
+          log.warn('找不到对应的池子配置', { tokenId: i.toString() });
           continue;
         }
 
         positions.push({
-          tokenId,
+          tokenId: i,
           pool,
           poolId: pool.id,
           tickLower: positionData.tickLower,
@@ -97,12 +103,13 @@ export async function getPositions(): Promise<Position[]> {
         });
 
         log.debug('获取到持仓', {
-          tokenId: tokenId.toString(),
+          tokenId: i.toString(),
           pool: pool.id,
-          liquidity: positionData[4].toString(),
+          liquidity: positionData.liquidity.toString(),
         });
       } catch (error) {
-        log.error('获取持仓详情失败', { index: i.toString(), error: String(error) });
+        // 如果 ownerOf throw error 或 owner 0，或者 Token 被 burning 导致报错，跳过
+        log.error('获取持仓详情失败', { tokenId: i.toString(), error: String(error) });
       }
     }
 
@@ -166,17 +173,17 @@ export async function addLiquidity(params: AddLiquidityParams): Promise<{ succes
 
     if (receipt.status === 'success') {
       log.info('流动性添加成功', { hash, blockNumber: receipt.blockNumber });
-      
+
       // 从事件中解析 tokenId
       let tokenId: bigint | undefined;
-      
+
       for (const eventLog of receipt.logs) {
         try {
           if (eventLog.address.toLowerCase() === contracts.positionManager.toLowerCase()) {
             // PositionMinted(uint256 indexed tokenId, address indexed owner, PoolKey poolKey)
             // keccak256("PositionMinted(uint256,address,(address,address,uint24,int24,address),uint128,int24,int24)")
             const positionMintedTopic = '0x' + 'PositionMinted'; // 从 logs 中按 address 匹配
-            
+
             // 匹配来自 positionManager 的 log（第一个 indexed 参数是 tokenId）
             if (eventLog.topics.length >= 2) {
               tokenId = BigInt(eventLog.topics[1] || '0');
@@ -190,7 +197,7 @@ export async function addLiquidity(params: AddLiquidityParams): Promise<{ succes
           // 忽略解析错误
         }
       }
-      
+
       return {
         success: true,
         txHash: hash,
@@ -226,9 +233,9 @@ export async function removeLiquidity(params: RemoveLiquidityParams): Promise<{ 
       functionName: 'getPosition',
       args: [params.tokenId],
     }) as any;
-    
+
     const currentLiquidity = BigInt(positionData.liquidity || 0);
-    
+
     log.debug('当前持仓流动性', {
       tokenId: params.tokenId.toString(),
       liquidity: currentLiquidity.toString(),
@@ -285,7 +292,7 @@ export function calculateOptimalRange(
   // 根据价格百分比计算 tick 范围
   // 价格 = 1.0001^tick
   // tick = log(price) / log(1.0001)
-  
+
   const tickLower = Math.floor(
     currentTick + Math.log(rangePercent.lower) / Math.log(1.0001)
   );

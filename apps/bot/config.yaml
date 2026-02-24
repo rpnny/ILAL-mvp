@@ -8,13 +8,13 @@ network:
   
 # 合约地址 (Base Sepolia - ComplianceHook 使用 CREATE2 重新部署于 2026-02-11)
 contracts:
-  registry: "0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD"
-  sessionManager: "0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2"
-  complianceHook: "0xDeDcFDF10b03AB45eEbefD2D91EDE66D9E5c8a80"  # v2 Hook (IHooks 完整实现, CREATE2 部署)
-  positionManager: "0x5b460c8Bd32951183a721bdaa3043495D8861f31"
-  poolManager: "0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408"
-  simpleSwapRouter: "0x2AAF6C551168DCF22804c04DdA2c08c82031F289"
-  verifier: "0x0cDcD82E5efba9De4aCc255402968397F323AFBB"
+  registry: "0x104DA869aDd4f1598127F03763a755e7dDE4f988"
+  sessionManager: "0x4CB61d41E8D4ceCFb8C477ed069adFF309fB6d0e"
+  complianceHook: "0xc2eD8e6F4C3a29275cC43e435795c5528BC9CF6A"  # v2 Hook (IHooks 完整实现, CREATE2 部署)
+  positionManager: "0x2A1046A6d0EBdbfe4e45072CAf25833f4FAaEAB4"
+  poolManager: "0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408" # Keep existing
+  simpleSwapRouter: "0x2AAF6C551168DCF22804c04DdA2c08c82031F289" # Keep existing
+  verifier: "0x92eF7F6440466eb2138F7d179Cf2031902eF94be"
 
 # 钱包配置
 wallet:

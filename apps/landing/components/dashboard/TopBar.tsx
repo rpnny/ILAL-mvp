@@ -47,7 +47,7 @@ export default function TopBar() {
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.25 }}
-                    className="text-lg font-semibold"
+                    className="font-heading text-lg font-semibold"
                 >
                     {pageTitle}
                 </motion.h2>
@@ -59,14 +59,14 @@ export default function TopBar() {
                     animate={{ width: searchFocused ? 280 : 224 }}
                     transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                 >
-                    <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${searchFocused ? 'text-[#2962FF]' : 'text-gray-500'}`} />
+                    <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${searchFocused ? 'text-[#00F0FF]' : 'text-gray-500'}`} />
                     <input
                         type="text"
                         placeholder="Search docs..."
                         onFocus={() => setSearchFocused(true)}
                         onBlur={() => setSearchFocused(false)}
                         className={`w-full bg-white/[0.04] border rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none transition-all duration-300 ${searchFocused
-                                ? 'border-[#2962FF]/50 bg-white/[0.06] shadow-[0_0_20px_rgba(41,98,255,0.1)]'
+                                ? 'border-[#00F0FF]/50 bg-white/[0.06] shadow-[0_0_20px_rgba(41,98,255,0.1)]'
                                 : 'border-white/[0.08]'
                             }`}
                     />
@@ -78,7 +78,7 @@ export default function TopBar() {
                     className="relative p-2 text-gray-400 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors"
                 >
                     <Bell className="w-5 h-5" />
-                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#2962FF] rounded-full animate-pulse" />
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#00F0FF] rounded-full animate-pulse" />
                 </motion.button>
 
                 <div className="relative" ref={menuRef}>
@@ -88,7 +88,7 @@ export default function TopBar() {
                         onClick={() => setShowUserMenu(!showUserMenu)}
                         className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-white/[0.04] transition-all duration-200"
                     >
-                        <div className="w-8 h-8 bg-gradient-to-br from-[#2962FF] to-[#7C4DFF] rounded-full flex items-center justify-center text-sm font-bold shadow-lg shadow-[#2962FF]/20">
+                        <div className="w-8 h-8 bg-gradient-to-br from-[#00F0FF] to-[#A855F7] rounded-full flex items-center justify-center text-sm font-bold shadow-lg shadow-[#00F0FF]/20">
                             {user?.name?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}
                         </div>
                         <div className="hidden md:block text-left">
