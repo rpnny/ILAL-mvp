@@ -38,6 +38,25 @@ const MOCK_USER: User = {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const [deviceId, setDeviceId] = React.useState<string>('');
+  const [user, setUser] = React.useState<User>(MOCK_USER);
+
+  React.useEffect(() => {
+    let id = localStorage.getItem('ilal_device_id');
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem('ilal_device_id', id);
+    }
+    setDeviceId(id);
+
+    // Update the mock user to visually show them their unique ID (e.g. Developer 1a2b)
+    setUser({
+      ...MOCK_USER,
+      id: `usr_${id.substring(0, 20)}`,
+      email: `developer_${id}@ilal.xyz`,
+      name: `Developer ${id.substring(0, 4)}`,
+    });
+  }, []);
 
   // Mock functions that do nothing or just show toasts
   const login = async () => {
@@ -55,22 +74,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     toast.success('Session cleared locally');
-    router.push('/');
+    localStorage.removeItem('ilal_device_id');
+    window.location.href = '/';
   };
 
   const refreshUser = async () => { };
 
   return (
     <AuthContext.Provider value={{
-      user: MOCK_USER,
-      loading: false, // Never loading since we have a mock user instantly
+      user,
+      loading: !deviceId, // Wait for deviceID to be loaded on client
       login,
       register,
       logout,
       refreshUser,
       verifyEmail: verifyEmailAction,
       resendCode: resendCodeAction,
-      getAccessToken: () => 'mock-access-token', // Used for API calls from the client
+      getAccessToken: () => deviceId ? `mock-access-token-${deviceId}` : 'mock-access-token', // Used for API calls from the client
     }}>
       {children}
     </AuthContext.Provider>

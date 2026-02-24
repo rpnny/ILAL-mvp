@@ -33,10 +33,14 @@ export async function authMiddleware(
     const authHeader = req.headers.authorization;
 
     // Check if the frontend sent our mock token
-    if (authHeader && authHeader === 'Bearer mock-access-token') {
+    if (authHeader && authHeader.startsWith('Bearer mock-access-token')) {
+      const isLegacy = authHeader === 'Bearer mock-access-token';
+      const deviceId = isLegacy ? 'anonymous_demo' : authHeader.replace('Bearer mock-access-token-', '');
+      const email = `developer_${deviceId}@ilal.xyz`;
+
       // Ensure the anonymous demo user exists in the database so foreign keys don't fail
       let user = await prisma.user.findUnique({
-        where: { email: 'developer@ilal.xyz' },
+        where: { email },
         select: { id: true, email: true, plan: true }
       });
 
@@ -44,16 +48,16 @@ export async function authMiddleware(
         // Auto-create the anonymous user if it doesn't exist yet
         user = await prisma.user.create({
           data: {
-            id: 'usr_anonymous_demo',
-            email: 'developer@ilal.xyz',
+            id: `usr_${deviceId.substring(0, 20)}`, // id is max 30 chars usually, UUIDs are 36
+            email,
             passwordHash: 'not-needed-for-demo',
-            name: 'ILAL Developer',
+            name: `Developer ${deviceId.substring(0, 4)}`,
             emailVerified: 1, // SQLite: 1 = true
             plan: 'ENTERPRISE', // Give them enterprise limits
           },
           select: { id: true, email: true, plan: true }
         });
-        logger.info('Auto-created anonymous demo user for direct access');
+        logger.info(`Auto-created anonymous demo user for device: ${deviceId}`);
       }
 
       // Attach mock user info to request
@@ -91,7 +95,7 @@ export async function authMiddleware(
     // Since we want the API to be usable out of the box even without a token
     // header for public testing, fallback to the same anonymous user.
     let fallbackUser = await prisma.user.findUnique({
-      where: { email: 'developer@ilal.xyz' },
+      where: { email: 'developer_anonymous_demo@ilal.xyz' },
       select: { id: true, email: true, plan: true }
     });
 
@@ -99,7 +103,7 @@ export async function authMiddleware(
       fallbackUser = await prisma.user.create({
         data: {
           id: 'usr_anonymous_demo',
-          email: 'developer@ilal.xyz',
+          email: 'developer_anonymous_demo@ilal.xyz',
           passwordHash: 'not-needed-for-demo',
           name: 'ILAL Developer',
           emailVerified: 1,
