@@ -10,7 +10,7 @@ import { authMiddleware } from '../middleware/auth.middleware.js';
 import { createCheckoutSession, handleWebhook } from '../services/stripe.service.js';
 import { logger } from '../config/logger.js';
 
-const router = Router();
+const router: Router = Router();
 
 const createSessionSchema = z.object({
     targetPlan: z.enum(['PRO', 'ENTERPRISE']),

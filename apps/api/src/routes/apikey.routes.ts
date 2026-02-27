@@ -6,7 +6,7 @@ import { Router } from 'express';
 import * as apikeyController from '../controllers/apikey.controller.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 
-const router = Router();
+const router: Router = Router();
 
 // All API Key routes require authentication
 router.use(authMiddleware);

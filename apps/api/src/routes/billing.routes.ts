@@ -6,7 +6,7 @@ import { Router } from 'express';
 import * as billingController from '../controllers/billing.controller.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 
-const router = Router();
+const router: Router = Router();
 
 // GET /api/v1/usage/stats - Get usage statistics (requires auth)
 router.get('/stats', authMiddleware, billingController.getUsageStats);

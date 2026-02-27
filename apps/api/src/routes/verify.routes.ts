@@ -8,7 +8,7 @@ import { apiKeyMiddleware } from '../middleware/apikey.middleware.js';
 import { dynamicRateLimiter } from '../middleware/ratelimit.middleware.js';
 import { usageTrackingMiddleware, quotaCheckMiddleware } from '../middleware/usage.middleware.js';
 
-const router = Router();
+const router: Router = Router();
 
 // All verification routes require API Key authentication
 router.use(apiKeyMiddleware);

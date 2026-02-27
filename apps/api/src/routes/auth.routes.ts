@@ -7,7 +7,7 @@ import * as authController from '../controllers/auth.controller.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { authRateLimiter, registerRateLimiter } from '../middleware/ratelimit.middleware.js';
 
-const router = Router();
+const router: Router = Router();
 
 // POST /api/v1/auth/register - User registration
 router.post('/register', registerRateLimiter, authController.register);
