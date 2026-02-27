@@ -13,7 +13,8 @@ export function setTokens(accessToken: string, refreshToken: string) {
 }
 
 export function getAccessToken(): string | null {
-  return 'mock-access-token';
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(TOKEN_KEY);
 }
 
 export function getRefreshToken(): string | null {
@@ -40,5 +41,6 @@ export function getUser(): any | null {
 }
 
 export function isAuthenticated(): boolean {
-  return true;
+  if (typeof window === 'undefined') return false;
+  return !!localStorage.getItem(TOKEN_KEY);
 }

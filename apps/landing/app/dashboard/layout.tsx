@@ -14,7 +14,13 @@ export default function DashboardLayout({
   const { user, loading } = useAuth();
   const router = useRouter();
 
-  if (loading) {
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace('/login');
+    }
+  }, [user, loading, router]);
+
+  if (!user || loading) {
     return (
       <div className="min-h-screen bg-[#0A0A0A] text-white flex items-center justify-center">
         <div className="text-center">
@@ -23,10 +29,6 @@ export default function DashboardLayout({
         </div>
       </div>
     );
-  }
-
-  if (!user) {
-    return null;
   }
 
   return (

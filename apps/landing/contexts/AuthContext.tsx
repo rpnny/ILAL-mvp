@@ -1,8 +1,9 @@
 'use client';
 
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
+import * as api from '@/lib/api';
 
 interface User {
   id: string;
@@ -10,7 +11,7 @@ interface User {
   name?: string;
   plan: string;
   walletAddress?: string;
-  emailVerified?: boolean;
+  emailVerified?: boolean | number;
 }
 
 interface AuthContextType {
@@ -27,70 +28,132 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Provide a mock user so the dashboard doesn't crash, but there's no real login requirement
-const MOCK_USER: User = {
-  id: 'usr_anonymous_demo',
-  email: 'developer@ilal.xyz',
-  name: 'ILAL Developer',
-  plan: 'ENTERPRISE',
-  emailVerified: true
-};
+const ACCESS_TOKEN_KEY = 'ilal_access_token';
+const REFRESH_TOKEN_KEY = 'ilal_refresh_token';
+const USER_KEY = 'ilal_user';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [deviceId, setDeviceId] = React.useState<string>('');
-  const [user, setUser] = React.useState<User>(MOCK_USER);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  React.useEffect(() => {
-    let id = localStorage.getItem('ilal_device_id');
-    if (!id) {
-      id = crypto.randomUUID();
-      localStorage.setItem('ilal_device_id', id);
+  // Restore session on mount
+  useEffect(() => {
+    const storedUser = localStorage.getItem(USER_KEY);
+    const token = localStorage.getItem(ACCESS_TOKEN_KEY);
+
+    if (storedUser && token) {
+      try {
+        setUser(JSON.parse(storedUser));
+        // Refresh user info in background
+        api.getMe(token)
+          .then(({ user: freshUser }) => {
+            setUser(freshUser as User);
+            localStorage.setItem(USER_KEY, JSON.stringify(freshUser));
+          })
+          .catch(() => {
+            // Token might be expired, try to refresh
+            const refreshTok = localStorage.getItem(REFRESH_TOKEN_KEY);
+            if (refreshTok) {
+              api.refreshToken(refreshTok)
+                .then(({ accessToken }) => {
+                  localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+                  return api.getMe(accessToken);
+                })
+                .then(({ user: freshUser }) => {
+                  setUser(freshUser as User);
+                  localStorage.setItem(USER_KEY, JSON.stringify(freshUser));
+                })
+                .catch(() => {
+                  // Refresh failed, clear session
+                  clearSession();
+                });
+            } else {
+              clearSession();
+            }
+          });
+      } catch {
+        clearSession();
+      }
     }
-    setDeviceId(id);
 
-    // Update the mock user to visually show them their unique ID (e.g. Developer 1a2b)
-    setUser({
-      ...MOCK_USER,
-      id: `usr_${id.substring(0, 20)}`,
-      email: `developer_${id}@ilal.xyz`,
-      name: `Developer ${id.substring(0, 4)}`,
-    });
+    setLoading(false);
   }, []);
 
-  // Mock functions that do nothing or just show toasts
-  const login = async () => {
-    toast.success('You have direct access. Taking you to dashboard.');
+  const clearSession = () => {
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    setUser(null);
+  };
+
+  const login = async (email: string, password: string) => {
+    const { user: loggedInUser, accessToken, refreshToken } = await api.login(email, password);
+    localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+    localStorage.setItem(USER_KEY, JSON.stringify(loggedInUser));
+    setUser(loggedInUser as User);
+    toast.success(`Welcome back, ${loggedInUser.name || loggedInUser.email}!`);
     router.push('/dashboard/api-keys');
   };
 
-  const register = async () => {
-    toast.success('Registration not required. Taking you to dashboard.');
+  const register = async (email: string, password: string, name?: string, inviteCode?: string) => {
+    const { user: newUser, accessToken, refreshToken } = await api.register(email, password, name, inviteCode);
+    localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+    localStorage.setItem(USER_KEY, JSON.stringify(newUser));
+    setUser(newUser as User);
+    toast.success(`Welcome to ILAL, ${newUser.name || newUser.email}!`);
     router.push('/dashboard/api-keys');
   };
-
-  const verifyEmailAction = async () => { };
-  const resendCodeAction = async () => { };
 
   const logout = () => {
-    toast.success('Session cleared locally');
-    localStorage.removeItem('ilal_device_id');
-    window.location.href = '/';
+    clearSession();
+    toast.success('Logged out successfully.');
+    router.push('/');
   };
 
-  const refreshUser = async () => { };
+  const refreshUser = useCallback(async () => {
+    const token = localStorage.getItem(ACCESS_TOKEN_KEY);
+    if (!token) return;
+    try {
+      const { user: freshUser } = await api.getMe(token);
+      setUser(freshUser as User);
+      localStorage.setItem(USER_KEY, JSON.stringify(freshUser));
+    } catch {
+      clearSession();
+    }
+  }, []);
+
+  const verifyEmail = async (email: string, code: string) => {
+    const result = await api.verifyEmail(email, code);
+    if (result.accessToken) {
+      localStorage.setItem(ACCESS_TOKEN_KEY, result.accessToken);
+      localStorage.setItem(REFRESH_TOKEN_KEY, result.refreshToken);
+      localStorage.setItem(USER_KEY, JSON.stringify(result.user));
+      setUser(result.user as User);
+    }
+    toast.success('Email verified successfully!');
+  };
+
+  const resendCode = async (email: string) => {
+    await api.resendCode(email);
+    toast.success('Verification code sent!');
+  };
+
+  const getAccessToken = () => localStorage.getItem(ACCESS_TOKEN_KEY);
 
   return (
     <AuthContext.Provider value={{
       user,
-      loading: !deviceId, // Wait for deviceID to be loaded on client
+      loading,
       login,
       register,
       logout,
       refreshUser,
-      verifyEmail: verifyEmailAction,
-      resendCode: resendCodeAction,
-      getAccessToken: () => deviceId ? `mock-access-token-${deviceId}` : 'mock-access-token', // Used for API calls from the client
+      verifyEmail,
+      resendCode,
+      getAccessToken,
     }}>
       {children}
     </AuthContext.Provider>
