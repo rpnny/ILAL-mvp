@@ -1,62 +1,96 @@
 /**
- * Blockchain Service - Preserves original relay on-chain interaction logic
+ * Blockchain Service - On-chain interactions for ZK verification and session management.
+ *
+ * Architecture:
+ * - publicClient  → always initialized (uses public RPC) → read-only calls work without VERIFIER_PRIVATE_KEY
+ * - walletClient  → initialized only if VERIFIER_PRIVATE_KEY is set → write calls (startSession)
  */
 
-import { createPublicClient, createWalletClient, http, getAddress, type Address, type Hex } from 'viem';
+import {
+  createPublicClient,
+  createWalletClient,
+  http,
+  getAddress,
+  type Address,
+  type Hex,
+} from 'viem';
 import { baseSepolia } from 'viem/chains';
 import { privateKeyToAccount, nonceManager } from 'viem/accounts';
 import { RPC_URL, CONTRACTS, VERIFIER_PRIVATE_KEY } from '../config/constants.js';
 import { logger } from '../config/logger.js';
 
-// SessionManager ABI
+// ── ABIs ──────────────────────────────────────────────────────────────────────
+
 const sessionManagerABI = [
-  { type: 'function', name: 'startSession', inputs: [{ name: 'user', type: 'address' }, { name: 'expiry', type: 'uint256' }], outputs: [], stateMutability: 'nonpayable' },
-  { type: 'function', name: 'isSessionActive', inputs: [{ name: 'user', type: 'address' }], outputs: [{ name: '', type: 'bool' }], stateMutability: 'view' },
-  { type: 'function', name: 'getRemainingTime', inputs: [{ name: 'user', type: 'address' }], outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view' },
+  {
+    type: 'function', name: 'startSession',
+    inputs: [{ name: 'user', type: 'address' }, { name: 'expiry', type: 'uint256' }],
+    outputs: [], stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function', name: 'isSessionActive',
+    inputs: [{ name: 'user', type: 'address' }],
+    outputs: [{ name: '', type: 'bool' }], stateMutability: 'view',
+  },
+  {
+    type: 'function', name: 'getRemainingTime',
+    inputs: [{ name: 'user', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view',
+  },
 ] as const;
 
-// PlonkVerifierAdapter ABI
 const verifierABI = [
-  { type: 'function', name: 'verifyComplianceProof', inputs: [{ name: 'proof', type: 'bytes' }, { name: 'publicInputs', type: 'uint256[]' }], outputs: [{ name: '', type: 'bool' }], stateMutability: 'view' },
+  {
+    type: 'function', name: 'verifyComplianceProof',
+    inputs: [{ name: 'proof', type: 'bytes' }, { name: 'publicInputs', type: 'uint256[]' }],
+    outputs: [{ name: '', type: 'bool' }], stateMutability: 'view',
+  },
 ] as const;
+
+// ── Service ────────────────────────────────────────────────────────────────────
 
 class BlockchainService {
-  private publicClient;
-  private walletClient;
-  private account;
+  /** Always available — uses public RPC, no private key needed. */
+  private readonly publicClient = createPublicClient({
+    chain: baseSepolia,
+    transport: http(RPC_URL),
+  });
+
+  /** Only available when VERIFIER_PRIVATE_KEY is configured. */
+  private walletClient: ReturnType<typeof createWalletClient> | undefined;
+  private account: ReturnType<typeof privateKeyToAccount> | undefined;
 
   constructor() {
-    if (!VERIFIER_PRIVATE_KEY) {
-      logger.warn('VERIFIER_PRIVATE_KEY not configured - blockchain features disabled');
-      // Allow service to initialize without blockchain capabilities
-      return;
+    if (VERIFIER_PRIVATE_KEY) {
+      this.account = privateKeyToAccount(VERIFIER_PRIVATE_KEY, { nonceManager });
+      this.walletClient = createWalletClient({
+        account: this.account,
+        chain: baseSepolia,
+        transport: http(RPC_URL),
+      });
+      logger.info('Blockchain service initialized (read + write)', {
+        relay: this.account.address,
+        rpc: RPC_URL,
+      });
+    } else {
+      logger.warn('VERIFIER_PRIVATE_KEY not set — blockchain write features disabled (read-only mode active)');
     }
-
-    this.account = privateKeyToAccount(VERIFIER_PRIVATE_KEY, { nonceManager });
-
-    this.publicClient = createPublicClient({
-      chain: baseSepolia,
-      transport: http(RPC_URL),
-    });
-
-    this.walletClient = createWalletClient({
-      account: this.account,
-      chain: baseSepolia,
-      transport: http(RPC_URL),
-    });
-
-    logger.info('Blockchain service initialized', {
-      account: this.account.address,
-      rpc: RPC_URL,
-    });
   }
 
+  // ── Read-only (always available) ─────────────────────────────────────────────
+
   /**
-   * Verify ZK Proof (on-chain read-only call)
+   * Verify a ZK compliance proof on-chain (read-only, no gas needed).
+   * Proof must be 768 bytes (24 × 32-byte words, BN254/PLONK).
+   * Public inputs must be exactly 3 uint256 values: [userAddress, merkleRoot, issuerPubKeyHash].
    */
   async verifyProof(proof: Hex, publicInputs: bigint[]): Promise<boolean> {
+    if (publicInputs.length !== 3) {
+      throw new Error('publicInputs must have exactly 3 elements: [userAddress, merkleRoot, issuerPubKeyHash]');
+    }
+
     try {
-      const isValid = await this.publicClient!.readContract({
+      const isValid = await this.publicClient.readContract({
         address: CONTRACTS.verifier!,
         abi: verifierABI,
         functionName: 'verifyComplianceProof',
@@ -66,110 +100,114 @@ class BlockchainService {
       logger.debug('Proof verification result', { isValid });
       return isValid as boolean;
     } catch (error: any) {
-      logger.error('Proof verification failed', { error: error.message });
-      throw new Error(`Proof verification failed: ${error.message}`);
+      const msg = error.shortMessage || error.message;
+      logger.error('Proof verification failed', { error: msg });
+      throw new Error(`Proof verification failed: ${msg}`);
     }
   }
 
   /**
-   * Check if user has an active session
+   * Check whether a user has an active on-chain compliance session (read-only).
    */
   async isSessionActive(userAddress: Address): Promise<boolean> {
+    const checksummed = getAddress(userAddress);
     try {
-      const checksummedAddress = getAddress(userAddress);
-      const isActive = await this.publicClient!.readContract({
+      return (await this.publicClient.readContract({
         address: CONTRACTS.sessionManager!,
         abi: sessionManagerABI,
         functionName: 'isSessionActive',
-        args: [checksummedAddress],
-      });
-
-      return isActive as boolean;
+        args: [checksummed],
+      })) as boolean;
     } catch (error: any) {
-      logger.error('Session status check failed', { error: error.message });
-      throw new Error(`Session status check failed: ${error.message}`);
+      throw new Error(`Session status check failed: ${error.shortMessage || error.message}`);
     }
   }
 
   /**
-   * Get session remaining time
+   * Get remaining session time in seconds for a user (read-only, returns 0 if inactive).
    */
   async getRemainingTime(userAddress: Address): Promise<number> {
+    const checksummed = getAddress(userAddress);
     try {
-      const checksummedAddress = getAddress(userAddress);
-      const remaining = await this.publicClient!.readContract({
+      const remaining = await this.publicClient.readContract({
         address: CONTRACTS.sessionManager!,
         abi: sessionManagerABI,
         functionName: 'getRemainingTime',
-        args: [checksummedAddress],
+        args: [checksummed],
       });
-
       return Number(remaining);
     } catch (error: any) {
-      logger.error('Get remaining time failed', { error: error.message });
-      throw new Error(`Get remaining time failed: ${error.message}`);
+      throw new Error(`Get remaining time failed: ${error.shortMessage || error.message}`);
     }
   }
 
   /**
-   * Activate session (on-chain transaction)
+   * Get latest block number (health check).
    */
-  async startSession(userAddress: Address, durationSeconds: number = 24 * 60 * 60): Promise<{
+  async getBlockNumber(): Promise<bigint> {
+    return this.publicClient.getBlockNumber();
+  }
+
+  // ── Write (requires VERIFIER_PRIVATE_KEY + VERIFIER_ROLE on SessionManager) ──
+
+  /**
+   * Start a 24-hour compliance session on-chain for a user.
+   * Requires: VERIFIER_PRIVATE_KEY set, relay wallet has VERIFIER_ROLE on SessionManager.
+   */
+  async startSession(userAddress: Address, durationSeconds = 24 * 60 * 60): Promise<{
     txHash: string;
     sessionExpiry: bigint;
     gasUsed: bigint;
   }> {
+    if (!this.walletClient || !this.account) {
+      throw new Error(
+        'VERIFIER_PRIVATE_KEY is not configured — session activation is disabled. ' +
+        'Set this environment variable in Railway and ensure the relay wallet has VERIFIER_ROLE on SessionManager.'
+      );
+    }
+
+    const checksummed = getAddress(userAddress);
+    const expiry = BigInt(Math.floor(Date.now() / 1000) + durationSeconds);
+
+    logger.info('Starting compliance session', { user: checksummed, expiry: expiry.toString() });
+
     try {
-      const checksummedAddress = getAddress(userAddress);
-      const expiry = BigInt(Math.floor(Date.now() / 1000) + durationSeconds);
-
-      logger.info('Starting session', { userAddress: checksummedAddress, expiry: expiry.toString() });
-
-      const hash = await this.walletClient!.writeContract({
+      const hash = await this.walletClient.writeContract({
         address: CONTRACTS.sessionManager!,
         abi: sessionManagerABI,
         functionName: 'startSession',
-        args: [checksummedAddress, expiry],
+        args: [checksummed, expiry],
+        account: this.account,
+        chain: baseSepolia,
       });
 
-      logger.info('Session start transaction sent', { hash });
+      logger.info('Session tx submitted', { hash });
 
-      const receipt = await this.publicClient!.waitForTransactionReceipt({ hash });
+      const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
 
-      logger.info('Session start confirmed', {
+      logger.info('Session activated', {
         hash,
         block: receipt.blockNumber.toString(),
         gasUsed: receipt.gasUsed.toString(),
       });
 
-      return {
-        txHash: hash,
-        sessionExpiry: expiry,
-        gasUsed: receipt.gasUsed,
-      };
+      return { txHash: hash, sessionExpiry: expiry, gasUsed: receipt.gasUsed };
     } catch (error: any) {
-      logger.error('Start session failed', { error: error.message });
-      throw new Error(`Start session failed: ${error.shortMessage || error.message}`);
+      const msg = error.shortMessage || error.message || String(error);
+      // Give an actionable error when VERIFIER_ROLE is missing
+      if (msg.includes('AccessControl') || msg.includes('missing role')) {
+        throw new Error(
+          'startSession reverted: relay wallet is missing VERIFIER_ROLE on the SessionManager contract. ' +
+          `Run the GrantVerifierRole foundry script with relay address: ${this.account.address}`
+        );
+      }
+      logger.error('Start session failed', { error: msg });
+      throw new Error(`Start session failed: ${msg}`);
     }
   }
 
   /**
-   * Get current block number (for health check)
-   */
-  async getBlockNumber(): Promise<bigint> {
-    return await this.publicClient!.getBlockNumber();
-  }
-
-  /**
-   * Get relay account address
-   */
-  getRelayAddress(): Address {
-    if (!this.account) throw new Error('Account not initialized');
-    return this.account.address;
-  }
-
-  /**
-   * Execute raw contract write (for DeFi integration)
+   * Execute a raw contract write (used by legacy DeFi path).
    */
   async executeContractWrite(params: {
     address: Address;
@@ -179,29 +217,27 @@ class BlockchainService {
     value?: bigint;
     gas?: bigint;
   }): Promise<string> {
-    try {
-      const hash = await this.walletClient!.writeContract({
-        address: params.address,
-        abi: params.abi,
-        functionName: params.functionName,
-        args: params.args,
-        value: params.value,
-        gas: params.gas,
-      });
-
-      logger.info('Contract write executed', {
-        hash,
-        contract: params.address,
-        function: params.functionName
-      });
-
-      return hash;
-    } catch (error: any) {
-      logger.error('Contract write failed', { error: error.message });
-      throw error;
+    if (!this.walletClient || !this.account) {
+      throw new Error('VERIFIER_PRIVATE_KEY not configured — contract writes disabled');
     }
+
+    const hash = await this.walletClient.writeContract({
+      ...params,
+      account: this.account,
+      chain: baseSepolia,
+    });
+
+    logger.info('Contract write executed', { hash, contract: params.address, fn: params.functionName });
+    return hash;
+  }
+
+  /**
+   * Get the relay wallet address (if configured).
+   */
+  getRelayAddress(): Address {
+    if (!this.account) throw new Error('VERIFIER_PRIVATE_KEY not configured');
+    return this.account.address;
   }
 }
 
-// Singleton export
 export const blockchainService = new BlockchainService();
