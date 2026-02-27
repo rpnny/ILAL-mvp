@@ -16,9 +16,9 @@ pnpm build
 
 ## 2) Local Development (Recommended Order)
 
-### Start Web Demo
+### Start Landing Page
 ```bash
-cd apps/web-demo
+cd apps/landing
 npm run dev
 ```
 
@@ -31,7 +31,7 @@ npm run dev
 
 ### Start Bot (Optional)
 ```bash
-cd bot
+cd apps/bot
 npm run dev
 ```
 

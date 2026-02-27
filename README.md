@@ -66,8 +66,10 @@ ilal/
 │   ├── contracts/        # Smart contracts (Foundry)
 │   └── circuits/         # ZK circuits (Circom)
 ├── apps/
-│   ├── web-demo/         # Web Demo (SDK reference implementation)
-│   └── api/              # SaaS API (includes original Verifier Relay)
+│   ├── landing/          # Landing Page (Next.js)
+│   ├── api/              # SaaS API (includes original Verifier Relay)
+│   ├── bot/              # Telegram Bot (Clawdbot)
+│   └── subgraph/         # The Graph Indexer
 ├── scripts/              # Deployment and test scripts
 └── docs/                 # Technical documentation
 ```
@@ -143,7 +145,7 @@ npm install
 # Parallel build all packages
 pnpm turbo build
 
-# Start SDK dev mode + Web Demo
+# Start SDK dev mode + APIs
 pnpm turbo dev
 ```
 

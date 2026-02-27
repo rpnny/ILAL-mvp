@@ -34,6 +34,7 @@ export const CONTRACTS = {
   verifier: (process.env.VERIFIER_ADDRESS || '0x92eF7F6440466eb2138F7d179Cf2031902eF94be') as Address,
   simpleSwapRouter: (process.env.SIMPLE_SWAP_ROUTER_ADDRESS || '0x2aaf6c551168dcf22804c04dda2c08c82031f289') as Address,
   poolManager: (process.env.POOL_MANAGER_ADDRESS || '0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408') as Address,
+  positionManager: (process.env.POSITION_MANAGER_ADDRESS || '0x5b460c8Bd32951183a721bdaa3043495D8861f31') as Address,
 };
 
 // ============ Rate Limit Config ============

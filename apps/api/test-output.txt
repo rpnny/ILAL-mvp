@@ -1,0 +1,46 @@
+2026-02-24 21:07:58 [[32MINFO[39M]: Blockchain service initialized {"account":"0x1b869CaC69Df23Ad9D727932496AEb3605538c8D","rpc":"https://base-sepolia-rpc.publicnode.com"}
+=== Testing DeFi Service ===
+Test Wallet Address: 0x1b869CaC69Df23Ad9D727932496AEb3605538c8D
+Is Session Active: true
+Balance of 0x036CbD53842c5426634e7929541eC2318f3dCF7e: 283961
+Allowance of 0x036CbD53842c5426634e7929541eC2318f3dCF7e to 0x2AAF6C551168DCF22804c04DdA2c08c82031F289: 1000000000000
+Balance of 0x4200000000000000000000000000000000000006: 26740534880700089
+Allowance of 0x4200000000000000000000000000000000000006 to 0x2AAF6C551168DCF22804c04DdA2c08c82031F289: 26740534880700089
+
+1. Testing Add Liquidity...
+2026-02-24 21:08:00 [[32MINFO[39M]: Executing addLiquidity infrastructure {"params":{"token0":"0x036CbD53842c5426634e7929541eC2318f3dCF7e","token1":"0x4200000000000000000000000000000000000006","amount0":"1000000","amount1":"1000000000000000","userAddress":"0x1b869CaC69Df23Ad9D727932496AEb3605538c8D"}}
+2026-02-24 21:08:02 [[31MERROR[39M]: Contract write failed {"error":"The contract function \"addLiquidity\" reverted.\n\nContract Call:\n  address:   0x2AAF6C551168DCF22804c04DdA2c08c82031F289\n  function:  addLiquidity((address currency0, address currency1, uint24 fee, int24 tickSpacing, address hooks), uint256 amount0, uint256 amount1, int24 tickLower, int24 tickUpper, bytes hookData)\n  args:                  ({\"currency0\":\"0x036CbD53842c5426634e7929541eC2318f3dCF7e\",\"currency1\":\"0x4200000000000000000000000000000000000006\",\"fee\":3000,\"tickSpacing\":60,\"hooks\":\"0xba90d5Fe45b84b2b99e9C5A1A36C72695c514A80\"}, 1000000, 1000000000000000, -600, 600, 0x)\n  sender:    0x1b869CaC69Df23Ad9D727932496AEb3605538c8D\n\nDocs: https://viem.sh/docs/contract/writeContract\nVersion: viem@2.46.2"}
+2026-02-24 21:08:02 [[31MERROR[39M]: Add Liquidity failed {"error":"The contract function \"addLiquidity\" reverted.\n\nContract Call:\n  address:   0x2AAF6C551168DCF22804c04DdA2c08c82031F289\n  function:  addLiquidity((address currency0, address currency1, uint24 fee, int24 tickSpacing, address hooks), uint256 amount0, uint256 amount1, int24 tickLower, int24 tickUpper, bytes hookData)\n  args:                  ({\"currency0\":\"0x036CbD53842c5426634e7929541eC2318f3dCF7e\",\"currency1\":\"0x4200000000000000000000000000000000000006\",\"fee\":3000,\"tickSpacing\":60,\"hooks\":\"0xba90d5Fe45b84b2b99e9C5A1A36C72695c514A80\"}, 1000000, 1000000000000000, -600, 600, 0x)\n  sender:    0x1b869CaC69Df23Ad9D727932496AEb3605538c8D\n\nDocs: https://viem.sh/docs/contract/writeContract\nVersion: viem@2.46.2"}
+Add Liquidity Result: {
+  success: false,
+  error: 'The contract function "addLiquidity" reverted.\n' +
+    '\n' +
+    'Contract Call:\n' +
+    '  address:   0x2AAF6C551168DCF22804c04DdA2c08c82031F289\n' +
+    '  function:  addLiquidity((address currency0, address currency1, uint24 fee, int24 tickSpacing, address hooks), uint256 amount0, uint256 amount1, int24 tickLower, int24 tickUpper, bytes hookData)\n' +
+    '  args:                  ({"currency0":"0x036CbD53842c5426634e7929541eC2318f3dCF7e","currency1":"0x4200000000000000000000000000000000000006","fee":3000,"tickSpacing":60,"hooks":"0xba90d5Fe45b84b2b99e9C5A1A36C72695c514A80"}, 1000000, 1000000000000000, -600, 600, 0x)\n' +
+    '  sender:    0x1b869CaC69Df23Ad9D727932496AEb3605538c8D\n' +
+    '\n' +
+    'Docs: https://viem.sh/docs/contract/writeContract\n' +
+    'Version: viem@2.46.2'
+}
+
+2. Testing Swap...
+2026-02-24 21:08:02 [[32MINFO[39M]: Executing swap infrastructure {"params":{"tokenIn":"0x036CbD53842c5426634e7929541eC2318f3dCF7e","tokenOut":"0x4200000000000000000000000000000000000006","amount":"100000","zeroForOne":true,"userAddress":"0x1b869CaC69Df23Ad9D727932496AEb3605538c8D"}}
+2026-02-24 21:08:03 [[31MERROR[39M]: Contract write failed {"error":"The contract function \"swapExactInput\" reverted.\n\nContract Call:\n  address:   0x2AAF6C551168DCF22804c04DdA2c08c82031F289\n  function:  swapExactInput((address currency0, address currency1, uint24 fee, int24 tickSpacing, address hooks), uint256 amountSpecified, bool zeroForOne, bytes hookData)\n  args:                    ({\"currency0\":\"0x036CbD53842c5426634e7929541eC2318f3dCF7e\",\"currency1\":\"0x4200000000000000000000000000000000000006\",\"fee\":3000,\"tickSpacing\":60,\"hooks\":\"0xba90d5Fe45b84b2b99e9C5A1A36C72695c514A80\"}, 100000, true, 0x)\n  sender:    0x1b869CaC69Df23Ad9D727932496AEb3605538c8D\n\nDocs: https://viem.sh/docs/contract/writeContract\nVersion: viem@2.46.2"}
+2026-02-24 21:08:03 [[31MERROR[39M]: Swap execution failed {"error":"The contract function \"swapExactInput\" reverted.\n\nContract Call:\n  address:   0x2AAF6C551168DCF22804c04DdA2c08c82031F289\n  function:  swapExactInput((address currency0, address currency1, uint24 fee, int24 tickSpacing, address hooks), uint256 amountSpecified, bool zeroForOne, bytes hookData)\n  args:                    ({\"currency0\":\"0x036CbD53842c5426634e7929541eC2318f3dCF7e\",\"currency1\":\"0x4200000000000000000000000000000000000006\",\"fee\":3000,\"tickSpacing\":60,\"hooks\":\"0xba90d5Fe45b84b2b99e9C5A1A36C72695c514A80\"}, 100000, true, 0x)\n  sender:    0x1b869CaC69Df23Ad9D727932496AEb3605538c8D\n\nDocs: https://viem.sh/docs/contract/writeContract\nVersion: viem@2.46.2"}
+Swap Result: {
+  success: false,
+  error: 'The contract function "swapExactInput" reverted.\n' +
+    '\n' +
+    'Contract Call:\n' +
+    '  address:   0x2AAF6C551168DCF22804c04DdA2c08c82031F289\n' +
+    '  function:  swapExactInput((address currency0, address currency1, uint24 fee, int24 tickSpacing, address hooks), uint256 amountSpecified, bool zeroForOne, bytes hookData)\n' +
+    '  args:                    ({"currency0":"0x036CbD53842c5426634e7929541eC2318f3dCF7e","currency1":"0x4200000000000000000000000000000000000006","fee":3000,"tickSpacing":60,"hooks":"0xba90d5Fe45b84b2b99e9C5A1A36C72695c514A80"}, 100000, true, 0x)\n' +
+    '  sender:    0x1b869CaC69Df23Ad9D727932496AEb3605538c8D\n' +
+    '\n' +
+    'Docs: https://viem.sh/docs/contract/writeContract\n' +
+    'Version: viem@2.46.2'
+}
+
+Test Completed.

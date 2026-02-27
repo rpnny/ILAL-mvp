@@ -18,7 +18,7 @@ contract InitializePoolWithNewHook is Script {
     address constant POOL_MANAGER = 0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408;
     address constant WETH = 0x4200000000000000000000000000000000000006;
     address constant USDC = 0x036CbD53842c5426634e7929541eC2318f3dCF7e;
-    address constant NEW_HOOK = 0xDeDcFDF10b03AB45eEbefD2D91EDE66D9E5c8a80;
+    address constant NEW_HOOK = 0x27127E0c9313043225E6f73E130A83A01810Ff89;
     
     // Pool 参数
     uint24 constant FEE = 3000; // 0.3%

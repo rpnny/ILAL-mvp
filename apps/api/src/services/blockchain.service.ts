@@ -4,7 +4,7 @@
 
 import { createPublicClient, createWalletClient, http, getAddress, type Address, type Hex } from 'viem';
 import { baseSepolia } from 'viem/chains';
-import { privateKeyToAccount } from 'viem/accounts';
+import { privateKeyToAccount, nonceManager } from 'viem/accounts';
 import { RPC_URL, CONTRACTS, VERIFIER_PRIVATE_KEY } from '../config/constants.js';
 import { logger } from '../config/logger.js';
 
@@ -32,7 +32,7 @@ class BlockchainService {
       return;
     }
 
-    this.account = privateKeyToAccount(VERIFIER_PRIVATE_KEY);
+    this.account = privateKeyToAccount(VERIFIER_PRIVATE_KEY, { nonceManager });
 
     this.publicClient = createPublicClient({
       chain: baseSepolia,
@@ -123,7 +123,7 @@ class BlockchainService {
       const checksummedAddress = getAddress(userAddress);
       const expiry = BigInt(Math.floor(Date.now() / 1000) + durationSeconds);
 
-      logger.info('Starting session', { userAddress: checksummedAddress, expiry });
+      logger.info('Starting session', { userAddress: checksummedAddress, expiry: expiry.toString() });
 
       const hash = await this.walletClient!.writeContract({
         address: CONTRACTS.sessionManager!,
@@ -138,8 +138,8 @@ class BlockchainService {
 
       logger.info('Session start confirmed', {
         hash,
-        block: receipt.blockNumber,
-        gasUsed: receipt.gasUsed,
+        block: receipt.blockNumber.toString(),
+        gasUsed: receipt.gasUsed.toString(),
       });
 
       return {
@@ -177,6 +177,7 @@ class BlockchainService {
     functionName: string;
     args: any[];
     value?: bigint;
+    gas?: bigint;
   }): Promise<string> {
     try {
       const hash = await this.walletClient!.writeContract({
@@ -185,6 +186,7 @@ class BlockchainService {
         functionName: params.functionName,
         args: params.args,
         value: params.value,
+        gas: params.gas,
       });
 
       logger.info('Contract write executed', {

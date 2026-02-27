@@ -1,0 +1,36 @@
+2026-02-24 21:11:25 [[32MINFO[39M]: Blockchain service initialized {"account":"0x1b869CaC69Df23Ad9D727932496AEb3605538c8D","rpc":"https://base-sepolia-rpc.publicnode.com"}
+=== Testing DeFi Service ===
+Test Wallet Address: 0x1b869CaC69Df23Ad9D727932496AEb3605538c8D
+Is Session Active: true
+Approving SimpleSwapRouter...
+Balance of 0x036CbD53842c5426634e7929541eC2318f3dCF7e: 283961
+Allowance of 0x036CbD53842c5426634e7929541eC2318f3dCF7e to 0x2AAF6C551168DCF22804c04DdA2c08c82031F289: 1000000000000
+Balance of 0x4200000000000000000000000000000000000006: 26740534880700089
+Allowance of 0x4200000000000000000000000000000000000006 to 0x2AAF6C551168DCF22804c04DdA2c08c82031F289: 26740534880700089
+Approving PositionManager...
+Balance of 0x036CbD53842c5426634e7929541eC2318f3dCF7e: 283961
+Test Failed: InvalidAddressError: Address "undefined" is invalid.
+
+- Address must be a hex value of 20 bytes (40 hex characters).
+- Address must match its checksum counterpart.
+
+Version: viem@2.46.2
+    at encodeAddress (/Users/ronny/Desktop/ilal/node_modules/.pnpm/viem@2.46.2_typescript@5.9.3_zod@3.25.76/node_modules/viem/utils/abi/encodeAbiParameters.ts:226:32)
+    at prepareParam (/Users/ronny/Desktop/ilal/node_modules/.pnpm/viem@2.46.2_typescript@5.9.3_zod@3.25.76/node_modules/viem/utils/abi/encodeAbiParameters.ts:162:12)
+    at prepareParams (/Users/ronny/Desktop/ilal/node_modules/.pnpm/viem@2.46.2_typescript@5.9.3_zod@3.25.76/node_modules/viem/utils/abi/encodeAbiParameters.ts:127:25)
+    at encodeAbiParameters (/Users/ronny/Desktop/ilal/node_modules/.pnpm/viem@2.46.2_typescript@5.9.3_zod@3.25.76/node_modules/viem/utils/abi/encodeAbiParameters.ts:100:26)
+    at encodeFunctionData (/Users/ronny/Desktop/ilal/node_modules/.pnpm/viem@2.46.2_typescript@5.9.3_zod@3.25.76/node_modules/viem/utils/abi/encodeFunctionData.ts:92:9)
+    at readContract (/Users/ronny/Desktop/ilal/node_modules/.pnpm/viem@2.46.2_typescript@5.9.3_zod@3.25.76/node_modules/viem/actions/public/readContract.ts:116:20)
+    at Object.readContract (/Users/ronny/Desktop/ilal/node_modules/.pnpm/viem@2.46.2_typescript@5.9.3_zod@3.25.76/node_modules/viem/clients/decorators/public.ts:2091:29)
+    at checkAndApprove (/Users/ronny/Desktop/ilal/apps/api/test-defi.ts:22:36)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async run (/Users/ronny/Desktop/ilal/apps/api/test-defi.ts:91:9) {
+  details: undefined,
+  docsPath: undefined,
+  metaMessages: [
+    '- Address must be a hex value of 20 bytes (40 hex characters).',
+    '- Address must match its checksum counterpart.'
+  ],
+  shortMessage: 'Address "undefined" is invalid.',
+  version: '2.46.2'
+}

@@ -9,7 +9,7 @@
     "test": "turbo run test",
     "lint": "turbo run lint",
     "clean": "turbo run clean",
-    "dev:web": "pnpm --filter @ilal/web-demo dev",
+    "dev:landing": "pnpm --filter @ilal/landing dev",
     "dev:api": "pnpm --filter @ilal/api dev",
     "build:sdk": "pnpm --filter @ilal/sdk build"
   },

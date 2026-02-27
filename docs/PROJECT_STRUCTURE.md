@@ -38,10 +38,7 @@
 ```
 docs/
 ├── INDEX.md                     # Documentation index
-├── PROJECT_ORGANIZATION.md      # Project organization notes
 ├── PROJECT_STRUCTURE.md         # Project structure guide (this file)
-├── REFACTOR_SUMMARY.md          # Refactoring summary
-├── STATUS.md                    # Project status
 │
 ├── archives/                    # Historical document archives
 │   └── chinese-legacy-docs/    # Legacy Chinese documentation
@@ -58,6 +55,7 @@ docs/
 │   ├── ARCHITECTURE.md          # Architecture overview
 │   ├── DEPLOYMENT.md            # Deployment guide
 │   ├── saas/                    # SaaS-related guides
+│   │   └── API_REFERENCE.md     # SaaS API integration docs
 │   └── setup/                   # Setup guides
 │
 ├── reports/                     # Various reports
@@ -65,6 +63,7 @@ docs/
 │   │   └── PERFORMANCE_COST_ANALYSIS.md
 │   ├── summaries/               # Summary reports
 │   │   └── CUSTOMER_EXPERIENCE_SUMMARY.md
+│   ├── USER_EXPERIENCE_REPORT.md # User experience report
 │   ├── REPORTS_INDEX.md         # Reports index
 │   └── REPORTS_INDEX_EN.md      # Reports index (English)
 │
@@ -102,8 +101,10 @@ docs/
 │   └── circuits/                # ZK circuits
 │
 ├── apps/                        # Applications
-│   ├── web-demo/                # Web demo application
-│   └── api/                     # API service
+│   ├── landing/                 # Landing Page
+│   ├── api/                     # SaaS API service
+│   ├── bot/                     # Telegram Bot
+│   └── subgraph/                # The Graph Indexer
 │
 └── scripts/                     # Script utilities
     ├── deployment/              # Deployment scripts
@@ -217,12 +218,12 @@ packages/circuits/
 
 ## 🌐 Applications
 
-### apps/web-demo
+### apps/landing
 
-Next.js web demo application.
+Next.js landing page application.
 
 ```
-apps/web-demo/
+apps/landing/
 ├── app/                       # Next.js App Router
 │   ├── page.tsx               # Home page
 │   └── layout.tsx             # Layout

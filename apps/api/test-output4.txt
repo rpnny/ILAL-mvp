@@ -1,0 +1,62 @@
+2026-02-24 21:24:39 [[32MINFO[39M]: Blockchain service initialized {"account":"0x1b869CaC69Df23Ad9D727932496AEb3605538c8D","rpc":"https://base-sepolia-rpc.publicnode.com"}
+=== Testing DeFi Service ===
+Test Wallet Address: 0x1b869CaC69Df23Ad9D727932496AEb3605538c8D
+Is Session Active: true
+Approving SimpleSwapRouter...
+Balance of 0x036CbD53842c5426634e7929541eC2318f3dCF7e: 283961
+Allowance of 0x036CbD53842c5426634e7929541eC2318f3dCF7e to 0x2AAF6C551168DCF22804c04DdA2c08c82031F289: 1000000000000
+Balance of 0x4200000000000000000000000000000000000006: 26740534880700089
+Allowance of 0x4200000000000000000000000000000000000006 to 0x2AAF6C551168DCF22804c04DdA2c08c82031F289: 26740534880700089
+Approving PositionManager...
+Balance of 0x036CbD53842c5426634e7929541eC2318f3dCF7e: 283961
+Allowance of 0x036CbD53842c5426634e7929541eC2318f3dCF7e to 0x5b460c8Bd32951183a721bdaa3043495D8861f31: 115792089237316195423570985008687907853269984665640564039457584007913129639931
+Balance of 0x4200000000000000000000000000000000000006: 26740534880700089
+Allowance of 0x4200000000000000000000000000000000000006 to 0x5b460c8Bd32951183a721bdaa3043495D8861f31: 115792089237316195423570985008687907853269984665640564039457584007913129639935
+
+1. Testing Add Liquidity...
+2026-02-24 21:24:43 [[32MINFO[39M]: Executing addLiquidity infrastructure {"params":{"token0":"0x036CbD53842c5426634e7929541eC2318f3dCF7e","token1":"0x4200000000000000000000000000000000000006","amount0":"1000000","amount1":"1000000000000000","userAddress":"0x1b869CaC69Df23Ad9D727932496AEb3605538c8D"}}
+2026-02-24 21:24:45 [[31MERROR[39M]: Contract write failed {"error":"The contract function \"mint\" reverted with the following signature:\n0x90bfb865\n\nUnable to decode signature \"0x90bfb865\" as it was not found on the provided ABI.\nMake sure you are using the correct ABI and that the error exists on it.\nYou can look up the decoded signature here: https://4byte.sourcify.dev/?q=0x90bfb865.\n \nContract Call:\n  address:   0x5b460c8Bd32951183a721bdaa3043495D8861f31\n  function:  mint((address currency0, address currency1, uint24 fee, int24 tickSpacing, address hooks), int24 tickLower, int24 tickUpper, uint128 liquidity, bytes hookData)\n  args:          ({\"currency0\":\"0x036CbD53842c5426634e7929541eC2318f3dCF7e\",\"currency1\":\"0x4200000000000000000000000000000000000006\",\"fee\":3000,\"tickSpacing\":60,\"hooks\":\"0xba90d5Fe45b84b2b99e9C5A1A36C72695c514A80\"}, -600, 600, 1000000, 0x1b869CaC69Df23Ad9D727932496AEb3605538c8D)\n  sender:    0x1b869CaC69Df23Ad9D727932496AEb3605538c8D\n\nDocs: https://viem.sh/docs/contract/decodeErrorResult\nVersion: viem@2.46.2"}
+2026-02-24 21:24:45 [[31MERROR[39M]: Add Liquidity failed {"error":"The contract function \"mint\" reverted with the following signature:\n0x90bfb865\n\nUnable to decode signature \"0x90bfb865\" as it was not found on the provided ABI.\nMake sure you are using the correct ABI and that the error exists on it.\nYou can look up the decoded signature here: https://4byte.sourcify.dev/?q=0x90bfb865.\n \nContract Call:\n  address:   0x5b460c8Bd32951183a721bdaa3043495D8861f31\n  function:  mint((address currency0, address currency1, uint24 fee, int24 tickSpacing, address hooks), int24 tickLower, int24 tickUpper, uint128 liquidity, bytes hookData)\n  args:          ({\"currency0\":\"0x036CbD53842c5426634e7929541eC2318f3dCF7e\",\"currency1\":\"0x4200000000000000000000000000000000000006\",\"fee\":3000,\"tickSpacing\":60,\"hooks\":\"0xba90d5Fe45b84b2b99e9C5A1A36C72695c514A80\"}, -600, 600, 1000000, 0x1b869CaC69Df23Ad9D727932496AEb3605538c8D)\n  sender:    0x1b869CaC69Df23Ad9D727932496AEb3605538c8D\n\nDocs: https://viem.sh/docs/contract/decodeErrorResult\nVersion: viem@2.46.2"}
+Add Liquidity Result: {
+  success: false,
+  error: 'The contract function "mint" reverted with the following signature:\n' +
+    '0x90bfb865\n' +
+    '\n' +
+    'Unable to decode signature "0x90bfb865" as it was not found on the provided ABI.\n' +
+    'Make sure you are using the correct ABI and that the error exists on it.\n' +
+    'You can look up the decoded signature here: https://4byte.sourcify.dev/?q=0x90bfb865.\n' +
+    ' \n' +
+    'Contract Call:\n' +
+    '  address:   0x5b460c8Bd32951183a721bdaa3043495D8861f31\n' +
+    '  function:  mint((address currency0, address currency1, uint24 fee, int24 tickSpacing, address hooks), int24 tickLower, int24 tickUpper, uint128 liquidity, bytes hookData)\n' +
+    '  args:          ({"currency0":"0x036CbD53842c5426634e7929541eC2318f3dCF7e","currency1":"0x4200000000000000000000000000000000000006","fee":3000,"tickSpacing":60,"hooks":"0xba90d5Fe45b84b2b99e9C5A1A36C72695c514A80"}, -600, 600, 1000000, 0x1b869CaC69Df23Ad9D727932496AEb3605538c8D)\n' +
+    '  sender:    0x1b869CaC69Df23Ad9D727932496AEb3605538c8D\n' +
+    '\n' +
+    'Docs: https://viem.sh/docs/contract/decodeErrorResult\n' +
+    'Version: viem@2.46.2'
+}
+
+2. Testing Swap...
+2026-02-24 21:24:45 [[32MINFO[39M]: Executing swap infrastructure {"params":{"tokenIn":"0x036CbD53842c5426634e7929541eC2318f3dCF7e","tokenOut":"0x4200000000000000000000000000000000000006","amount":"100000","zeroForOne":true,"userAddress":"0x1b869CaC69Df23Ad9D727932496AEb3605538c8D"}}
+2026-02-24 21:24:46 [[31MERROR[39M]: Contract write failed {"error":"The contract function \"swap\" reverted with the following signature:\n0x90bfb865\n\nUnable to decode signature \"0x90bfb865\" as it was not found on the provided ABI.\nMake sure you are using the correct ABI and that the error exists on it.\nYou can look up the decoded signature here: https://4byte.sourcify.dev/?q=0x90bfb865.\n \nContract Call:\n  address:   0x2AAF6C551168DCF22804c04DdA2c08c82031F289\n  function:  swap((address currency0, address currency1, uint24 fee, int24 tickSpacing, address hooks), (bool zeroForOne, int256 amountSpecified, uint160 sqrtPriceLimitX96), bytes hookData)\n  args:          ({\"currency0\":\"0x036CbD53842c5426634e7929541eC2318f3dCF7e\",\"currency1\":\"0x4200000000000000000000000000000000000006\",\"fee\":3000,\"tickSpacing\":60,\"hooks\":\"0xba90d5Fe45b84b2b99e9C5A1A36C72695c514A80\"}, {\"zeroForOne\":true,\"amountSpecified\":\"-100000\",\"sqrtPriceLimitX96\":\"4295128740\"}, 0x1b869CaC69Df23Ad9D727932496AEb3605538c8D)\n  sender:    0x1b869CaC69Df23Ad9D727932496AEb3605538c8D\n\nDocs: https://viem.sh/docs/contract/decodeErrorResult\nVersion: viem@2.46.2"}
+2026-02-24 21:24:46 [[31MERROR[39M]: Swap execution failed {"error":"The contract function \"swap\" reverted with the following signature:\n0x90bfb865\n\nUnable to decode signature \"0x90bfb865\" as it was not found on the provided ABI.\nMake sure you are using the correct ABI and that the error exists on it.\nYou can look up the decoded signature here: https://4byte.sourcify.dev/?q=0x90bfb865.\n \nContract Call:\n  address:   0x2AAF6C551168DCF22804c04DdA2c08c82031F289\n  function:  swap((address currency0, address currency1, uint24 fee, int24 tickSpacing, address hooks), (bool zeroForOne, int256 amountSpecified, uint160 sqrtPriceLimitX96), bytes hookData)\n  args:          ({\"currency0\":\"0x036CbD53842c5426634e7929541eC2318f3dCF7e\",\"currency1\":\"0x4200000000000000000000000000000000000006\",\"fee\":3000,\"tickSpacing\":60,\"hooks\":\"0xba90d5Fe45b84b2b99e9C5A1A36C72695c514A80\"}, {\"zeroForOne\":true,\"amountSpecified\":\"-100000\",\"sqrtPriceLimitX96\":\"4295128740\"}, 0x1b869CaC69Df23Ad9D727932496AEb3605538c8D)\n  sender:    0x1b869CaC69Df23Ad9D727932496AEb3605538c8D\n\nDocs: https://viem.sh/docs/contract/decodeErrorResult\nVersion: viem@2.46.2"}
+Swap Result: {
+  success: false,
+  error: 'The contract function "swap" reverted with the following signature:\n' +
+    '0x90bfb865\n' +
+    '\n' +
+    'Unable to decode signature "0x90bfb865" as it was not found on the provided ABI.\n' +
+    'Make sure you are using the correct ABI and that the error exists on it.\n' +
+    'You can look up the decoded signature here: https://4byte.sourcify.dev/?q=0x90bfb865.\n' +
+    ' \n' +
+    'Contract Call:\n' +
+    '  address:   0x2AAF6C551168DCF22804c04DdA2c08c82031F289\n' +
+    '  function:  swap((address currency0, address currency1, uint24 fee, int24 tickSpacing, address hooks), (bool zeroForOne, int256 amountSpecified, uint160 sqrtPriceLimitX96), bytes hookData)\n' +
+    '  args:          ({"currency0":"0x036CbD53842c5426634e7929541eC2318f3dCF7e","currency1":"0x4200000000000000000000000000000000000006","fee":3000,"tickSpacing":60,"hooks":"0xba90d5Fe45b84b2b99e9C5A1A36C72695c514A80"}, {"zeroForOne":true,"amountSpecified":"-100000","sqrtPriceLimitX96":"4295128740"}, 0x1b869CaC69Df23Ad9D727932496AEb3605538c8D)\n' +
+    '  sender:    0x1b869CaC69Df23Ad9D727932496AEb3605538c8D\n' +
+    '\n' +
+    'Docs: https://viem.sh/docs/contract/decodeErrorResult\n' +
+    'Version: viem@2.46.2'
+}
+
+Test Completed.

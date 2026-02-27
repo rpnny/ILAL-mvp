@@ -7,15 +7,14 @@ This page is the unified documentation entry point, prioritizing the new Monorep
 - Project Overview: `README.md`
 - Quick Start: `START_HERE.md`
 - SDK Introduction: `packages/sdk/README.md`
-- **📋 Project Organization Report**: `docs/PROJECT_ORGANIZATION.md`
-- **🌐 Frontend Ready**: `FRONTEND_READY.md` → http://localhost:3003
-- **🧪 Functional Test Plan**: `docs/testing/FUNCTIONAL_TEST_PLAN.md`
-- **✅ Functional Test Results**: `docs/testing/FUNCTIONAL_TEST_RESULTS_2026-02-16.md`
-- **🌐 E2E Test Results**: `docs/testing/E2E_TEST_RESULTS_2026-02-16.md`
-- **👥 User Experience Report**: `docs/USER_EXPERIENCE_REPORT.md`
-- **📝 Functional Test Checklist**: `docs/testing/FUNCTIONAL_TEST_CHECKLIST.md`
-- **💡 UX Test Plan**: `docs/testing/USER_EXPERIENCE_TEST_PLAN.md`
-- **🎨 Frontend Strategy**: `docs/FRONTEND_STRATEGY.md`
+- **Frontend Ready**: `docs/frontend/FRONTEND_READY.md` → http://localhost:3003
+- **Functional Test Plan**: `docs/testing/FUNCTIONAL_TEST_PLAN.md`
+- **Functional Test Results**: `docs/testing/FUNCTIONAL_TEST_RESULTS_2026-02-16.md`
+- **E2E Test Results**: `docs/testing/E2E_TEST_RESULTS_2026-02-16.md`
+- **User Experience Report**: `docs/reports/USER_EXPERIENCE_REPORT.md`
+- **Functional Test Checklist**: `docs/testing/FUNCTIONAL_TEST_CHECKLIST.md`
+- **UX Test Plan**: `docs/testing/USER_EXPERIENCE_TEST_PLAN.md`
+- **Frontend Strategy**: `docs/frontend/FRONTEND_STRATEGY.md`
 
 ## 2. Core Technical Documentation
 
@@ -31,10 +30,10 @@ This page is the unified documentation entry point, prioritizing the new Monorep
 ## 3. Module Documentation
 
 - SDK: `packages/sdk/README.md`
-- Web Demo: `apps/web-demo/README.md`
 - API (SaaS & Verifier Relay): `apps/api/docs/API.md`
-- Landing: `landing/README.md`
-- Subgraph: `subgraph/README.md` (if unavailable, see `subgraph/package.json` scripts)
+- API Reference: `docs/guides/saas/API_REFERENCE.md`
+- Landing: `apps/landing/README.md`
+- Subgraph: `subgraph/README.md`
 
 ## 4. Business & Outreach Materials
 
