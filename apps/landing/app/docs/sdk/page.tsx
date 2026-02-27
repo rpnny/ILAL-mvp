@@ -1,238 +1,192 @@
+'use client';
+import { useState } from 'react';
 import Link from 'next/link';
-import { Code, Terminal, Package, CheckCircle2, Zap, BookOpen } from 'lucide-react';
+import { Copy, Check, ArrowRight, Zap } from 'lucide-react';
 
-export default function SdkPage() {
+const BASE = 'https://ilalapi-production.up.railway.app/api/v1';
+
+function Code({ children, lang }: { children: string; lang?: string }) {
+    const [copied, setCopied] = useState(false);
+    const copy = () => { navigator.clipboard.writeText(children); setCopied(true); setTimeout(() => setCopied(false), 2000); };
     return (
-        <div className="p-8 max-w-4xl mx-auto">
-            <h1 className="font-heading text-4xl font-bold mb-4">SDK Guide</h1>
-            <p className="text-xl text-gray-400 mb-12">
-                Integrate compliant DeFi features quickly with the ILAL TypeScript SDK
+        <div className="relative group my-4">
+            <div className="flex items-center justify-between bg-white/[0.04] border border-white/[0.08] rounded-t-lg px-4 py-2">
+                <span className="text-xs text-gray-500 font-mono">{lang ?? 'code'}</span>
+                <button onClick={copy} className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors">
+                    {copied ? <><Check className="w-3 h-3 text-green-400" />Copied</> : <><Copy className="w-3 h-3" />Copy</>}
+                </button>
+            </div>
+            <pre className="bg-[#0D0D0D] border border-t-0 border-white/[0.08] rounded-b-lg p-4 overflow-x-auto text-sm">
+                <code className="text-gray-200 font-mono whitespace-pre">{children}</code>
+            </pre>
+        </div>
+    );
+}
+
+export default function SDKPage() {
+    return (
+        <div className="p-8 max-w-3xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#00F0FF]/10 border border-[#00F0FF]/20 rounded-full text-xs text-[#00F0FF] mb-4">
+                DeFi Guide
+            </div>
+            <h1 className="font-heading text-4xl font-bold mb-3">Swap & Liquidity</h1>
+            <p className="text-lg text-gray-400 mb-8">
+                The ILAL DeFi API builds <strong className="text-white">unsigned Uniswap V4 transactions</strong> for you.
+                Your institution signs and broadcasts them using its own wallet — ILAL never touches your private key.
             </p>
 
-            <div className="space-y-10">
-                {/* Installation */}
-                <div>
-                    <div className="flex items-center space-x-3 mb-4">
-                        <div className="w-8 h-8 bg-[#00F0FF] rounded-full flex items-center justify-center text-sm font-bold">
-                            1
-                        </div>
-                        <h2 className="font-heading text-2xl font-bold">Installation</h2>
-                    </div>
-                    <div className="ml-11 space-y-3">
-                        <div>
-                            <div className="flex items-center space-x-2 mb-2">
-                                <Terminal className="w-4 h-4 text-gray-400" />
-                                <span className="text-sm font-medium">npm</span>
-                            </div>
-                            <pre className="bg-[#1A1A1A] border border-white/10 rounded-lg p-4 overflow-x-auto text-sm">
-                                <code className="text-gray-300">npm install @ilal/sdk</code>
-                            </pre>
-                        </div>
-                        <div>
-                            <div className="flex items-center space-x-2 mb-2">
-                                <Terminal className="w-4 h-4 text-gray-400" />
-                                <span className="text-sm font-medium">yarn</span>
-                            </div>
-                            <pre className="bg-[#1A1A1A] border border-white/10 rounded-lg p-4 overflow-x-auto text-sm">
-                                <code className="text-gray-300">yarn add @ilal/sdk</code>
-                            </pre>
-                        </div>
-                        <div>
-                            <div className="flex items-center space-x-2 mb-2">
-                                <Terminal className="w-4 h-4 text-gray-400" />
-                                <span className="text-sm font-medium">pnpm</span>
-                            </div>
-                            <pre className="bg-[#1A1A1A] border border-white/10 rounded-lg p-4 overflow-x-auto text-sm">
-                                <code className="text-gray-300">pnpm add @ilal/sdk</code>
-                            </pre>
-                        </div>
-                    </div>
+            {/* How it works */}
+            <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-6 mb-10">
+                <h3 className="font-semibold mb-4">How it works</h3>
+                <ol className="space-y-3 text-sm text-gray-400">
+                    {[
+                        'Call the ILAL API with your API key and trade parameters.',
+                        'ILAL encodes the Uniswap V4 calldata, applies the ComplianceHook, and returns an unsigned transaction object.',
+                        'Your wallet signs and broadcasts the transaction to Base Sepolia.',
+                        'The ComplianceHook verifies your on-chain compliance session and routes the trade.',
+                    ].map((step, i) => (
+                        <li key={i} className="flex gap-3">
+                            <span className="w-5 h-5 rounded-full bg-[#00F0FF]/20 text-[#00F0FF] flex items-center justify-center text-xs shrink-0 mt-0.5">{i + 1}</span>
+                            <span>{step}</span>
+                        </li>
+                    ))}
+                </ol>
+            </div>
+
+            {/* Network info */}
+            <div className="grid grid-cols-2 gap-3 mb-8 text-sm">
+                <div className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-3">
+                    <div className="text-xs text-gray-500 mb-1">Network</div>
+                    <div className="font-mono text-gray-200">Base Sepolia (chainId: 84532)</div>
                 </div>
-
-                {/* Initialization */}
-                <div>
-                    <div className="flex items-center space-x-3 mb-4">
-                        <div className="w-8 h-8 bg-[#00F0FF] rounded-full flex items-center justify-center text-sm font-bold">
-                            2
-                        </div>
-                        <h2 className="font-heading text-2xl font-bold">Initialization</h2>
-                    </div>
-                    <div className="ml-11">
-                        <pre className="bg-[#1A1A1A] border border-white/10 rounded-lg p-4 overflow-x-auto text-sm">
-                            <code className="text-gray-300">{`import { ILALClient } from '@ilal/sdk';
-
-const client = new ILALClient({
-  apiKey: process.env.ILAL_API_KEY,
-  // Optional — defaults to Base Sepolia
-  chainId: 84532,
-  // Optional — defaults to production API
-  baseUrl: 'https://api.ilal.tech/api/v1'
-});`}</code>
-                        </pre>
-                    </div>
+                <div className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-3">
+                    <div className="text-xs text-gray-500 mb-1">RPC</div>
+                    <div className="font-mono text-gray-200 text-xs">https://sepolia.base.org</div>
                 </div>
+            </div>
 
-                {/* Core Modules */}
-                <div>
-                    <div className="flex items-center space-x-3 mb-4">
-                        <div className="w-8 h-8 bg-[#00F0FF] rounded-full flex items-center justify-center text-sm font-bold">
-                            3
-                        </div>
-                        <h2 className="font-heading text-2xl font-bold">Core Modules</h2>
-                    </div>
+            {/* Token addresses */}
+            <div className="mb-10">
+                <h2 className="font-heading text-xl font-bold mb-4">Token Addresses (Base Sepolia)</h2>
+                <div className="bg-[#0D0D0D] border border-white/[0.08] rounded-xl overflow-hidden">
+                    <table className="w-full text-xs font-mono">
+                        <thead><tr className="border-b border-white/[0.06] text-gray-500"><th className="text-left p-3">Token</th><th className="text-left p-3">Address</th></tr></thead>
+                        <tbody className="divide-y divide-white/[0.04]">
+                            <tr><td className="p-3 text-gray-300">WETH (Wrapped Ether)</td><td className="p-3 text-[#00F0FF]">0x4200000000000000000000000000000000000006</td></tr>
+                            <tr><td className="p-3 text-gray-300">USDC (Circle)</td><td className="p-3 text-[#00F0FF]">0x036CbD53842c5426634e7929541eC2318f3dCF7e</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p className="text-xs text-gray-600 mt-2">Note: token0 must be lexicographically less than token1. WETH &lt; USDC by address.</p>
+            </div>
 
-                    <div className="ml-11 space-y-6">
-                        {/* Session Module */}
-                        <div className="border border-white/10 rounded-xl overflow-hidden">
-                            <div className="bg-white/[0.02] p-4 border-b border-white/10">
-                                <h3 className="font-heading text-lg font-semibold flex items-center">
-                                    <Package className="w-5 h-5 mr-2 text-[#00F0FF]" />
-                                    Session Module
-                                </h3>
-                                <p className="text-sm text-gray-400 mt-1">Manage the lifecycle of ZK verification sessions</p>
-                            </div>
-                            <pre className="p-4 overflow-x-auto text-sm">
-                                <code className="text-gray-300">{`// Verify ZK Proof and create a session
-const session = await client.session.verify({
-  proof: zkProof,
-  publicSignals: publicSignals,
-  userAddress: '0x...'
+            {/* Swap */}
+            <h2 className="font-heading text-2xl font-bold mb-2">Execute a Swap</h2>
+            <p className="text-gray-400 mb-4 text-sm">Sell <code className="bg-white/5 px-1.5 py-0.5 rounded">0.001 ETH</code> for USDC — WETH → USDC (<code className="bg-white/5 px-1.5 py-0.5 rounded">zeroForOne: true</code>).</p>
+
+            <h3 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">1. Build the transaction</h3>
+            <Code lang="curl">{`curl -X POST ${BASE}/defi/swap \\
+  -H "X-API-Key: YOUR_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "tokenIn":     "0x4200000000000000000000000000000000000006",
+    "tokenOut":    "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "amount":      "1000000000000000",
+    "zeroForOne":  true,
+    "userAddress": "YOUR_WALLET_ADDRESS"
+  }'`}</Code>
+
+            <h3 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">2. Sign and send (ethers.js v6)</h3>
+            <Code lang="TypeScript">{`import { ethers } from 'ethers';
+
+const provider = new ethers.JsonRpcProvider('https://sepolia.base.org');
+const wallet   = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
+
+// Build
+const res = await fetch('${BASE}/defi/swap', {
+  method:  'POST',
+  headers: { 'X-API-Key': 'YOUR_API_KEY', 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    tokenIn:     '0x4200000000000000000000000000000000000006',
+    tokenOut:    '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
+    amount:      '1000000000000000',
+    zeroForOne:  true,
+    userAddress: wallet.address,
+  }),
 });
+const { transaction } = await res.json();
 
-console.log(session.sessionId); // 0x...
-console.log(session.expiresAt); // ISO date string
+// Sign & broadcast — your key, never shared
+const tx = await wallet.sendTransaction(transaction);
+console.log('Tx submitted:', tx.hash);
 
-// Check session status
-const status = await client.session.getStatus('0x...');
-console.log(status.isActive); // true
+const receipt = await tx.wait();
+console.log('Swap confirmed in block', receipt.blockNumber);`}</Code>
 
-// Extend session
-const extended = await client.session.extend(session.sessionId);
-console.log(extended.newExpiresAt);`}</code>
-                            </pre>
-                        </div>
+            <h3 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">2. Sign and send (viem)</h3>
+            <Code lang="TypeScript">{`import { createWalletClient, http } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { baseSepolia } from 'viem/chains';
 
-                        {/* Compliance Module */}
-                        <div className="border border-white/10 rounded-xl overflow-hidden">
-                            <div className="bg-white/[0.02] p-4 border-b border-white/10">
-                                <h3 className="font-heading text-lg font-semibold flex items-center">
-                                    <Package className="w-5 h-5 mr-2 text-green-400" />
-                                    Compliance Module
-                                </h3>
-                                <p className="text-sm text-gray-400 mt-1">Check address compliance status</p>
-                            </div>
-                            <pre className="p-4 overflow-x-auto text-sm">
-                                <code className="text-gray-300">{`// Check address compliance status
-const result = await client.compliance.check('0x...');
+const account = privateKeyToAccount(process.env.PRIVATE_KEY as \`0x\${string}\`);
+const client  = createWalletClient({ account, chain: baseSepolia, transport: http() });
 
-if (result.isCompliant) {
-  console.log('Address passed compliance checks');
-} else {
-  console.log('Non-compliant reason:', result.reason);
-}`}</code>
-                            </pre>
-                        </div>
-
-                        {/* Swap Module */}
-                        <div className="border border-white/10 rounded-xl overflow-hidden">
-                            <div className="bg-white/[0.02] p-4 border-b border-white/10">
-                                <h3 className="font-heading text-lg font-semibold flex items-center">
-                                    <Package className="w-5 h-5 mr-2 text-purple-400" />
-                                    Swap Module
-                                </h3>
-                                <p className="text-sm text-gray-400 mt-1">Execute compliant Uniswap V4 trades</p>
-                            </div>
-                            <pre className="p-4 overflow-x-auto text-sm">
-                                <code className="text-gray-300">{`// Execute a token swap (requires active session)
-const swap = await client.swap.execute({
-  tokenIn: '0x...', // USDC
-  tokenOut: '0x...', // WETH
-  amountIn: '1000000', // 1 USDC (6 decimals)
-  slippage: 0.5 // 0.5%
+// Build
+const res = await fetch('${BASE}/defi/swap', {
+  method:  'POST',
+  headers: { 'X-API-Key': 'YOUR_API_KEY', 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    tokenIn:     '0x4200000000000000000000000000000000000006',
+    tokenOut:    '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
+    amount:      '1000000000000000',
+    zeroForOne:  true,
+    userAddress: account.address,
+  }),
 });
+const { transaction } = await res.json();
 
-console.log(swap.txHash); // Transaction hash
-console.log(swap.amountOut); // Tokens received`}</code>
-                            </pre>
-                        </div>
-                    </div>
-                </div>
+// Sign & broadcast
+const hash = await client.sendTransaction({
+  to:    transaction.to,
+  data:  transaction.data,
+  value: BigInt(transaction.value),
+  gas:   BigInt(transaction.gas),
+});
+console.log('Swap hash:', hash);`}</Code>
 
-                {/* Error Handling */}
-                <div>
-                    <div className="flex items-center space-x-3 mb-4">
-                        <div className="w-8 h-8 bg-[#00F0FF] rounded-full flex items-center justify-center text-sm font-bold">
-                            4
-                        </div>
-                        <h2 className="font-heading text-2xl font-bold">Error Handling</h2>
-                    </div>
-                    <div className="ml-11">
-                        <pre className="bg-[#1A1A1A] border border-white/10 rounded-lg p-4 overflow-x-auto text-sm">
-                            <code className="text-gray-300">{`import { ILALError, RateLimitError } from '@ilal/sdk';
+            {/* Liquidity */}
+            <h2 className="font-heading text-2xl font-bold mb-2 mt-12">Add Liquidity</h2>
+            <p className="text-gray-400 mb-4 text-sm">Provide liquidity to the WETH/USDC pool.</p>
 
-try {
-  const session = await client.session.verify({...});
-} catch (error) {
-  if (error instanceof RateLimitError) {
-    console.log('Rate limited, retry in', error.retryAfter, 'seconds');
-  } else if (error instanceof ILALError) {
-    console.log('API error:', error.message);
-    console.log('Error code:', error.code);
-  }
-}`}</code>
-                        </pre>
-                    </div>
-                </div>
+            <Code lang="curl">{`curl -X POST ${BASE}/defi/liquidity \\
+  -H "X-API-Key: YOUR_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "token0":      "0x4200000000000000000000000000000000000006",
+    "token1":      "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "amount0":     "1000000000000000",
+    "amount1":     "1000000000000000",
+    "tickLower":   -600,
+    "tickUpper":    600,
+    "userAddress": "YOUR_WALLET_ADDRESS"
+  }'`}</Code>
 
-                {/* TypeScript Support */}
-                <div className="bg-[#00F0FF]/10 border border-[#00F0FF]/20 rounded-xl p-6">
-                    <h3 className="font-heading text-xl font-semibold mb-4 flex items-center">
-                        <Zap className="w-6 h-6 mr-2 text-[#00F0FF]" />
-                        TypeScript Support
-                    </h3>
-                    <p className="text-gray-300 mb-4">
-                        The SDK is written entirely in TypeScript with full type definitions. All method parameters and return values are fully typed.
-                    </p>
-                    <div className="space-y-2 text-sm">
-                        <div className="flex items-center space-x-2">
-                            <CheckCircle2 className="w-4 h-4 text-green-400" />
-                            <span className="text-gray-300">Complete .d.ts type definitions</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <CheckCircle2 className="w-4 h-4 text-green-400" />
-                            <span className="text-gray-300">ESM and CommonJS support</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <CheckCircle2 className="w-4 h-4 text-green-400" />
-                            <span className="text-gray-300">IntelliSense autocomplete</span>
-                        </div>
-                    </div>
-                </div>
+            <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-xl p-4 mt-2 text-sm text-yellow-300/70">
+                <strong>Note:</strong> <code className="bg-white/5 px-1 rounded">token0</code> must have a lower address value than <code className="bg-white/5 px-1 rounded">token1</code>.
+                For WETH/USDC on Base Sepolia, WETH is <code className="bg-white/5 px-1 rounded">token0</code>.
+            </div>
 
-                {/* Next Steps */}
-                <div className="border-t border-white/10 pt-8">
-                    <h3 className="font-heading text-lg font-semibold mb-4">Next Steps</h3>
-                    <div className="space-y-3">
-                        <Link
-                            href="/docs/endpoints"
-                            className="block text-gray-300 hover:text-white transition-colors"
-                        >
-                            → View the full <span className="text-[#00F0FF]">API Endpoint Reference</span>
-                        </Link>
-                        <Link
-                            href="/docs/errors"
-                            className="block text-gray-300 hover:text-white transition-colors"
-                        >
-                            → Browse <span className="text-[#00F0FF]">Error Codes Reference</span>
-                        </Link>
-                        <Link
-                            href="/dashboard/playground"
-                            className="block text-gray-300 hover:text-white transition-colors"
-                        >
-                            → Try the <span className="text-[#00F0FF]">API Playground</span> for live testing
-                        </Link>
-                    </div>
-                </div>
+            {/* Next */}
+            <div className="mt-12 pt-8 border-t border-white/[0.06] flex flex-col sm:flex-row gap-4">
+                <Link href="/docs/endpoints" className="inline-flex items-center gap-2 text-sm text-[#00F0FF] hover:underline">
+                    <ArrowRight className="w-4 h-4" /> Full endpoint reference
+                </Link>
+                <Link href="/docs/authentication" className="inline-flex items-center gap-2 text-sm text-[#00F0FF] hover:underline">
+                    <ArrowRight className="w-4 h-4" /> Authentication guide
+                </Link>
+                <Link href="/dashboard/api-keys" className="inline-flex items-center gap-2 text-sm text-[#00F0FF] hover:underline">
+                    <Zap className="w-4 h-4" /> Get your API key
+                </Link>
             </div>
         </div>
     );
