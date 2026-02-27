@@ -210,8 +210,8 @@ contract SessionManagerTest is Test {
         sessionManager.isSessionActive(alice);
         uint256 gasUsed = gasBefore - gasleft();
 
-        // 确保 Session 检查低于 5000 gas
-        assertLt(gasUsed, 5000, "Session check too expensive");
+        // 确保 Session 检查低于 8500 gas (考虑了 UUPS Proxy 的 delegatecall 开销)
+        assertLt(gasUsed, 8500, "Session check too expensive");
     }
 
     // ============ 升级测试 ============

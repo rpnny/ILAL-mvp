@@ -139,90 +139,48 @@ contract E2ETest is Test {
     // ============ 完整用户流程测试 ============
 
     function test_E2E_CompleteUserJourney() public {
-        // console.log removed for compilation
-        // console.log removed for compilation
-        // console.log removed for compilation
-
         // === 步骤 1: 用户验证身份 ===
-        // console.log removed for compilation
-
         uint256 expiry = block.timestamp + 24 hours;
 
         vm.prank(address(verifier));
         sessionManager.startSession(aliceAddr, expiry);
 
         assertTrue(sessionManager.isSessionActive(aliceAddr));
-        // console.log removed for compilation
 
         // === 步骤 2: 执行 Swap 交易 ===
-        // console.log removed for compilation
-
-        // 使用模式 3（仅地址模式）- 需要白名单路由器
         bytes memory hookData = abi.encodePacked(aliceAddr);
-
-        // 模拟通过 Router 执行 Swap
-        vm.prank(router);
         PoolKey memory key = _createPoolKey();
         IPoolManager.SwapParams memory params = _createSwapParams();
-        (bytes4 selector,,) = hook.beforeSwap(router, key, params, hookData);
 
+        vm.prank(router);
+        (bytes4 selector,,) = hook.beforeSwap(router, key, params, hookData);
         assertTrue(selector == IHooks.beforeSwap.selector);
-        // console.log removed for compilation
 
         // === 步骤 3: 添加流动性 ===
-        // console.log removed for compilation
-
-        vm.prank(router);
-        PoolKey memory key2 = _createPoolKey();
         IPoolManager.ModifyLiquidityParams memory modParams = _createModifyLiquidityParams();
-        bytes4 selector2 = hook.beforeAddLiquidity(router, key2, modParams, hookData);
-
-        assertTrue(selector2 == IHooks.beforeAddLiquidity.selector);
-        // console.log removed for compilation
+        
+        vm.prank(router);
+        bytes4 selectorLiq = hook.beforeAddLiquidity(router, key, modParams, hookData);
+        assertTrue(selectorLiq == IHooks.beforeAddLiquidity.selector);
 
         // === 步骤 4: Session 过期 ===
-        // console.log removed for compilation
-
         vm.warp(expiry + 1);
-
         assertFalse(sessionManager.isSessionActive(aliceAddr));
-        // console.log removed for compilation
 
         // === 步骤 5: 过期后交易失败 ===
-        // console.log removed for compilation
-
         vm.prank(router);
         vm.expectRevert(abi.encodeWithSelector(ComplianceHook.NotVerified.selector, aliceAddr));
-        PoolKey memory key3 = _createPoolKey();
-        IPoolManager.SwapParams memory params3 = _createSwapParams();
-        hook.beforeSwap(router, key3, params3, hookData);
-
-        // console.log removed for compilation
+        hook.beforeSwap(router, key, params, hookData);
 
         // === 步骤 6: 重新验证 ===
-        // console.log removed for compilation
-
-        // 使用新的 expiry（当前时间 + 48 小时，确保大于当前时间）
         vm.prank(address(verifier));
         sessionManager.startSession(aliceAddr, expiry + 48 hours);
-
         assertTrue(sessionManager.isSessionActive(aliceAddr));
-        // console.log removed for compilation
 
         // === 步骤 7: 恢复交易 ===
-        // console.log removed for compilation
-
         vm.prank(router);
-        PoolKey memory key4 = _createPoolKey();
-        IPoolManager.SwapParams memory params4 = _createSwapParams();
-        (bytes4 selector4,,) = hook.beforeSwap(router, key4, params4, hookData);
-
-        assertTrue(selector4 == IHooks.beforeSwap.selector);
-        // console.log removed for compilation
-
-        // console.log removed for compilation
-        // console.log removed for compilation
-        // console.log removed for compilation
+        (selector,,) = hook.beforeSwap(router, key, params, hookData);
+        assertTrue(selector == IHooks.beforeSwap.selector);
     }
 
     // ============ 未验证用户测试 ============

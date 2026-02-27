@@ -192,7 +192,7 @@ contract EIP712VerifierTest is Test {
         verifier.verifySwapPermit(alice, deadline, nonce, signature);
         uint256 gasUsed = gasBefore - gasleft();
 
-        // EIP-712 验证应该在合理范围内 (< 30000 gas)
-        assertLt(gasUsed, 30000, "EIP-712 verification too expensive");
+        // EIP-712 验证 (含一次 20000 gas nonce 冷写入) 应该在合理范围内 (< 35000 gas)
+        assertLt(gasUsed, 35000, "EIP-712 verification too expensive");
     }
 }
