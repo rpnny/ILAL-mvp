@@ -6,17 +6,15 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Install dependencies first (without running scripts yet)
 COPY package*.json ./
+RUN npm ci --ignore-scripts
+
+# Copy Prisma schema and everything else
 COPY prisma ./prisma/
-
-# Install all dependencies
-RUN npm ci
-
-# Copy source code
 COPY . .
 
-# Generate Prisma Client
+# Generate Prisma Client explicitly
 RUN npx prisma generate
 
 # Build TypeScript
@@ -27,17 +25,15 @@ FROM node:20-alpine AS production
 
 WORKDIR /app
 
-# Install production dependencies only
+# Install production dependencies only (without scripts)
 COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --only=production --ignore-scripts && npm cache clean --force
 
-# Copy built files and Prisma
+# Copy built files and generated Prisma client
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-
-# Generate Prisma Client in production
-RUN npx prisma generate
+COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
 
 # Create persistent data directory for SQLite
 RUN mkdir -p /data && chown -R node:node /data
