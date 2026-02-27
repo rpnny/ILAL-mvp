@@ -1,20 +1,28 @@
 # Multi-stage Dockerfile for Railway deployment
-# Build from the apps/api directory
+# Build context MUST be the monorepo root (/)
 
 # Stage 1: Build
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies first (without running scripts yet)
-COPY package*.json ./
-RUN npm ci --ignore-scripts
+# Enable corepack for pnpm (since monorepo uses pnpm)
+RUN corepack enable && corepack prepare pnpm@8.15.0 --activate
 
-# Copy Prisma schema and everything else
-COPY prisma ./prisma/
+# Copy root workspace configs
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json ./
+
+# Copy the api package package.json
+COPY apps/api/package.json ./apps/api/
+
+# Install dependencies for the monorepo
+RUN pnpm install --frozen-lockfile --ignore-scripts
+
+# Copy the rest of the source code
 COPY . .
 
-# Generate Prisma Client explicitly
+# Generate Prisma Client specifically for the API app
+WORKDIR /app/apps/api
 RUN npx prisma generate
 
 # Build TypeScript
@@ -25,21 +33,29 @@ FROM node:20-alpine AS production
 
 WORKDIR /app
 
-# Install production dependencies only (without scripts)
-COPY package*.json ./
-RUN npm ci --only=production --ignore-scripts && npm cache clean --force
+# Enable corepack for pnpm
+RUN corepack enable && corepack prepare pnpm@8.15.0 --activate
 
-# Copy built files and generated Prisma client
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
+# Copy root workspace configs
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY apps/api/package.json ./apps/api/
+
+# Install production dependencies only
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts
+
+# Copy built files and generated Prisma client from builder
+COPY --from=builder /app/apps/api/dist ./apps/api/dist
+COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/api/node_modules ./apps/api/node_modules
 
 # Create persistent data directory for SQLite
 RUN mkdir -p /data && chown -R node:node /data
 
 # Use non-root user
 USER node
+
+WORKDIR /app/apps/api
 
 # Expose port (Railway will override with $PORT)
 EXPOSE 3001
