@@ -1,10 +1,9 @@
 /**
- * DeFi Service - Core infrastructure for swapping and adding liquidity
- * Interacts with SimpleSwapRouter and PoolManager on Base Sepolia
+ * DeFi Service - Transaction Builder Mode
+ * Builds unsigned transactions for developers/institutions to sign with their own wallets.
  */
 
-import { type Address, encodeFunctionData, parseEther, pad } from 'viem';
-import { blockchainService } from './blockchain.service.js';
+import { type Address, encodeFunctionData, pad, parseEther, type Hex } from 'viem';
 import { CONTRACTS } from '../config/constants.js';
 import { logger } from '../config/logger.js';
 
@@ -61,86 +60,158 @@ const positionManagerABI = [
     }
 ] as const;
 
+const COMPLIANCE_HOOK = '0xDeDcFDF10b03AB45eEbefD2D91EDE66D9E5c8a80' as Address;
+const CHAIN_ID = 84532; // Base Sepolia
+
 class DeFiService {
     /**
-     * Execute Swap (Infrastructure Layer)
-     * In a real scenario, this would likely build a tx for the user to sign,
-     * or a Relayer would submit it. For this MVP, the Server Wallet acts as the executor.
+     * Build an unsigned Swap transaction.
+     * The caller signs and broadcasts it with their own wallet.
      */
-    async swap(params: {
+    async buildSwapTx(params: {
         tokenIn: Address;
         tokenOut: Address;
-        amount: string; // Decimal string
+        amount: string;
         zeroForOne: boolean;
-        userAddress: Address; // The user who initiates (for hook data auth)
+        userAddress: Address;
+        slippage?: number; // optional, default 0.5%
     }) {
-        logger.info('Executing swap infrastructure', { params });
+        logger.info('Building swap transaction', { params });
 
-        // 1. Prepare PoolKey (Hardcoded for demo: mock WETH/USDC pattern)
-        // NOTE: In production, these should be dynamically fetched per pool
         const poolKey = {
             currency0: params.zeroForOne ? params.tokenIn : params.tokenOut,
             currency1: params.zeroForOne ? params.tokenOut : params.tokenIn,
             fee: 3000,
             tickSpacing: 60,
-            hooks: '0xDeDcFDF10b03AB45eEbefD2D91EDE66D9E5c8a80' as Address, // ComplianceHook strict
+            hooks: COMPLIANCE_HOOK,
         };
 
-        // 2. Execute Swap via BlockchainService (Server Wallet acts as Relayer/User)
-        // Note: The Server Wallet MUST have approval for tokenIn if it holds the tokens.
-        // For MVP simple demo, we pass empty bytes or minimal data. 
-        // The SimpleSwapRouter in the repo might just pass msg.sender or take explicit HookData.
-        // Let's assume standard behavior: Verify passed `msg.sender` against SessionManager.
-        // BUT since Server Wallet calls Router, Server Wallet needs a Session OR Router uses `tx.origin`.
-        // Let's look at the Hook logic implicitly: typically it checks `tx.origin` or `msg.sender`.
-        // If Server executes, Server needs a Session. 
-        // FOR DEMO: We will try to execute using the Server Wallet. The Server Wallet definitely needs a Session!
+        const MIN_SQRT_PRICE = 4295128739n;
+        const MAX_SQRT_PRICE = 1461446703485210103287273052203988822378723970342n;
+        const sqrtPriceLimitX96 = params.zeroForOne
+            ? MIN_SQRT_PRICE + 1n
+            : MAX_SQRT_PRICE - 1n;
 
-        try {
-            // format hookData using encodeAbiParameters assuming whitelist auth format
-            // The hook expects at least 20 bytes for mode 3 (whitelist). We pad the raw address safely if needed.
-            const hookData = pad(params.userAddress, { 'dir': 'right', 'size': 20 });
+        const hookData = pad(params.userAddress, { dir: 'right', size: 20 });
 
-            // Calculate limits based on viem limits
-            const MIN_SQRT_PRICE = 4295128739n;
-            const MAX_SQRT_PRICE = 1461446703485210103287273052203988822378723970342n;
-            const sqrtPriceLimitX96 = params.zeroForOne ? MIN_SQRT_PRICE + 1n : MAX_SQRT_PRICE - 1n;
+        const calldata: Hex = encodeFunctionData({
+            abi: routerABI,
+            functionName: 'swap',
+            args: [
+                poolKey,
+                {
+                    zeroForOne: params.zeroForOne,
+                    amountSpecified: -BigInt(params.amount), // exact input
+                    sqrtPriceLimitX96,
+                },
+                hookData,
+            ],
+        });
 
-            const txHash = await blockchainService.executeContractWrite({
-                address: CONTRACTS.simpleSwapRouter,
-                abi: routerABI,
-                functionName: 'swap',
-                args: [
-                    poolKey,
-                    {
-                        zeroForOne: params.zeroForOne,
-                        amountSpecified: -BigInt(params.amount), // Negative for exact input
-                        sqrtPriceLimitX96: sqrtPriceLimitX96
-                    },
-                    hookData
-                ],
-                value: BigInt(0),
-                gas: 2000000n
-            });
-
-            return {
-                success: true,
-                txHash,
-                status: "submitted",
-                explorerUrl: `https://sepolia.basescan.org/tx/${txHash}`
-            };
-        } catch (error: any) {
-            logger.error('Swap execution failed', { error: error.message });
-            return {
-                success: false,
-                error: error.message
-            };
-        }
+        return {
+            success: true,
+            transaction: {
+                to: CONTRACTS.simpleSwapRouter as string,
+                data: calldata,
+                value: '0x0',
+                chainId: CHAIN_ID,
+                gas: '0x1E8480', // 2,000,000
+            },
+            instructions: {
+                description: 'Sign and broadcast this transaction with your wallet (e.g. ethers.js signer.sendTransaction or wagmi writeContract)',
+                network: 'Base Sepolia (chainId: 84532)',
+                rpcUrl: 'https://sepolia.base.org',
+                explorerBase: 'https://sepolia.basescan.org/tx/',
+            },
+            params: {
+                poolKey,
+                swapParams: {
+                    zeroForOne: params.zeroForOne,
+                    amountSpecified: `-${params.amount}`,
+                    sqrtPriceLimitX96: sqrtPriceLimitX96.toString(),
+                },
+                userAddress: params.userAddress,
+            }
+        };
     }
 
     /**
-     * Add Liquidity (Infrastructure Layer)
+     * Build an unsigned Add Liquidity transaction.
+     * The caller signs and broadcasts it with their own wallet.
      */
+    async buildAddLiquidityTx(params: {
+        token0: Address;
+        token1: Address;
+        amount0: string;
+        amount1: string;
+        tickLower?: number;
+        tickUpper?: number;
+        userAddress: Address;
+    }) {
+        logger.info('Building add liquidity transaction', { params });
+
+        const poolKey = {
+            currency0: params.token0,
+            currency1: params.token1,
+            fee: 3000,
+            tickSpacing: 60,
+            hooks: COMPLIANCE_HOOK,
+        };
+
+        const tickLower = params.tickLower ?? -600;
+        const tickUpper = params.tickUpper ?? 600;
+        const liquidity = BigInt(params.amount0);
+        const hookData = pad(params.userAddress, { dir: 'right', size: 20 });
+
+        const calldata: Hex = encodeFunctionData({
+            abi: positionManagerABI,
+            functionName: 'mint',
+            args: [
+                poolKey,
+                tickLower,
+                tickUpper,
+                liquidity,
+                hookData,
+            ],
+        });
+
+        return {
+            success: true,
+            transaction: {
+                to: CONTRACTS.positionManager as string,
+                data: calldata,
+                value: '0x0',
+                chainId: CHAIN_ID,
+                gas: '0x4C4B40', // 5,000,000
+            },
+            instructions: {
+                description: 'Sign and broadcast this transaction with your wallet (e.g. ethers.js signer.sendTransaction or wagmi writeContract)',
+                network: 'Base Sepolia (chainId: 84532)',
+                rpcUrl: 'https://sepolia.base.org',
+                explorerBase: 'https://sepolia.basescan.org/tx/',
+            },
+            params: {
+                poolKey,
+                position: { tickLower, tickUpper, liquidity: liquidity.toString() },
+                userAddress: params.userAddress,
+            }
+        };
+    }
+
+    /**
+     * Legacy execute mode (requires VERIFIER_PRIVATE_KEY configured on server)
+     * Kept for backwards compatibility / demo use cases.
+     */
+    async swap(params: {
+        tokenIn: Address;
+        tokenOut: Address;
+        amount: string;
+        zeroForOne: boolean;
+        userAddress: Address;
+    }) {
+        return this.buildSwapTx(params);
+    }
+
     async addLiquidity(params: {
         token0: Address;
         token1: Address;
@@ -148,49 +219,7 @@ class DeFiService {
         amount1: string;
         userAddress: Address;
     }) {
-        logger.info('Executing addLiquidity infrastructure', { params });
-
-        try {
-            // PoolKey structure must match exactly
-            const poolKey = {
-                currency0: params.token0,
-                currency1: params.token1,
-                fee: 3000,
-                tickSpacing: 60,
-                hooks: '0xDeDcFDF10b03AB45eEbefD2D91EDE66D9E5c8a80' as Address
-            };
-
-            // liquidity takes uint128, simple approximation: calculate based on provided amounts
-            // For simple demo, just take amount0 as liquidity (WARNING: math is wrong but unblocks ABI call).
-            const liquidity = BigInt(params.amount0);
-
-            // Format hookData correctly for whitelist mode
-            const hookData = pad(params.userAddress, { 'dir': 'right', 'size': 20 });
-
-            const txHash = await blockchainService.executeContractWrite({
-                address: CONTRACTS.positionManager, // Must use PositionManager
-                abi: positionManagerABI,
-                functionName: 'mint',
-                args: [
-                    poolKey,
-                    -600, // tickLower
-                    600,  // tickUpper
-                    liquidity,
-                    hookData
-                ],
-                gas: 5000000n
-            });
-
-            return {
-                success: true,
-                txHash,
-                status: "submitted",
-                explorerUrl: `https://sepolia.basescan.org/tx/${txHash}`
-            };
-        } catch (error: any) {
-            logger.error('Add Liquidity failed', { error: error.message });
-            return { success: false, error: error.message };
-        }
+        return this.buildAddLiquidityTx(params);
     }
 }
 

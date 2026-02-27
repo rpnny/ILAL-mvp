@@ -1,5 +1,6 @@
 /**
- * DeFi Controller - Handles Swap and Liquidity Requests
+ * DeFi Controller - Unsigned Transaction Builder
+ * Returns unsigned tx data for developers/institutions to sign with their own wallets.
  */
 
 import type { Request, Response } from 'express';
@@ -22,12 +23,15 @@ const liquiditySchema = z.object({
     token1: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
     amount0: z.string(),
     amount1: z.string(),
+    tickLower: z.number().int().optional(),
+    tickUpper: z.number().int().optional(),
     userAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
 });
 
 /**
- * Execute Swap
+ * Build Swap Transaction (unsigned)
  * POST /api/v1/defi/swap
+ * Returns: { transaction: { to, data, value, chainId, gas }, instructions }
  */
 export async function executeSwap(req: Request, res: Response): Promise<void> {
     try {
@@ -61,8 +65,9 @@ export async function executeSwap(req: Request, res: Response): Promise<void> {
 }
 
 /**
- * Add Liquidity
+ * Build Add Liquidity Transaction (unsigned)
  * POST /api/v1/defi/liquidity
+ * Returns: { transaction: { to, data, value, chainId, gas }, instructions }
  */
 export async function addLiquidity(req: Request, res: Response): Promise<void> {
     try {
@@ -70,11 +75,13 @@ export async function addLiquidity(req: Request, res: Response): Promise<void> {
 
         logger.info('Add Liquidity request received', { user: params.userAddress });
 
-        const result = await defiService.addLiquidity({
+        const result = await defiService.buildAddLiquidityTx({
             token0: params.token0 as Address,
             token1: params.token1 as Address,
             amount0: params.amount0,
             amount1: params.amount1,
+            tickLower: params.tickLower,
+            tickUpper: params.tickUpper,
             userAddress: params.userAddress as Address
         });
 
