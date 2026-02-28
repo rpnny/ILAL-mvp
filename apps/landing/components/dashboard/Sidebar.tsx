@@ -10,6 +10,7 @@ import { useAuth } from '../../hooks/useAuth';
 const navigation = [
   { name: 'Overview', href: '/dashboard', icon: Home, exact: true },
   { name: 'API Keys', href: '/dashboard/api-keys', icon: Key },
+  { name: 'Swap', href: '/dashboard/swap', icon: BarChart3 },
   { name: 'Usage', href: '/dashboard/usage', icon: BarChart3 },
   { name: 'Playground', href: '/dashboard/playground', icon: Play },
   { name: 'Activity Logs', href: '/dashboard/logs', icon: ScrollText },

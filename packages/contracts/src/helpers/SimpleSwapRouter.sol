@@ -26,6 +26,7 @@ contract SimpleSwapRouter is IUnlockCallback {
         PoolKey poolKey;
         IPoolManager.SwapParams params;
         bytes hookData;
+        uint128 minAmountOut; // 0 = no slippage check
     }
 
     // 错误
@@ -50,24 +51,35 @@ contract SimpleSwapRouter is IUnlockCallback {
      * @param key Pool 标识
      * @param params Swap 参数
      * @param hookData 传递给 Hook 的数据
+     * @param minAmountOut 最小输出数量，传 0 表示不检查滑点
      * @return delta 代币变化量
      */
     function swap(
         PoolKey memory key,
         IPoolManager.SwapParams memory params,
-        bytes calldata hookData
+        bytes calldata hookData,
+        uint128 minAmountOut
     ) external payable returns (BalanceDelta delta) {
         // 准备回调数据
         SwapCallbackData memory data = SwapCallbackData({
             sender: msg.sender,
             poolKey: key,
             params: params,
-            hookData: hookData
+            hookData: hookData,
+            minAmountOut: minAmountOut
         });
 
         // 调用 unlock 触发回调
         bytes memory result = poolManager.unlock(abi.encode(data));
         delta = abi.decode(result, (BalanceDelta));
+
+        // Slippage check: compute the amount received (positive delta side)
+        if (minAmountOut > 0) {
+            int128 received = params.zeroForOne ? delta.amount1() : delta.amount0();
+            if (received <= 0 || uint128(received) < minAmountOut) {
+                revert InsufficientOutput();
+            }
+        }
 
         emit SwapExecuted(
             msg.sender,
@@ -105,25 +117,30 @@ contract SimpleSwapRouter is IUnlockCallback {
 
     /**
      * @notice 处理 Swap 的代币结算
+     * @dev Always settle both currencies independently to avoid CurrencyNotSettled().
+     *      Negative delta = caller owes pool (settle), positive delta = pool owes caller (take).
      */
     function _settleSwap(
         address user,
         PoolKey memory key,
-        IPoolManager.SwapParams memory params,
+        IPoolManager.SwapParams memory,
         BalanceDelta delta
     ) internal {
         int128 amount0 = delta.amount0();
         int128 amount1 = delta.amount1();
-        // 与当前 PoolManager delta 语义一致：
-        // 负数表示调用方需要向池子结算，正数表示可从池子提取。
-        if (params.zeroForOne) {
-            // USDC -> WETH：结算 currency0，提取 currency1
-            if (amount0 < 0) _settle(user, key.currency0, uint128(-amount0));
-            if (amount1 > 0) poolManager.take(key.currency1, user, uint128(amount1));
-        } else {
-            // WETH -> USDC：结算 currency1，提取 currency0
-            if (amount1 < 0) _settle(user, key.currency1, uint128(-amount1));
-            if (amount0 > 0) poolManager.take(key.currency0, user, uint128(amount0));
+
+        // Handle currency0
+        if (amount0 < 0) {
+            _settle(user, key.currency0, uint128(-amount0));
+        } else if (amount0 > 0) {
+            poolManager.take(key.currency0, user, uint128(amount0));
+        }
+
+        // Handle currency1
+        if (amount1 < 0) {
+            _settle(user, key.currency1, uint128(-amount1));
+        } else if (amount1 > 0) {
+            poolManager.take(key.currency1, user, uint128(amount1));
         }
     }
 

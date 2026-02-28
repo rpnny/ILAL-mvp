@@ -1,0 +1,34 @@
+config:
+  target: "http://localhost:3001"
+  phases:
+    - duration: 30
+      arrivalRate: 5
+      name: "Warm up phase"
+    - duration: 60
+      arrivalRate: 20
+      name: "Sustained load"
+    - duration: 30
+      arrivalRate: 50
+      name: "Spike phase"
+  defaults:
+    headers:
+      Content-Type: "application/json"
+
+scenarios:
+  - name: "Health Check"
+    weight: 1
+    flow:
+      - get:
+          url: "/api/v1/health"
+          capture:
+            - json: "$.status"
+              as: "status"
+      - match:
+          json: "$.status"
+          value: "ok"
+
+  - name: "Session Check (Random Addresses)"
+    weight: 5
+    flow:
+      - get:
+          url: "/api/v1/session/0x{{ $randomString(40) }}"

@@ -1,0 +1,29 @@
+
+> @ilal/api@1.0.0 dev
+> tsx watch src/index.ts
+
+2026-02-27 18:36:55 [[32MINFO[39M]: Blockchain service initialized (read + write) {"relay":"0x1b869CaC69Df23Ad9D727932496AEb3605538c8D","rpc":"https://base-sepolia-rpc.publicnode.com"}
+2026-02-27 18:36:55 [[32MINFO[39M]: Validating configuration...
+2026-02-27 18:36:55 [[32MINFO[39M]: Testing database connection...
+2026-02-27 18:36:56 [[32MINFO[39M]: Database connected successfully
+node:events:486
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::3001
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at app.listen (/Users/ronny/Desktop/ilal/apps/api/node_modules/express/lib/application.js:635:24)
+    at start (/Users/ronny/Desktop/ilal/apps/api/src/index.ts:41:24)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:89:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 3001
+}
+
+Node.js v24.13.0

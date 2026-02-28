@@ -136,21 +136,39 @@ async function run() {
             amount1: '1000000000000000', // 0.001 WETH
             userAddress: myAddress
         });
-        console.log("Add Liquidity Result:", liqResult);
-        if (liqResult.success) {
-            console.log("Waiting for Add Liquidity transaction to be mined...");
-            await publicClient.waitForTransactionReceipt({ hash: liqResult.txHash as `0x${string}` });
+        if (liqResult.success && liqResult.transaction) {
+            console.log("Submitting Add Liquidity transaction...");
+            const hash = await walletClient.sendTransaction({
+                account,
+                to: liqResult.transaction.to as Address,
+                data: liqResult.transaction.data as `0x${string}`,
+                value: BigInt(liqResult.transaction.value),
+            });
+            console.log("Waiting for Add Liquidity transaction to be mined... Hash:", hash);
+            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+            console.log("Add Liquidity Success! Status:", receipt.status, "Gas used:", receipt.gasUsed);
         }
 
         console.log("\n2. Testing Swap...");
         const swapResult = await defiService.swap({
             tokenIn: USDC,
             tokenOut: WETH,
-            amount: '100000', // 0.1 USDC
+            amount: '100', // Swapping a micro amount to avoid insufficient liquidity revert
             zeroForOne: true,
             userAddress: myAddress
         });
-        console.log("Swap Result:", swapResult);
+        if (swapResult.success && swapResult.transaction) {
+            console.log("Submitting Swap transaction...");
+            const hash = await walletClient.sendTransaction({
+                account,
+                to: swapResult.transaction.to as Address,
+                data: swapResult.transaction.data as `0x${string}`,
+                value: BigInt(swapResult.transaction.value),
+            });
+            console.log("Waiting for Swap transaction to be mined... Hash:", hash);
+            const receipt = await publicClient.waitForTransactionReceipt({ hash });
+            console.log("Swap Success! Status:", receipt.status, "Gas used:", receipt.gasUsed);
+        }
 
         console.log("\nTest Completed.");
         process.exit(0);

@@ -17,14 +17,14 @@ export const BASE_MAINNET_ADDRESSES: ContractAddresses = {
   poolManager: '0x0000000000000000000000000000000000000000' as Address,
 };
 
-// Base Sepolia (84532) - last updated: 2026-02-15
+// Base Sepolia (84532) - last updated: 2026-02-27
 export const BASE_SEPOLIA_ADDRESSES: ContractAddresses = {
   registry: '0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD' as Address,
   sessionManager: '0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2' as Address,
   verifier: '0x0cDcD82E5efba9De4aCc255402968397F323AFBB' as Address,
   complianceHook: '0xDeDcFDF10b03AB45eEbefD2D91EDE66D9E5c8a80' as Address,
   positionManager: '0x5b460c8Bd32951183a721bdaa3043495D8861f31' as Address,
-  simpleSwapRouter: '0xfBfc94f61b009C1DD39dB88A3b781199973E2e44' as Address,
+  simpleSwapRouter: '0x851A12a1A0A5670F4D8A74aD0f3534825EC5e7c2' as Address, // fixed 2026-02-27: CurrencyNotSettled
   plonkVerifier: '0x2645C48A7DB734C9179A195C51Ea5F022B86261f' as Address,
   poolManager: '0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408' as Address,
 };

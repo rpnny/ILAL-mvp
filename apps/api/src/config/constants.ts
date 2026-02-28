@@ -32,9 +32,10 @@ export const VERIFIER_PRIVATE_KEY = process.env.VERIFIER_PRIVATE_KEY as Hex;
 export const CONTRACTS = {
   sessionManager: (process.env.SESSION_MANAGER_ADDRESS || '0x4CB61d41E8D4ceCFb8C477ed069adFF309fB6d0e') as Address,
   verifier: (process.env.VERIFIER_ADDRESS || '0x92eF7F6440466eb2138F7d179Cf2031902eF94be') as Address,
-  simpleSwapRouter: (process.env.SIMPLE_SWAP_ROUTER_ADDRESS || '0x2aaf6c551168dcf22804c04dda2c08c82031f289') as Address,
+  simpleSwapRouter: (process.env.SIMPLE_SWAP_ROUTER_ADDRESS || '0x851A12a1A0A5670F4D8A74aD0f3534825EC5e7c2') as Address,
   poolManager: (process.env.POOL_MANAGER_ADDRESS || '0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408') as Address,
   positionManager: (process.env.POSITION_MANAGER_ADDRESS || '0x5b460c8Bd32951183a721bdaa3043495D8861f31') as Address,
+  complianceHook: (process.env.COMPLIANCE_HOOK_ADDRESS || '0xDeDcFDF10b03AB45eEbefD2D91EDE66D9E5c8a80') as Address,
 };
 
 // ============ Rate Limit Config ============

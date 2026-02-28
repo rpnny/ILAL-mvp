@@ -129,3 +129,61 @@ export async function getUsageStats(token: string): Promise<UsageStats> {
 export async function getPlans(): Promise<{ plans: Plan[] }> {
   return apiFetch(`${API_URL}/api/v1/billing/plans`);
 }
+
+// ── Compliance Session ────────────────────────────────────────
+
+/**
+ * Check the on-chain compliance session status for a wallet address.
+ * Returns whether the session is active, how many seconds remain, and
+ * the Unix timestamp when it expires (null if inactive).
+ */
+export async function getSessionStatus(
+  token: string,
+  walletAddress: string
+): Promise<{ active: boolean; remainingSeconds: number; expiresAt: number | null }> {
+  return apiFetch(
+    `${API_URL}/api/v1/verify/session?address=${encodeURIComponent(walletAddress)}`,
+    { headers: authHeaders(token) }
+  );
+}
+
+/**
+ * Trigger a session renewal via the verify endpoint.
+ * In the MVP this re-submits a ZK proof; a real UX would guide the user
+ * through their KYC provider again. For now the API accepts the call
+ * and the backend re-activates the session if proof is valid.
+ */
+export async function renewSession(
+  token: string,
+  walletAddress: string
+): Promise<{ message: string }> {
+  return apiFetch(`${API_URL}/api/v1/verify`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify({ walletAddress }),
+  });
+}
+
+// ── DeFi / Swap ───────────────────────────────────────────────
+
+export async function executeSwap(
+  token: string,
+  params: {
+    tokenIn: string;
+    tokenOut: string;
+    amount: string;
+    zeroForOne: boolean;
+    userAddress: string;
+    slippage?: number;
+  }
+): Promise<{
+  success: boolean;
+  transaction: { to: string; data: string; value: string; chainId: number; gas: string };
+  instructions: any;
+}> {
+  return apiFetch(`${API_URL}/api/v1/defi/swap`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify(params),
+  });
+}

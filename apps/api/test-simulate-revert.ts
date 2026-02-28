@@ -42,36 +42,36 @@ const poolManagerABI = [
 ] as const;
 
 async function main() {
-    const account = privateKeyToAccount(TEST_WALLET_PK);
-    const publicClient = createPublicClient({ chain: baseSepolia, transport: http('https://base-sepolia-rpc.publicnode.com') });
+  const account = privateKeyToAccount(TEST_WALLET_PK);
+  const publicClient = createPublicClient({ chain: baseSepolia, transport: http('https://base-sepolia-rpc.publicnode.com') });
 
-    const key = {
-        currency0: USDC,
-        currency1: WETH,
-        fee: 3000,
-        tickSpacing: 60,
-        hooks: NEW_HOOK
-    };
-    const sqrtPriceLimitX96 = 4295128739n + 1n; // For zeroForOne
-    const unauthorizedUser = '0x1111111111111111111111111111111111111111' as Address;
-    const hookData = pad(unauthorizedUser, { 'dir': 'right', 'size': 20 });
+  const key = {
+    currency0: USDC,
+    currency1: WETH,
+    fee: 3000,
+    tickSpacing: 60,
+    hooks: NEW_HOOK
+  };
+  const sqrtPriceLimitX96 = 4295128739n + 1n; // For zeroForOne
+  const unauthorizedUser = '0x1111111111111111111111111111111111111111' as Address;
+  const hookData = pad(unauthorizedUser, { 'dir': 'right', 'size': 20 });
 
-    try {
-        console.log("Simulating direct PM.swap with fake user...");
-        await publicClient.simulateContract({
-            account,
-            address: CONTRACTS.poolManager,
-            abi: poolManagerABI,
-            functionName: 'swap',
-            args: [
-                key,
-                { zeroForOne: true, amountSpecified: -100n, sqrtPriceLimitX96 },
-                hookData
-            ]
-        });
-        console.log("Simulation SUCCESS (This is bad, it should revert)");
-    } catch(e: any) {
-        console.log("Simulation REVERTED (Expected!):", e.message.substring(0, 100));
-    }
+  try {
+    console.log("Simulating direct PM.swap with fake user...");
+    await publicClient.simulateContract({
+      account,
+      address: CONTRACTS.poolManager,
+      abi: poolManagerABI,
+      functionName: 'swap',
+      args: [
+        key,
+        { zeroForOne: true, amountSpecified: -100n, sqrtPriceLimitX96 },
+        hookData
+      ]
+    });
+    console.log("Simulation SUCCESS (This is bad, it should revert)");
+  } catch (e: any) {
+    console.log("Simulation REVERTED (Expected!):", e.message);
+  }
 }
 main();

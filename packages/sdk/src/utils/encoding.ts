@@ -3,8 +3,61 @@
  */
 
 import type { Address, Hex } from 'viem';
-import { encodeAbiParameters, decodeAbiParameters, parseAbiParameters, encodePacked } from 'viem';
+import { encodeAbiParameters, decodeAbiParameters, parseAbiParameters, encodePacked, concat, pad } from 'viem';
 import type { PoolKey } from '../types';
+
+// ============================================================
+// ComplianceHook — hookData 编码工具
+// ============================================================
+//
+// ComplianceHook._resolveUser 支持三种模式，由 hookData 长度决定：
+//
+//   Mode 0 (EIP-712)：hookData.length >= 85
+//     格式: abi.encode(address user, uint256 deadline, uint256 nonce, bytes sig)
+//     适用: DApp 前端让用户签名授权再由路由器代转
+//
+//   Mode 1 (直接调用)：hookData.length == 0
+//     格式: 0x（空）
+//     适用: EOA 直接调用路由器，msg.sender 即为用户
+//
+//   Mode 2 (白名单路由器转发)：hookData.length == 20
+//     格式: bytes20(userAddress)，右填充到 20 字节
+//     适用: 受信路由器代替用户发起调用，地址必须已在 Registry.approveRouter()
+//
+// 请勿在其他地方手动构造 hookData，统一使用以下工厂函数。
+// ============================================================
+
+/**
+ * Mode 2 — 白名单路由器转发
+ * 将用户地址右填充到 20 字节后传入 hookData。
+ * 要求调用合约（msg.sender）已在 Registry 注册为受信路由器。
+ */
+export function encodeRouterHookData(userAddress: Address): Hex {
+  return pad(userAddress, { dir: 'right', size: 20 });
+}
+
+/**
+ * Mode 0 — EIP-712 授权签名
+ * 编码用户地址、deadline、nonce 和 65-byte 签名。
+ */
+export function encodeEip712HookData(
+  user: Address,
+  deadline: bigint,
+  nonce: bigint,
+  signature: Hex
+): Hex {
+  return encodeAbiParameters(
+    parseAbiParameters('address, uint256, uint256, bytes'),
+    [user, deadline, nonce, signature]
+  );
+}
+
+/**
+ * Mode 1 — 直接调用（空 hookData）
+ * 适用于 EOA 直接作为 msg.sender 调用路由器。
+ */
+export const DIRECT_HOOK_DATA: Hex = '0x';
+
 
 /**
  * 计算 Pool ID

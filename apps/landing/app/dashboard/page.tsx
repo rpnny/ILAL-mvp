@@ -9,6 +9,7 @@ import { Key, TrendingUp, Zap, Clock, ArrowRight, Copy, CheckCircle2 } from 'luc
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import SessionStatusCard from '../../components/SessionStatusCard';
 
 // Animated counter (matches landing page)
 function Counter({ value, suffix = '' }: { value: number; suffix?: string }) {
@@ -200,6 +201,9 @@ export default function DashboardPage() {
           </motion.div>
         ))}
       </div>
+
+      {/* Compliance Session Status */}
+      <SessionStatusCard walletAddress={user?.walletAddress} />
 
       {/* Quick Start Guide */}
       <motion.div

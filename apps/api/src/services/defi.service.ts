@@ -3,7 +3,7 @@
  * Builds unsigned transactions for developers/institutions to sign with their own wallets.
  */
 
-import { type Address, encodeFunctionData, pad, parseEther, type Hex } from 'viem';
+import { type Address, encodeFunctionData, pad, type Hex } from 'viem';
 import { CONTRACTS } from '../config/constants.js';
 import { logger } from '../config/logger.js';
 
@@ -29,7 +29,8 @@ const routerABI = [
                     { name: 'sqrtPriceLimitX96', type: 'uint160' }
                 ]
             },
-            { name: 'hookData', type: 'bytes' }
+            { name: 'hookData', type: 'bytes' },
+            { name: 'minAmountOut', type: 'uint128' }
         ],
         outputs: [{ name: 'delta', type: 'int256' }],
         stateMutability: 'payable'
@@ -60,7 +61,14 @@ const positionManagerABI = [
     }
 ] as const;
 
-const COMPLIANCE_HOOK = '0xDeDcFDF10b03AB45eEbefD2D91EDE66D9E5c8a80' as Address;
+/**
+ * Encode hookData for Mode 2 (whitelisted router forwarding).
+ * Pads the user address to exactly 20 bytes (right-padded).
+ */
+function encodeRouterHookData(userAddress: Address): Hex {
+    return pad(userAddress, { dir: 'right', size: 20 });
+}
+
 const CHAIN_ID = 84532; // Base Sepolia
 
 class DeFiService {
@@ -81,9 +89,9 @@ class DeFiService {
         const poolKey = {
             currency0: params.zeroForOne ? params.tokenIn : params.tokenOut,
             currency1: params.zeroForOne ? params.tokenOut : params.tokenIn,
-            fee: 3000,
-            tickSpacing: 60,
-            hooks: COMPLIANCE_HOOK,
+            fee: 500,
+            tickSpacing: 10,
+            hooks: CONTRACTS.complianceHook,
         };
 
         const MIN_SQRT_PRICE = 4295128739n;
@@ -92,7 +100,17 @@ class DeFiService {
             ? MIN_SQRT_PRICE + 1n
             : MAX_SQRT_PRICE - 1n;
 
-        const hookData = pad(params.userAddress, { dir: 'right', size: 20 });
+        const hookData = encodeRouterHookData(params.userAddress);
+
+        // Compute minAmountOut from slippage tolerance (default 0.5%).
+        // For exact-input swaps we don't know the exact output upfront, so we
+        // use the input amount as a rough upper-bound proxy and apply slippage.
+        // Passing 0n disables the check entirely (opt-out).
+        const slippageBps = Math.round((params.slippage ?? 0.5) * 100); // e.g. 0.5% → 50 bps
+        const amountIn = BigInt(params.amount);
+        const minAmountOut = slippageBps > 0
+            ? (amountIn * BigInt(10_000 - slippageBps)) / 10_000n
+            : 0n;
 
         const calldata: Hex = encodeFunctionData({
             abi: routerABI,
@@ -105,6 +123,7 @@ class DeFiService {
                     sqrtPriceLimitX96,
                 },
                 hookData,
+                minAmountOut,
             ],
         });
 
@@ -155,13 +174,13 @@ class DeFiService {
             currency1: params.token1,
             fee: 3000,
             tickSpacing: 60,
-            hooks: COMPLIANCE_HOOK,
+            hooks: CONTRACTS.complianceHook,
         };
 
         const tickLower = params.tickLower ?? -600;
         const tickUpper = params.tickUpper ?? 600;
         const liquidity = BigInt(params.amount0);
-        const hookData = pad(params.userAddress, { dir: 'right', size: 20 });
+        const hookData = encodeRouterHookData(params.userAddress);
 
         const calldata: Hex = encodeFunctionData({
             abi: positionManagerABI,
