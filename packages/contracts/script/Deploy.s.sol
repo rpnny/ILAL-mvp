@@ -21,7 +21,7 @@ contract DeployILAL is Script {
 
     // Uniswap V4 官方地址 (Base Sepolia 84532)
     address constant UNISWAP_V4_POOL_MANAGER = 0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408;
-    address constant UNISWAP_UNIVERSAL_ROUTER = 0x492e6456d9528771018deb9e87ef7750ef184104;
+    address constant UNISWAP_UNIVERSAL_ROUTER = 0x492E6456D9528771018DeB9E87ef7750EF184104;
 
     bytes32 constant COINBASE_ISSUER_ID = keccak256("Coinbase");
 
