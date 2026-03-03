@@ -11,7 +11,6 @@
 
 import Stripe from 'stripe';
 import { billingService } from './billing.service.js';
-import { sendPlanUpgradeEmail } from './email.service.js';
 import { prisma } from '../config/database.js';
 import { logger } from '../config/logger.js';
 
@@ -115,13 +114,6 @@ export async function handleWebhook(rawBody: Buffer, signature: string): Promise
                 await billingService.upgradePlan(userId, targetPlan);
                 logger.info('Plan upgraded via Stripe webhook', { userId, targetPlan });
 
-                // Send upgrade notification email (non-blocking, optional)
-                const user = await prisma.user.findUnique({ where: { id: userId } });
-                if (user) {
-                    sendPlanUpgradeEmail(user.email, targetPlan, user.name || undefined).catch(err =>
-                        logger.warn('Failed to send upgrade email', { error: err.message })
-                    );
-                }
             } catch (err: any) {
                 logger.error('Failed to upgrade plan after payment', { userId, targetPlan, error: err.message });
                 throw err;
