@@ -19,9 +19,9 @@ contract DeployILAL is Script {
     // Coinbase Verifications (Base Mainnet)
     address constant COINBASE_ATTESTER = 0x357458739F90461b99789350868CD7CF330Dd7EE;
 
-    // Uniswap v4 地址 (需要在部署时更新)
-    address constant UNISWAP_V4_POOL_MANAGER = address(0); // TODO: 更新
-    address constant UNISWAP_UNIVERSAL_ROUTER = address(0); // TODO: 更新
+    // Uniswap V4 官方地址 (Base Sepolia 84532)
+    address constant UNISWAP_V4_POOL_MANAGER = 0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408;
+    address constant UNISWAP_UNIVERSAL_ROUTER = 0x492e6456d9528771018deb9e87ef7750ef184104;
 
     bytes32 constant COINBASE_ISSUER_ID = keccak256("Coinbase");
 
@@ -71,7 +71,7 @@ contract DeployILAL is Script {
         // 4. 部署 ComplianceHook
         // console.log removed for compilation
         hook = deployComplianceHook(
-            address(1), // TODO: use real poolManager
+            UNISWAP_V4_POOL_MANAGER,
             address(registry),
             address(sessionManager)
         );
@@ -116,7 +116,7 @@ contract DeployILAL is Script {
     }
 
     function deployVerifier() internal returns (MockVerifier) {
-        // TODO: 在生产环境中替换为真实的 Groth16/PLONK Verifier
+        // 测试网使用 MockVerifier；生产部署请改用 DeployPlonk.s.sol
         MockVerifier _verifier = new MockVerifier();
 
         // console.log removed for compilation
