@@ -66,7 +66,7 @@ contract DeployPlonk is Script {
         printDeploymentInfo();
 
         // 4. 保存部署地址
-        // saveDeploymentAddresses(); // 注释掉以避免 vm.writeFile 权限错误
+        saveDeploymentAddresses();
     }
 
     function deployAllContracts() internal {
