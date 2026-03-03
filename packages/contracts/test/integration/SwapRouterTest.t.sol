@@ -103,6 +103,7 @@ contract SwapRouterTest is Test {
 
         // 4. 部署 ComplianceHook
         hook = new ComplianceHook(
+            MOCK_POOL_MANAGER,
             address(registry),
             address(sessionManager)
         );

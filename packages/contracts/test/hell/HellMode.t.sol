@@ -90,10 +90,10 @@ contract HellModeTest is Test {
         sessionManager.grantRole(verifierRole, address(verifier));
 
         // Hook
-        hook = new ComplianceHook(address(registry), address(sessionManager));
+        address mockPoolManager = makeAddr("poolManager");
+        hook = new ComplianceHook(mockPoolManager, address(registry), address(sessionManager));
 
         // PositionManager (需要 PoolManager 地址，这里使用 mock)
-        address mockPoolManager = makeAddr("poolManager");
         positionManager = new VerifiedPoolsPositionManager(
             mockPoolManager,
             address(registry),
@@ -171,9 +171,9 @@ contract HellModeTest is Test {
             fakeSignature
         );
 
-        // 应该失败
-        vm.prank(router);
-        vm.expectRevert(); // EIP-712 签名验证失败
+        address mockPM = makeAddr("poolManager");
+        vm.prank(mockPM);
+        vm.expectRevert();
         PoolKey memory key = _createPoolKey();
         IPoolManager.SwapParams memory params = _createSwapParams();
         hook.beforeSwap(router, key, params, hookData);
@@ -186,44 +186,32 @@ contract HellModeTest is Test {
     // ============================================
 
     function test_Hell_EmergencyWithdrawal() public {
-        // console.log removed for compilation
+        address mockPM = makeAddr("poolManager");
 
-        // Alice 激活 Session 并添加流动性
         vm.prank(address(verifier));
         sessionManager.startSession(alice, block.timestamp + 24 hours);
 
-        // 使用模式 3（仅地址模式）- 需要白名单路由器
-        bytes memory hookData = abi.encodePacked(alice);
+        bytes memory hookData = "";
 
-        // 正常添加流动性
-        vm.prank(router);
+        vm.prank(mockPM);
         PoolKey memory key = _createPoolKey();
         IPoolManager.ModifyLiquidityParams memory modParams = _createModifyLiquidityParams();
-        hook.beforeAddLiquidity(router, key, modParams, hookData);
-        // console.log removed for compilation
+        hook.beforeAddLiquidity(alice, key, modParams, hookData);
 
-        // 🚨 触发紧急暂停
         vm.prank(governance);
         registry.setEmergencyPause(true);
-        // console.log removed (Unicode chars)
 
-        // 尝试 Swap（应该失败）
-        vm.prank(router);
+        vm.prank(mockPM);
         vm.expectRevert(ComplianceHook.EmergencyPaused.selector);
         PoolKey memory key2 = _createPoolKey();
         IPoolManager.SwapParams memory swapParams = _createSwapParams();
-        hook.beforeSwap(router, key2, swapParams, hookData);
-        // console.log removed for compilation
+        hook.beforeSwap(alice, key2, swapParams, hookData);
 
-        // ⚠️ 关键：Remove Liquidity 必须成功（机构最看重）
-        // 注意：removeLiquidity 不检查 emergency pause
-        vm.prank(router);
+        vm.prank(mockPM);
         PoolKey memory key3 = _createPoolKey();
         IPoolManager.ModifyLiquidityParams memory removeParams = _createModifyLiquidityParams();
-        bytes4 selector = hook.beforeRemoveLiquidity(router, key3, removeParams, hookData);
+        bytes4 selector = hook.beforeRemoveLiquidity(alice, key3, removeParams, hookData);
         assertTrue(selector == IHooks.beforeRemoveLiquidity.selector, "Emergency withdrawal should succeed");
-
-        // console.log removed for compilation
     }
 
     // ============================================
@@ -395,34 +383,23 @@ contract HellModeTest is Test {
     // ============================================
 
     function test_Hell_GasConsumption() public {
-        // console.log removed for compilation
+        address mockPM = makeAddr("poolManager");
 
-        // Alice 激活 Session
         vm.prank(address(verifier));
         sessionManager.startSession(alice, block.timestamp + 24 hours);
 
-        // 使用模式 3（仅地址模式）- 需要白名单路由器
-        bytes memory hookData = abi.encodePacked(alice);
+        bytes memory hookData = "";
 
-        // 记录 Gas
         uint256 gasBefore = gasleft();
         
-        vm.prank(router);
+        vm.prank(mockPM);
         PoolKey memory key4 = _createPoolKey();
         IPoolManager.SwapParams memory params4 = _createSwapParams();
-        hook.beforeSwap(router, key4, params4, hookData);
+        hook.beforeSwap(alice, key4, params4, hookData);
 
         uint256 gasUsed = gasBefore - gasleft();
-
-        // console.log removed (Unicode chars)
-
-        // 目标：Hook 额外消耗 < 45,000 Gas
-        // 普通 Uniswap v4 Swap ~200,000 Gas
-        // 带 Hook 的 Swap 应该 < 245,000 Gas
-        // 注意：20000 gas 消耗是因为 nonce 的冷启动写入 (从 0 到 1)
         
         assertLt(gasUsed, 45000, "Hook overhead should be < 45,000 Gas");
-        // console.log removed for compilation
     }
 
     // ============ 辅助函数 ============

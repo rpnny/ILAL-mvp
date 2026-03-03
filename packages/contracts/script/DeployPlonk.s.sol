@@ -121,38 +121,37 @@ contract DeployPlonk is Script {
         console.log("    SessionManager proxy:", address(sessionManager));
         console.log("");
 
-        // 4. 部署 ComplianceHook
-        console.log("4/6 Deploying ComplianceHook...");
-        hook = new ComplianceHook(
-            address(registry),
-            address(sessionManager)
-        );
-        console.log("    ComplianceHook deployed at:", address(hook));
-        console.log("");
-
-        // 5. 部署 VerifiedPoolsPositionManager
-        console.log("5/6 Deploying VerifiedPoolsPositionManager...");
-        
+        // 4. 解析 PoolManager 地址
         // Uniswap v4 PoolManager 地址
         // Base Sepolia: 0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408
         // Base Mainnet: 0x498581ff718922c3f8e6a244956af099b2652b2b
         address poolManager = vm.envOr("POOL_MANAGER_ADDRESS", address(0));
         
         if (poolManager == address(0)) {
-            // 根据链 ID 自动选择正确的地址
             if (block.chainid == 84532) {
-                // Base Sepolia
                 poolManager = 0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408;
                 console.log("    Using Base Sepolia PoolManager");
             } else if (block.chainid == 8453) {
-                // Base Mainnet
                 poolManager = 0x498581fF718922c3f8e6A244956aF099B2652b2b;
                 console.log("    Using Base Mainnet PoolManager");
             } else {
                 console.log("    WARNING: Unknown chain, using mock address");
-                poolManager = address(0x1234); // 占位符
+                poolManager = address(0x1234);
             }
         }
+
+        // 5. 部署 ComplianceHook
+        console.log("4/6 Deploying ComplianceHook...");
+        hook = new ComplianceHook(
+            poolManager,
+            address(registry),
+            address(sessionManager)
+        );
+        console.log("    ComplianceHook deployed at:", address(hook));
+        console.log("");
+
+        // 6. 部署 VerifiedPoolsPositionManager
+        console.log("5/6 Deploying VerifiedPoolsPositionManager...");
         
         positionManager = new VerifiedPoolsPositionManager(
             poolManager,

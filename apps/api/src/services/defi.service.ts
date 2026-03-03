@@ -3,8 +3,8 @@
  * Builds unsigned transactions for developers/institutions to sign with their own wallets.
  */
 
-import { type Address, encodeFunctionData, pad, type Hex } from 'viem';
-import { CONTRACTS } from '../config/constants.js';
+import { type Address, encodeFunctionData, type Hex } from 'viem';
+import { CONTRACTS, CHAIN_ID } from '../config/constants.js';
 import { logger } from '../config/logger.js';
 
 // Contract ABIs
@@ -62,14 +62,13 @@ const positionManagerABI = [
 ] as const;
 
 /**
- * Encode hookData for Mode 2 (whitelisted router forwarding).
- * Pads the user address to exactly 20 bytes (right-padded).
+ * Empty hookData for Mode 2 (EOA direct call).
+ * The ComplianceHook resolves sender as the user when hookData is empty.
+ * Mode 3 (address-only forwarding) was removed to prevent impersonation.
  */
-function encodeRouterHookData(userAddress: Address): Hex {
-    return pad(userAddress, { dir: 'right', size: 20 });
+function encodeEmptyHookData(): Hex {
+    return '0x';
 }
-
-const CHAIN_ID = 84532; // Base Sepolia
 
 class DeFiService {
     /**
@@ -86,9 +85,13 @@ class DeFiService {
     }) {
         logger.info('Building swap transaction', { params });
 
+        const [currency0, currency1] = params.tokenIn.toLowerCase() < params.tokenOut.toLowerCase()
+            ? [params.tokenIn, params.tokenOut]
+            : [params.tokenOut, params.tokenIn];
+
         const poolKey = {
-            currency0: params.zeroForOne ? params.tokenIn : params.tokenOut,
-            currency1: params.zeroForOne ? params.tokenOut : params.tokenIn,
+            currency0,
+            currency1,
             fee: 500,
             tickSpacing: 10,
             hooks: CONTRACTS.complianceHook,
@@ -100,7 +103,7 @@ class DeFiService {
             ? MIN_SQRT_PRICE + 1n
             : MAX_SQRT_PRICE - 1n;
 
-        const hookData = encodeRouterHookData(params.userAddress);
+        const hookData = encodeEmptyHookData();
 
         // Compute minAmountOut from slippage tolerance (default 0.5%).
         // For exact-input swaps we don't know the exact output upfront, so we
@@ -179,8 +182,10 @@ class DeFiService {
 
         const tickLower = params.tickLower ?? -600;
         const tickUpper = params.tickUpper ?? 600;
-        const liquidity = BigInt(params.amount0);
-        const hookData = encodeRouterHookData(params.userAddress);
+        const amount0 = BigInt(params.amount0);
+        const amount1 = BigInt(params.amount1);
+        const liquidity = amount0 > amount1 ? amount0 : amount1;
+        const hookData = encodeEmptyHookData();
 
         const calldata: Hex = encodeFunctionData({
             abi: positionManagerABI,

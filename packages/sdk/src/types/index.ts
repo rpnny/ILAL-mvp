@@ -29,6 +29,7 @@ export interface ZKProofConfig {
   wasmUrl: string | Buffer;
   zkeyUrl: string | Buffer;
   verificationKeyUrl?: string | Buffer;
+  issuerPrivateKey?: string;
 }
 
 // ============ Session 相关 ============
@@ -114,11 +115,14 @@ export interface LiquidityPosition {
 export interface CircuitInput {
   userAddress: string;
   merkleRoot: string;
-  issuerPubKeyHash: string;
-  signature: string;
+  issuerAx: string;
+  issuerAy: string;
+  timestamp: string;
+  sigR8x: string;
+  sigR8y: string;
+  sigS: string;
   kycStatus: string;
   countryCode: string;
-  timestamp: string;
   merkleProof: string[];
   merkleIndex: string;
 }

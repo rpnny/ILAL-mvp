@@ -14,11 +14,11 @@ import { InvalidProofError } from '../utils/errors';
 // ============ 常量 ============
 
 const TREE_DEPTH = 20;
-const ISSUER_ADDRESS = '0x357458739F90461b99789350868CD7CF330Dd7EE';
 
 export class ZKProofModule {
   private poseidonInstance: any = null;
   private snarkjsInstance: any = null;
+  private eddsaInstance: any = null;
 
   constructor(private config?: ZKProofConfig) {}
 
@@ -54,7 +54,7 @@ export class ZKProofModule {
     const startTime = Date.now();
 
     try {
-      const { proof, publicSignals } = await snarkjs.groth16.fullProve(
+      const { proof, publicSignals } = await snarkjs.plonk.fullProve(
         input,
         wasmBuffer,
         zkeyBuffer
@@ -82,9 +82,10 @@ export class ZKProofModule {
     }
 
     const snarkjs = await this.getSnarkJS();
-    const vKey = await this.loadFile(this.config.verificationKeyUrl);
+    const vKeyBuffer = await this.loadFile(this.config.verificationKeyUrl);
+    const vKey = JSON.parse(vKeyBuffer.toString());
 
-    return await snarkjs.groth16.verify(vKey, publicSignals, proof);
+    return await snarkjs.plonk.verify(vKey, publicSignals, proof);
   }
 
   /**
@@ -128,41 +129,52 @@ export class ZKProofModule {
   // ============ 私有方法 ============
 
   /**
-   * 准备电路输入
+   * Prepare circuit input with real EdDSA-Poseidon signature.
+   * Requires issuer private key to sign the user data.
    */
   private async prepareCircuitInput(
     userAddress: string,
     poseidon: any
   ): Promise<CircuitInput> {
+    if (!this.config?.issuerPrivateKey) {
+      throw new Error('issuerPrivateKey must be provided in ZKProofConfig to generate proofs');
+    }
+
+    const eddsa = await this.getEddsa();
     const userAddressBigInt = BigInt(userAddress);
-    const issuerBigInt = BigInt(ISSUER_ADDRESS.toLowerCase());
     const kycStatus = BigInt(1);
     const countryCode = BigInt(840);
     const timestamp = BigInt(Math.floor(Date.now() / 1000));
 
-    // leaf = Poseidon(userAddress, kycStatus)
     const leaf = poseidon([userAddressBigInt, kycStatus]);
     const leafValue: bigint = poseidon.F.toObject(leaf);
 
-    // 构建稀疏 Merkle Tree
     const { root, siblings } = this.buildSparseMerkleProof(leafValue, 0, TREE_DEPTH, poseidon);
 
-    // messageHash = Poseidon(userAddress, kycStatus, countryCode, timestamp)
     const messageHash = poseidon([userAddressBigInt, kycStatus, countryCode, timestamp]);
     const messageHashValue: bigint = poseidon.F.toObject(messageHash);
 
-    // signature = Poseidon(messageHash, issuerPubKeyHash)
-    const signature = poseidon([messageHashValue, issuerBigInt]);
-    const signatureValue: bigint = poseidon.F.toObject(signature);
+    const issuerPrivKey = Buffer.from(this.config.issuerPrivateKey.replace(/^0x/, ''), 'hex');
+    const issuerPubKey = eddsa.prv2pub(issuerPrivKey);
+    const issuerAx: bigint = eddsa.F.toObject(issuerPubKey[0]);
+    const issuerAy: bigint = eddsa.F.toObject(issuerPubKey[1]);
+
+    const signature = eddsa.signPoseidon(issuerPrivKey, eddsa.F.e(messageHashValue));
+    const sigR8x: bigint = eddsa.F.toObject(signature.R8[0]);
+    const sigR8y: bigint = eddsa.F.toObject(signature.R8[1]);
+    const sigS: bigint = signature.S;
 
     return {
       userAddress: userAddressBigInt.toString(),
       merkleRoot: root.toString(),
-      issuerPubKeyHash: issuerBigInt.toString(),
-      signature: signatureValue.toString(),
+      issuerAx: issuerAx.toString(),
+      issuerAy: issuerAy.toString(),
+      timestamp: timestamp.toString(),
+      sigR8x: sigR8x.toString(),
+      sigR8y: sigR8y.toString(),
+      sigS: sigS.toString(),
       kycStatus: kycStatus.toString(),
       countryCode: countryCode.toString(),
-      timestamp: timestamp.toString(),
       merkleProof: siblings.map((s) => s.toString()),
       merkleIndex: '0',
     };
@@ -206,9 +218,14 @@ export class ZKProofModule {
     return { root: currentHash, siblings };
   }
 
-  /**
-   * 懒加载 Poseidon
-   */
+  private async getEddsa(): Promise<any> {
+    if (!this.eddsaInstance) {
+      const circomlibjs = await this.loadCircomLib();
+      this.eddsaInstance = await circomlibjs.buildEddsa();
+    }
+    return this.eddsaInstance;
+  }
+
   private async getPoseidon(): Promise<any> {
     if (!this.poseidonInstance) {
       const circomlibjs = await this.loadCircomLib();

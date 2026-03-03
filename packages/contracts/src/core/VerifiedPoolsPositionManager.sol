@@ -146,7 +146,7 @@ contract VerifiedPoolsPositionManager is IUnlockCallback, ReentrancyGuard {
         int24 tickUpper,
         uint128 liquidity,
         bytes calldata hookData
-    ) external onlyVerified nonReentrant returns (uint256 tokenId) {
+    ) external payable onlyVerified nonReentrant returns (uint256 tokenId) {
         tokenId = nextTokenId++;
 
         // 存储头寸信息
@@ -200,7 +200,7 @@ contract VerifiedPoolsPositionManager is IUnlockCallback, ReentrancyGuard {
         uint256 tokenId,
         uint128 liquidityDelta,
         bytes calldata hookData
-    ) external onlyVerified nonReentrant {
+    ) external payable onlyVerified nonReentrant {
         Position storage position = positions[tokenId];
 
         if (position.owner != msg.sender) {
@@ -335,21 +335,15 @@ contract VerifiedPoolsPositionManager is IUnlockCallback, ReentrancyGuard {
         int128 delta0 = delta.amount0();
         int128 delta1 = delta.amount1();
 
-        // 处理 currency0
         if (delta0 > 0) {
-            // 用户需要支付 - take from pool
             poolManager.take(poolKey.currency0, user, uint128(delta0));
         } else if (delta0 < 0) {
-            // 用户需要存入 - settle to pool
             _settleToken(user, poolKey.currency0, uint128(-delta0));
         }
 
-        // 处理 currency1
         if (delta1 > 0) {
-            // 用户需要支付 - take from pool
             poolManager.take(poolKey.currency1, user, uint128(delta1));
         } else if (delta1 < 0) {
-            // 用户需要存入 - settle to pool
             _settleToken(user, poolKey.currency1, uint128(-delta1));
         }
     }

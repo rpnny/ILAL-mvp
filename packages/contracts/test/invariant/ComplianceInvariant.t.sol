@@ -70,7 +70,7 @@ contract ComplianceInvariantTest is StdInvariant, Test {
         vm.prank(governance);
         sessionManager.grantRole(verifierRole, address(verifier));
 
-        hook = new ComplianceHook(address(registry), address(sessionManager));
+        hook = new ComplianceHook(address(1), address(registry), address(sessionManager)); // TODO: use real poolManager
 
         vm.prank(governance);
         registry.approveRouter(router, true);

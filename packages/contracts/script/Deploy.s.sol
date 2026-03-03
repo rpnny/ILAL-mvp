@@ -71,6 +71,7 @@ contract DeployILAL is Script {
         // 4. 部署 ComplianceHook
         // console.log removed for compilation
         hook = deployComplianceHook(
+            address(1), // TODO: use real poolManager
             address(registry),
             address(sessionManager)
         );
@@ -151,10 +152,11 @@ contract DeployILAL is Script {
     }
 
     function deployComplianceHook(
+        address _poolManager,
         address _registry,
         address _sessionManager
     ) internal returns (ComplianceHook) {
-        return new ComplianceHook(_registry, _sessionManager);
+        return new ComplianceHook(_poolManager, _registry, _sessionManager);
     }
 
     // ============ 配置函数 ============

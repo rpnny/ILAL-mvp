@@ -1,6 +1,5 @@
 /**
  * Verify Controller - ZK Proof verification and session activation
- * Core functionality from original relay service
  */
 
 import type { Request, Response } from 'express';
@@ -8,29 +7,25 @@ import { z } from 'zod';
 import { type Address, type Hex } from 'viem';
 import { blockchainService } from '../services/blockchain.service.js';
 import { logger } from '../config/logger.js';
+import { EXPECTED_MERKLE_ROOT, EXPECTED_ISSUER_AX, EXPECTED_ISSUER_AY } from '../config/constants.js';
 
-// Request validation schemas
+const MAX_PROOF_AGE_SECONDS = 3600;
+const MAX_FUTURE_DRIFT_SECONDS = 300;
+
 const verifySchema = z.object({
   userAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address'),
-  proof: z.string(), // hex-encoded proof bytes
-  publicInputs: z.array(z.string()), // decimal string array
-});
-
-const sessionStatusSchema = z.object({
-  address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address'),
+  proof: z.string(),
+  publicInputs: z.array(z.string()),
 });
 
 /**
  * Verify ZK Proof and activate session
  * POST /api/v1/verify
- * 
- * Core functionality from original relay
  */
 export async function verifyAndActivate(req: Request, res: Response): Promise<void> {
   const startTime = Date.now();
 
   try {
-    // Validate request body
     const body = verifySchema.parse(req.body);
     const userAddress = body.userAddress as Address;
 
@@ -54,43 +49,102 @@ export async function verifyAndActivate(req: Request, res: Response): Promise<vo
       return;
     }
 
-    // 2. Verify ZK Proof on-chain
-    logger.debug('Verifying proof on-chain', { userAddress });
-
+    // 2. Parse and validate public inputs
     const proofHex = (body.proof.startsWith('0x') ? body.proof : `0x${body.proof}`) as Hex;
     const inputs = body.publicInputs.map(s => BigInt(s));
 
+    if (inputs.length !== 5) {
+      res.status(400).json({
+        success: false,
+        error: 'Bad Request',
+        message: 'publicInputs must have exactly 5 elements: [userAddress, merkleRoot, issuerAx, issuerAy, timestamp]',
+      });
+      return;
+    }
+
+    // Security Check 1: User address binding
+    const claimedAddressBigInt = BigInt(userAddress);
+    if (inputs[0] !== claimedAddressBigInt) {
+      logger.warn('ZK Proof Hijacking Attempt: userAddress mismatch', {
+        requested: userAddress,
+        proofAddress: inputs[0].toString()
+      });
+      res.status(403).json({
+        success: false,
+        error: 'Forbidden',
+        message: 'ZK Proof does not belong to the requested userAddress',
+      });
+      return;
+    }
+
+    // Security Check 2: Merkle root
+    if (!EXPECTED_MERKLE_ROOT) {
+      logger.error('EXPECTED_MERKLE_ROOT not configured');
+      res.status(500).json({ success: false, error: 'Server misconfiguration' });
+      return;
+    }
+    if (inputs[1] !== BigInt(EXPECTED_MERKLE_ROOT)) {
+      logger.warn('ZK Proof Forgery Attempt: Root mismatch', { proofRoot: inputs[1].toString() });
+      res.status(403).json({
+        success: false,
+        error: 'Forbidden',
+        message: 'Invalid Merkle Root in proof',
+      });
+      return;
+    }
+
+    // Security Check 3: Issuer public key (Ax, Ay)
+    if (!EXPECTED_ISSUER_AX || !EXPECTED_ISSUER_AY) {
+      logger.error('EXPECTED_ISSUER_AX/AY not configured');
+      res.status(500).json({ success: false, error: 'Server misconfiguration' });
+      return;
+    }
+    if (inputs[2] !== BigInt(EXPECTED_ISSUER_AX)) {
+      logger.warn('ZK Proof Forgery Attempt: Issuer Ax mismatch');
+      res.status(403).json({ success: false, error: 'Forbidden', message: 'Invalid Issuer public key in proof' });
+      return;
+    }
+    if (inputs[3] !== BigInt(EXPECTED_ISSUER_AY)) {
+      logger.warn('ZK Proof Forgery Attempt: Issuer Ay mismatch');
+      res.status(403).json({ success: false, error: 'Forbidden', message: 'Invalid Issuer public key in proof' });
+      return;
+    }
+
+    // Security Check 4: Timestamp freshness (anti-replay)
+    const proofTimestamp = Number(inputs[4]);
+    const now = Math.floor(Date.now() / 1000);
+    if (proofTimestamp > now + MAX_FUTURE_DRIFT_SECONDS) {
+      logger.warn('ZK Proof from the future', { proofTimestamp, now });
+      res.status(403).json({ success: false, error: 'Forbidden', message: 'Proof timestamp is in the future' });
+      return;
+    }
+    if (proofTimestamp < now - MAX_PROOF_AGE_SECONDS) {
+      logger.warn('ZK Proof expired', { proofTimestamp, now, maxAge: MAX_PROOF_AGE_SECONDS });
+      res.status(403).json({ success: false, error: 'Forbidden', message: 'Proof has expired' });
+      return;
+    }
+
+    // 3. On-chain proof verification
     let isValid: boolean;
     try {
       isValid = await blockchainService.verifyProof(proofHex, inputs);
     } catch (err: any) {
       logger.error('Proof verification failed', { error: err.message });
-      res.status(400).json({
-        success: false,
-        error: 'Proof verification failed',
-        message: err.message,
-      });
+      res.status(400).json({ success: false, error: 'Proof verification failed', message: err.message });
       return;
     }
 
     if (!isValid) {
       logger.warn('Proof rejected by verifier', { userAddress });
-      res.status(400).json({
-        success: false,
-        error: 'Invalid proof',
-        message: 'ZK Proof verification failed',
-      });
+      res.status(400).json({ success: false, error: 'Invalid proof', message: 'ZK Proof verification failed' });
       return;
     }
 
     logger.info('Proof verified successfully', { userAddress });
 
-    // 3. Activate on-chain session
-    logger.debug('Activating session', { userAddress });
-
+    // 4. Activate on-chain session
     try {
       const result = await blockchainService.startSession(userAddress);
-
       const responseTime = Date.now() - startTime;
 
       logger.info('Session activated successfully', {
@@ -109,11 +163,7 @@ export async function verifyAndActivate(req: Request, res: Response): Promise<vo
       });
     } catch (err: any) {
       logger.error('Session activation failed', { error: err.message });
-      res.status(500).json({
-        success: false,
-        error: 'Session activation failed',
-        message: err.message,
-      });
+      res.status(500).json({ success: false, error: 'Session activation failed', message: err.message });
     }
   } catch (error: any) {
     if (error instanceof z.ZodError) {
@@ -127,11 +177,7 @@ export async function verifyAndActivate(req: Request, res: Response): Promise<vo
     }
 
     logger.error('Verify endpoint error', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'Internal Server Error',
-      message: 'Verification failed',
-    });
+    res.status(500).json({ success: false, error: 'Internal Server Error', message: 'Verification failed' });
   }
 }
 
@@ -143,18 +189,13 @@ export async function getSessionStatus(req: Request, res: Response): Promise<voi
   try {
     const address = req.params.address;
 
-    // Validate address format
     if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address as string)) {
-      res.status(400).json({
-        error: 'Bad Request',
-        message: 'Invalid Ethereum address',
-      });
+      res.status(400).json({ error: 'Bad Request', message: 'Invalid Ethereum address' });
       return;
     }
 
     const userAddress = address as Address;
 
-    // Query on-chain status
     const [isActive, remaining] = await Promise.all([
       blockchainService.isSessionActive(userAddress),
       blockchainService.getRemainingTime(userAddress),
@@ -168,10 +209,7 @@ export async function getSessionStatus(req: Request, res: Response): Promise<voi
     });
   } catch (error: any) {
     logger.error('Get session status failed', { error: error.message });
-    res.status(500).json({
-      error: 'Internal Server Error',
-      message: 'Failed to retrieve session status',
-    });
+    res.status(500).json({ error: 'Internal Server Error', message: 'Failed to retrieve session status' });
   }
 }
 
@@ -188,7 +226,6 @@ export async function healthCheck(req: Request, res: Response): Promise<void> {
       database: 'connected',
     };
 
-    // Test blockchain connection (if available)
     try {
       const block = await blockchainService.getBlockNumber();
       const relayAddress = blockchainService.getRelayAddress();
@@ -208,10 +245,6 @@ export async function healthCheck(req: Request, res: Response): Promise<void> {
     res.json(response);
   } catch (error: any) {
     logger.error('Health check failed', { error: error.message });
-    res.status(503).json({
-      status: 'error',
-      service: 'ILAL API',
-      error: error.message,
-    });
+    res.status(503).json({ status: 'error', service: 'ILAL API', error: error.message });
   }
 }

@@ -15,13 +15,13 @@ export const NODE_ENV = process.env.NODE_ENV || 'development';
 export const DATABASE_URL = process.env.DATABASE_URL!;
 
 // ============ JWT Config ============
-export const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key';
+export const JWT_SECRET = process.env.JWT_SECRET!;
 export const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 export const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '30d';
 
 // ============ API Key Config ============
-export const API_KEY_SECRET = process.env.API_KEY_SECRET || 'dev-api-key-secret';
-export const API_KEY_PREFIX = 'ilal'; // API Key prefix
+export const API_KEY_SECRET = process.env.API_KEY_SECRET!;
+export const API_KEY_PREFIX = 'ilal';
 
 // ============ Blockchain Config ============
 export const RPC_URL = process.env.RPC_URL || 'https://base-sepolia-rpc.publicnode.com';
@@ -38,17 +38,22 @@ export const CONTRACTS = {
   complianceHook: (process.env.COMPLIANCE_HOOK_ADDRESS || '0xDeDcFDF10b03AB45eEbefD2D91EDE66D9E5c8a80') as Address,
 };
 
+// ============ ZK Verification Config ============
+export const EXPECTED_MERKLE_ROOT = process.env.EXPECTED_MERKLE_ROOT;
+export const EXPECTED_ISSUER_AX = process.env.EXPECTED_ISSUER_AX;
+export const EXPECTED_ISSUER_AY = process.env.EXPECTED_ISSUER_AY;
+
 // ============ Rate Limit Config ============
 export const RATE_LIMITS = {
   FREE: {
-    windowMs: 60000, // 1 minute
-    max: Number(process.env.RATE_LIMIT_MAX_REQUESTS_FREE) || 100, // Increased for free early access
-    monthlyQuota: 10000, // Increased for free early access
+    windowMs: 60000,
+    max: Number(process.env.RATE_LIMIT_MAX_REQUESTS_FREE) || 10,
+    monthlyQuota: 1000,
   },
   PRO: {
     windowMs: 60000,
     max: Number(process.env.RATE_LIMIT_MAX_REQUESTS_PRO) || 100,
-    monthlyQuota: 10000,
+    monthlyQuota: 50000,
   },
   ENTERPRISE: {
     windowMs: 60000,
@@ -60,8 +65,8 @@ export const RATE_LIMITS = {
 // ============ Plan Pricing ============
 export const PLAN_PRICING = {
   FREE: 0,
-  PRO: 99, // USD/month
-  ENTERPRISE: null, // Custom pricing
+  PRO: 99,
+  ENTERPRISE: null,
 };
 
 // ============ Validation ============
@@ -72,20 +77,32 @@ export function validateConfig() {
     'API_KEY_SECRET',
   ];
 
-  // Optional: for blockchain features
-  const optional = ['VERIFIER_PRIVATE_KEY'];
+  const requiredInProduction = [
+    'EXPECTED_MERKLE_ROOT',
+    'EXPECTED_ISSUER_AX',
+    'EXPECTED_ISSUER_AY',
+    'VERIFIER_PRIVATE_KEY',
+  ];
 
   const missing = required.filter(key => !process.env[key]);
-  const missingOptional = optional.filter(key => !process.env[key]);
 
   if (missing.length > 0) {
-    console.error('❌ Missing required environment variables:', missing.join(', '));
-    console.error('💡 Please refer to .env.example for configuration');
+    console.error('Missing required environment variables:', missing.join(', '));
+    console.error('Please refer to .env.example for configuration');
     process.exit(1);
   }
 
-  if (missingOptional.length > 0) {
-    console.log('⚠️  Missing optional environment variables:', missingOptional.join(', '));
-    console.log('   Some features (blockchain) may be disabled.');
+  if (NODE_ENV === 'production') {
+    const missingProd = requiredInProduction.filter(key => !process.env[key]);
+    if (missingProd.length > 0) {
+      console.error('Missing required production environment variables:', missingProd.join(', '));
+      process.exit(1);
+    }
+  } else {
+    const missingOptional = requiredInProduction.filter(key => !process.env[key]);
+    if (missingOptional.length > 0) {
+      console.log('Warning: Missing optional environment variables:', missingOptional.join(', '));
+      console.log('Some features (blockchain, ZK verification) may be disabled.');
+    }
   }
 }

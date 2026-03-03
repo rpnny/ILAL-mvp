@@ -82,11 +82,11 @@ class BlockchainService {
   /**
    * Verify a ZK compliance proof on-chain (read-only, no gas needed).
    * Proof must be 768 bytes (24 × 32-byte words, BN254/PLONK).
-   * Public inputs must be exactly 3 uint256 values: [userAddress, merkleRoot, issuerPubKeyHash].
+   * Public inputs must be exactly 5 uint256 values: [userAddress, merkleRoot, issuerAx, issuerAy, timestamp].
    */
   async verifyProof(proof: Hex, publicInputs: bigint[]): Promise<boolean> {
-    if (publicInputs.length !== 3) {
-      throw new Error('publicInputs must have exactly 3 elements: [userAddress, merkleRoot, issuerPubKeyHash]');
+    if (publicInputs.length !== 5) {
+      throw new Error('publicInputs must have exactly 5 elements: [userAddress, merkleRoot, issuerAx, issuerAy, timestamp]');
     }
 
     try {

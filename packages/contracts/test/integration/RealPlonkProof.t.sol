@@ -68,68 +68,61 @@ contract RealPlonkProofTest is Test {
     }
     
     /**
-     * @notice 测试真实生成的 PLONK Proof
+     * @notice 测试真实生成的 PLONK Proof（EdDSA-Poseidon 电路，5 公共输入）
      * @dev 使用 circuits/test-data/foundry-test-data.json 的数据
      */
     function testRealGeneratedPlonkProof() public {
-        console.log("\n=== Test: Real Generated PLONK Proof ===\n");
+        console.log("\n=== Test: Real Generated PLONK Proof (EdDSA) ===\n");
         
-        // 从 generate-test-proof.js 生成的真实数据
         uint256[24] memory proof = [
-            0x2fa0fe6d5e2f705719e5ec98f54bc3c339b279a527b4dad3766d6ff304c7cd87,
-            0x255154c651faf5c0cd1cebf07e6da61fabee7f360d9c4d9b31cbc597cae08fd2,
-            0x1aeb13fea4cfb6837373af4a4ab42f4e2de2544e5c28d873b556590acccf0de4,
-            0x0bedbc11d010f624cec4bd34ba2f4651a48c1d513d4a94559ccfdd8566e1015f,
-            0x14f3928c5ec77252f8d260a0d10f67d4b948ed251a29f47f967b4c9b3f2f8fc8,
-            0x1e7bbf60e0357cd9b09bb08af206cb190fef0032402097ff5ddc6d4ab325f4b9,
-            0x1f4c0f8d0255f075c822361dcd3009918be0f3f6068db819d9b72ce971eabbbf,
-            0x0d79caeff4319a94b82eee1cce764c6a98b045d49e42aa6cbca41e4c8c9c1ce9,
-            0x05f010ba96b18ac645681da549321124e6ce5bb00895d2635cacb7703715aff1,
-            0x0de1c57ee6840a08e72d5325240d809f5611db85ece32dd06a01e5745fffbe2a,
-            0x24830ac393b5ad0bb8160255c911e10db4423d4174114da504e7321d77d68153,
-            0x10f2ffad177950a3b295fd01e94606cb9ae95cb421034097c213b2dd790c3381,
-            0x0f020008b042e92ee3af38414e6c1d503d365c1a196d35603dec17dc610448d4,
-            0x302ee537e83baf083176537887182cf52334fbe0533eee9b7664680e3219e676,
-            0x0870dc095868f908fb28f05bb2ced4e7d1418c531f39cac4061f5630234cf21d,
-            0x26866b1bdebe7a3be88c3912f9581725b875ed53065230d602acef00b87f729e,
-            0x2d0457c69df342b4ba9553b80ef6442f0e910a92a05949739919abcae3464be5,
-            0x00ce06e4c018628e6c0622f5368dc0786a54ca72c43b93097e4d7600e4ea8f6e,
-            0x0f03617a84c8df6935193ef4504eb0e96beeebb717cf43328034b07b40a49551,
-            0x14d4bfd1a4c0923b936297cc11c6fa6ae0f4fd7f75f0bcc3f892eae36b179e81,
-            0x09983d6988899e5489bc15233977d1a19985f37c623752fd6afcd1f86edd099a,
-            0x25962d0bbd8c4f9aa90a5c77aa836d87f52a387c4fb3a4b0b883484e594b0668,
-            0x2971b4bcc84caa28933e358c64c957eda70050d5b8f084fc0b8bcd4122f76976,
-            0x0073754f3f9b59faaad10de3477fd9f40acc80a963b15c195f13384dd3d865f0
+            0x24317d6dd3da6115b55e681facbb83f39adb1dd5dd5d3c9d24493dcad1b2f8aa,
+            0x12ad122bfb699a797084424977003438bdab359164e47f99e6fd2bc760bcaa59,
+            0x217c123f1915f3b76c9af8d60b2ebd8686c2c285b4671a1ec69e3fa47fe2b960,
+            0x0b387defa10da8e0a8f977bca1ea7390ed8b1c638167025b2abbc4a0e105b50d,
+            0x2f896df70d2fd635fb798eb413f422d33f3365c0a7f40715f7acfac6cdf64f3d,
+            0x19af2d607f72bc5a08384357aa8dbb15f8822a1bdf4fdd87d5013edc8d9842b4,
+            0x2f102a304688cf5b707b54d3f6f4fe49100f638d9d7e43d2dc251ba7e3e4d415,
+            0x03e36d0cf7c9b955fd883336773f8579ffe1715692c16ee897b587b7e778f38c,
+            0x2094995212726ea496de252e385c11539176a7ecb734fe34e8774d8420b48d31,
+            0x1e7a29bb6ec9176649d8dcf2cc5a26ca9508fdc69e1a768dda6c95edfaf24060,
+            0x0b8c0c95ea0fcd59924413abe0a092f05206d966b0b7dcb639328c1cb315eebc,
+            0x089af9e6c796e1122316b446d9a24dbcc693e64a4c619aac85f07348b50860a8,
+            0x2f3c87501a16148f8a8b16b5470a249f4ea075b5ad83244590866df1fecd9e5f,
+            0x00d0e1721857d505381fae636068f528eafd9ac5644b7771337d66b8461eec1c,
+            0x0755dda5ded584eb8ecd2defef6c12511c9b293899ec93ccc8a57fc5761e661a,
+            0x2c5e63b637fa9896bb746f8b2a87c00d10aac790eb5f30d6066b1203becef13f,
+            0x17aeecf77d5bca9ecdf80396e1f5dddef4f2bf4639d5d27519fb43bc72db810c,
+            0x0f94e916dcdc652c47a56fbd774883aa5adecad081ad7e7d996e3d6d127198f3,
+            0x0518cfda2143618b0d17f08290d7c6fd831f2da7c8047c24a2471585308ca9fe,
+            0x1cbae337e323593b5cf8df275e044fa4a8173b60105037a0b9a29a38140570a1,
+            0x255b7cda94ec3058d5b70073c31ae5345511ecd616522cbdb08d3db4c33a0145,
+            0x0498bc5ffc4d50e89896089bf8ceb199eeb0ed41929985b9019db8c74f0b4a9f,
+            0x093f4623bbd5a9c0079489f5977ec4588cd33b08b6fec80064a6b60f59e2fa68,
+            0x18a9428b617d4a7a510f7cd8d26af2a3a879e5890a0eaaa735791289e15b8055
         ];
         
-        uint256[3] memory publicInputs = [
+        uint256[5] memory publicInputs = [
             1390849295786071768276380950238675083608645509734,
             16656510059435459681513198351861654749764021936351048812511517263214375261742,
-            305171102522423601911163225780764181897910540270
+            13277427435165878497778222415993513565335242147425444199013288855685581939618,
+            13622229784656158136036771217484571176836296686641868549125388198837476602820,
+            1772509446
         ];
         
         console.log("Public Inputs:");
         console.log("- userAddress:", publicInputs[0]);
         console.log("- merkleRoot:", publicInputs[1]);
-        console.log("- issuerPubKeyHash:", publicInputs[2]);
+        console.log("- issuerAx:", publicInputs[2]);
+        console.log("- issuerAy:", publicInputs[3]);
+        console.log("- timestamp:", publicInputs[4]);
         
-        // 测试 PlonkVerifier 直接验证
         console.log("\nStep 1: Testing PlonkVerifier...");
         bool isValid = plonkVerifier.verifyProof(proof, publicInputs);
-        
-        if (isValid) {
-            console.log("SUCCESS: PlonkVerifier: VALID");
-        } else {
-            console.log("FAILED: PlonkVerifier: INVALID");
-        }
-        
         assertTrue(isValid, "PlonkVerifier should validate the proof");
+        console.log("SUCCESS: PlonkVerifier: VALID");
         
-        // 测试 PlonkVerifierAdapter
         console.log("\nStep 2: Testing PlonkVerifierAdapter...");
-        
-        // 将 proof 编码为 bytes
-        bytes memory proofBytes = new bytes(768); // 24 * 32 bytes
+        bytes memory proofBytes = new bytes(768);
         for (uint i = 0; i < 24; i++) {
             bytes32 element = bytes32(proof[i]);
             for (uint j = 0; j < 32; j++) {
@@ -137,21 +130,14 @@ contract RealPlonkProofTest is Test {
             }
         }
         
-        // 将 publicInputs 转换为动态数组
-        uint256[] memory publicInputsArray = new uint256[](3);
-        publicInputsArray[0] = publicInputs[0];
-        publicInputsArray[1] = publicInputs[1];
-        publicInputsArray[2] = publicInputs[2];
-        
-        bool isValidAdapter = verifierAdapter.verifyComplianceProof(proofBytes, publicInputsArray);
-        
-        if (isValidAdapter) {
-            console.log("SUCCESS: PlonkVerifierAdapter: VALID");
-        } else {
-            console.log("FAILED: PlonkVerifierAdapter: INVALID");
+        uint256[] memory publicInputsArray = new uint256[](5);
+        for (uint i = 0; i < 5; i++) {
+            publicInputsArray[i] = publicInputs[i];
         }
         
+        bool isValidAdapter = verifierAdapter.verifyComplianceProof(proofBytes, publicInputsArray);
         assertTrue(isValidAdapter, "PlonkVerifierAdapter should validate the proof");
+        console.log("SUCCESS: PlonkVerifierAdapter: VALID");
         
         console.log("\nSUCCESS: All verifications passed!");
     }
@@ -162,41 +148,41 @@ contract RealPlonkProofTest is Test {
     function testProofVerificationAndSessionActivation() public {
         console.log("\n=== Test: Proof Verification + Session Activation ===\n");
         
-        // 使用真实生成的 proof
         uint256[24] memory proof = [
-            0x2fa0fe6d5e2f705719e5ec98f54bc3c339b279a527b4dad3766d6ff304c7cd87,
-            0x255154c651faf5c0cd1cebf07e6da61fabee7f360d9c4d9b31cbc597cae08fd2,
-            0x1aeb13fea4cfb6837373af4a4ab42f4e2de2544e5c28d873b556590acccf0de4,
-            0x0bedbc11d010f624cec4bd34ba2f4651a48c1d513d4a94559ccfdd8566e1015f,
-            0x14f3928c5ec77252f8d260a0d10f67d4b948ed251a29f47f967b4c9b3f2f8fc8,
-            0x1e7bbf60e0357cd9b09bb08af206cb190fef0032402097ff5ddc6d4ab325f4b9,
-            0x1f4c0f8d0255f075c822361dcd3009918be0f3f6068db819d9b72ce971eabbbf,
-            0x0d79caeff4319a94b82eee1cce764c6a98b045d49e42aa6cbca41e4c8c9c1ce9,
-            0x05f010ba96b18ac645681da549321124e6ce5bb00895d2635cacb7703715aff1,
-            0x0de1c57ee6840a08e72d5325240d809f5611db85ece32dd06a01e5745fffbe2a,
-            0x24830ac393b5ad0bb8160255c911e10db4423d4174114da504e7321d77d68153,
-            0x10f2ffad177950a3b295fd01e94606cb9ae95cb421034097c213b2dd790c3381,
-            0x0f020008b042e92ee3af38414e6c1d503d365c1a196d35603dec17dc610448d4,
-            0x302ee537e83baf083176537887182cf52334fbe0533eee9b7664680e3219e676,
-            0x0870dc095868f908fb28f05bb2ced4e7d1418c531f39cac4061f5630234cf21d,
-            0x26866b1bdebe7a3be88c3912f9581725b875ed53065230d602acef00b87f729e,
-            0x2d0457c69df342b4ba9553b80ef6442f0e910a92a05949739919abcae3464be5,
-            0x00ce06e4c018628e6c0622f5368dc0786a54ca72c43b93097e4d7600e4ea8f6e,
-            0x0f03617a84c8df6935193ef4504eb0e96beeebb717cf43328034b07b40a49551,
-            0x14d4bfd1a4c0923b936297cc11c6fa6ae0f4fd7f75f0bcc3f892eae36b179e81,
-            0x09983d6988899e5489bc15233977d1a19985f37c623752fd6afcd1f86edd099a,
-            0x25962d0bbd8c4f9aa90a5c77aa836d87f52a387c4fb3a4b0b883484e594b0668,
-            0x2971b4bcc84caa28933e358c64c957eda70050d5b8f084fc0b8bcd4122f76976,
-            0x0073754f3f9b59faaad10de3477fd9f40acc80a963b15c195f13384dd3d865f0
+            0x24317d6dd3da6115b55e681facbb83f39adb1dd5dd5d3c9d24493dcad1b2f8aa,
+            0x12ad122bfb699a797084424977003438bdab359164e47f99e6fd2bc760bcaa59,
+            0x217c123f1915f3b76c9af8d60b2ebd8686c2c285b4671a1ec69e3fa47fe2b960,
+            0x0b387defa10da8e0a8f977bca1ea7390ed8b1c638167025b2abbc4a0e105b50d,
+            0x2f896df70d2fd635fb798eb413f422d33f3365c0a7f40715f7acfac6cdf64f3d,
+            0x19af2d607f72bc5a08384357aa8dbb15f8822a1bdf4fdd87d5013edc8d9842b4,
+            0x2f102a304688cf5b707b54d3f6f4fe49100f638d9d7e43d2dc251ba7e3e4d415,
+            0x03e36d0cf7c9b955fd883336773f8579ffe1715692c16ee897b587b7e778f38c,
+            0x2094995212726ea496de252e385c11539176a7ecb734fe34e8774d8420b48d31,
+            0x1e7a29bb6ec9176649d8dcf2cc5a26ca9508fdc69e1a768dda6c95edfaf24060,
+            0x0b8c0c95ea0fcd59924413abe0a092f05206d966b0b7dcb639328c1cb315eebc,
+            0x089af9e6c796e1122316b446d9a24dbcc693e64a4c619aac85f07348b50860a8,
+            0x2f3c87501a16148f8a8b16b5470a249f4ea075b5ad83244590866df1fecd9e5f,
+            0x00d0e1721857d505381fae636068f528eafd9ac5644b7771337d66b8461eec1c,
+            0x0755dda5ded584eb8ecd2defef6c12511c9b293899ec93ccc8a57fc5761e661a,
+            0x2c5e63b637fa9896bb746f8b2a87c00d10aac790eb5f30d6066b1203becef13f,
+            0x17aeecf77d5bca9ecdf80396e1f5dddef4f2bf4639d5d27519fb43bc72db810c,
+            0x0f94e916dcdc652c47a56fbd774883aa5adecad081ad7e7d996e3d6d127198f3,
+            0x0518cfda2143618b0d17f08290d7c6fd831f2da7c8047c24a2471585308ca9fe,
+            0x1cbae337e323593b5cf8df275e044fa4a8173b60105037a0b9a29a38140570a1,
+            0x255b7cda94ec3058d5b70073c31ae5345511ecd616522cbdb08d3db4c33a0145,
+            0x0498bc5ffc4d50e89896089bf8ceb199eeb0ed41929985b9019db8c74f0b4a9f,
+            0x093f4623bbd5a9c0079489f5977ec4588cd33b08b6fec80064a6b60f59e2fa68,
+            0x18a9428b617d4a7a510f7cd8d26af2a3a879e5890a0eaaa735791289e15b8055
         ];
         
-        uint256[3] memory publicInputs = [
+        uint256[5] memory publicInputs = [
             1390849295786071768276380950238675083608645509734,
             16656510059435459681513198351861654749764021936351048812511517263214375261742,
-            305171102522423601911163225780764181897910540270
+            13277427435165878497778222415993513565335242147425444199013288855685581939618,
+            13622229784656158136036771217484571176836296686641868549125388198837476602820,
+            1772509446
         ];
         
-        // userAddress 从 publicInputs[0] 转换
         address user = address(uint160(publicInputs[0]));
         console.log("User address:", user);
         

@@ -81,7 +81,11 @@ contract ForkSwapTest is Test {
         string memory rpcUrl = vm.envOr("BASE_SEPOLIA_RPC_URL", string(""));
         if (bytes(rpcUrl).length == 0) {
             vm.skip(true);
+            return;
         }
+
+        uint256 forkId = vm.createFork(rpcUrl);
+        vm.selectFork(forkId);
 
         registry   = IForkRegistry(REGISTRY);
         sessionMgr = IForkSessionMgr(SESSION_MGR);
@@ -347,7 +351,9 @@ contract ForkSwapTest is Test {
 
     // ============ Helpers ============
 
-    /// @dev Encode Mode 2 hookData: right-pad user address to 20 bytes.
+    /// @dev For fork tests against deployed on-chain contracts (which still support address-forwarding),
+    ///      we pass the user address as 20-byte hookData so the hook resolves the correct user.
+    ///      New local deployments use empty hookData (Mode 2 EOA direct call).
     function _routerHookData(address user) internal pure returns (bytes memory) {
         return abi.encodePacked(bytes20(user));
     }

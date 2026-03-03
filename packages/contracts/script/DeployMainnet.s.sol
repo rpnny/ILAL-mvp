@@ -77,7 +77,7 @@ contract DeployMainnet is Script {
 
         // 3. 部署 ComplianceHook
         console.log("3. Deploying ComplianceHook...");
-        ComplianceHook hook = new ComplianceHook(registry, sessionManager);
+        ComplianceHook hook = new ComplianceHook(POOL_MANAGER, registry, sessionManager);
         complianceHook = address(hook);
         console.log("   ComplianceHook:", complianceHook);
 

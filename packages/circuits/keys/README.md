@@ -4,6 +4,23 @@ This directory contains cryptographic keys for zero-knowledge proof generation.
 
 ## Required Files
 
+### compliance.zkey (~136 MB)
+
+This is the PLONK proving key generated from the trusted setup.
+
+**⚠️ This file is NOT included in the repository due to its large size (~136MB).**
+
+Generate it by running the trusted setup script after downloading `pot20_final.ptau`:
+
+```bash
+cd packages/circuits
+npm run setup   # runs scripts/setup.sh
+```
+
+This will produce `keys/compliance.zkey`, `keys/verification_key.json`, and regenerate `src/verifiers/PlonkVerifier.sol`.
+
+---
+
 ### pot20_final.ptau (1.1 GB)
 
 This is the Powers of Tau ceremony file required for PLONK proof generation.

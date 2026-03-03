@@ -26,6 +26,7 @@ contract E2ETest is Test {
 
     address public governance = makeAddr("governance");
     address public router = makeAddr("router");
+    address public mockPoolManager = makeAddr("poolManager");
 
     uint256 public alicePrivateKey = 0xa11ce;
     uint256 public bobPrivateKey = 0xb0b;
@@ -83,8 +84,7 @@ contract E2ETest is Test {
         vm.prank(governance);
         sessionManager.grantRole(verifierRole, address(verifier));
 
-        // 部署 Hook
-        hook = new ComplianceHook(address(registry), address(sessionManager));
+        hook = new ComplianceHook(mockPoolManager, address(registry), address(sessionManager));
     }
 
     function _configureSystem() internal {
@@ -139,109 +139,92 @@ contract E2ETest is Test {
     // ============ 完整用户流程测试 ============
 
     function test_E2E_CompleteUserJourney() public {
-        // === 步骤 1: 用户验证身份 ===
+        _e2e_phase1();
+    }
+
+    function _e2e_phase1() internal {
         uint256 expiry = block.timestamp + 24 hours;
 
         vm.prank(address(verifier));
         sessionManager.startSession(aliceAddr, expiry);
-
         assertTrue(sessionManager.isSessionActive(aliceAddr));
 
-        // === 步骤 2: 执行 Swap 交易 ===
-        bytes memory hookData = abi.encodePacked(aliceAddr);
+        bytes memory hookData = "";
         PoolKey memory key = _createPoolKey();
         IPoolManager.SwapParams memory params = _createSwapParams();
 
-        vm.prank(router);
-        (bytes4 selector,,) = hook.beforeSwap(router, key, params, hookData);
+        vm.prank(mockPoolManager);
+        (bytes4 selector,,) = hook.beforeSwap(aliceAddr, key, params, hookData);
         assertTrue(selector == IHooks.beforeSwap.selector);
 
-        // === 步骤 3: 添加流动性 ===
         IPoolManager.ModifyLiquidityParams memory modParams = _createModifyLiquidityParams();
-        
-        vm.prank(router);
-        bytes4 selectorLiq = hook.beforeAddLiquidity(router, key, modParams, hookData);
+        vm.prank(mockPoolManager);
+        bytes4 selectorLiq = hook.beforeAddLiquidity(aliceAddr, key, modParams, hookData);
         assertTrue(selectorLiq == IHooks.beforeAddLiquidity.selector);
 
-        // === 步骤 4: Session 过期 ===
         vm.warp(expiry + 1);
         assertFalse(sessionManager.isSessionActive(aliceAddr));
 
-        // === 步骤 5: 过期后交易失败 ===
-        vm.prank(router);
+        vm.prank(mockPoolManager);
         vm.expectRevert(abi.encodeWithSelector(ComplianceHook.NotVerified.selector, aliceAddr));
-        hook.beforeSwap(router, key, params, hookData);
+        hook.beforeSwap(aliceAddr, key, params, hookData);
 
-        // === 步骤 6: 重新验证 ===
+        _e2e_phase2(hookData, key, params);
+    }
+
+    function _e2e_phase2(
+        bytes memory hookData,
+        PoolKey memory key,
+        IPoolManager.SwapParams memory params
+    ) internal {
+        uint256 renewedExpiry = block.timestamp + 12 hours;
         vm.prank(address(verifier));
-        sessionManager.startSession(aliceAddr, expiry + 48 hours);
+        sessionManager.startSession(aliceAddr, renewedExpiry);
         assertTrue(sessionManager.isSessionActive(aliceAddr));
 
-        // === 步骤 7: 恢复交易 ===
-        vm.prank(router);
-        (selector,,) = hook.beforeSwap(router, key, params, hookData);
+        vm.prank(mockPoolManager);
+        (bytes4 selector,,) = hook.beforeSwap(aliceAddr, key, params, hookData);
         assertTrue(selector == IHooks.beforeSwap.selector);
     }
 
     // ============ 未验证用户测试 ============
 
     function test_E2E_UnverifiedUserBlocked() public {
-        // console.log removed for compilation
-
-        // Bob 没有验证
         assertFalse(sessionManager.isSessionActive(bob));
 
-        // Bob 尝试交易 - 使用模式 3（仅地址模式）
-        bytes memory hookData = abi.encodePacked(bob);
-
-        vm.prank(router);
+        bytes memory hookData = "";
+        vm.prank(mockPoolManager);
         vm.expectRevert(abi.encodeWithSelector(ComplianceHook.NotVerified.selector, bob));
         PoolKey memory key = _createPoolKey();
         IPoolManager.SwapParams memory params = _createSwapParams();
-        hook.beforeSwap(router, key, params, hookData);
-
-        // console.log removed for compilation
+        hook.beforeSwap(bob, key, params, hookData);
     }
 
     // ============ 紧急暂停测试 ============
 
     function test_E2E_EmergencyPause() public {
-        // console.log removed for compilation
-
-        // Alice 验证并激活 Session
         vm.prank(address(verifier));
         sessionManager.startSession(aliceAddr, block.timestamp + 24 hours);
 
-        // 治理触发紧急暂停
         vm.prank(governance);
         registry.setEmergencyPause(true);
 
-        // console.log removed for compilation
+        bytes memory hookData = "";
 
-        // 使用模式 3（仅地址模式）
-        bytes memory hookData = abi.encodePacked(aliceAddr);
-
-        // Alice 尝试交易应该失败
-        vm.prank(router);
+        vm.prank(mockPoolManager);
         vm.expectRevert(ComplianceHook.EmergencyPaused.selector);
         PoolKey memory key5 = _createPoolKey();
         IPoolManager.SwapParams memory params5 = _createSwapParams();
-        hook.beforeSwap(router, key5, params5, hookData);
+        hook.beforeSwap(aliceAddr, key5, params5, hookData);
 
-        // console.log removed for compilation
-
-        // 解除暂停
         vm.prank(governance);
         registry.setEmergencyPause(false);
 
-        // 现在应该可以交易
-        vm.prank(router);
+        vm.prank(mockPoolManager);
         PoolKey memory key6 = _createPoolKey();
         IPoolManager.SwapParams memory params6 = _createSwapParams();
-        (bytes4 selector6,,) = hook.beforeSwap(router, key6, params6, hookData);
+        (bytes4 selector6,,) = hook.beforeSwap(aliceAddr, key6, params6, hookData);
         assertTrue(selector6 == IHooks.beforeSwap.selector);
-
-        // console.log removed for compilation
     }
 
 }

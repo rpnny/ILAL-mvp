@@ -76,6 +76,9 @@ contract SessionManager is
         if (user == address(0)) revert ZeroAddress();
         if (expiry <= block.timestamp) revert InvalidExpiry();
 
+        uint256 maxTTL = registry.getSessionTTL();
+        if (expiry > block.timestamp + maxTTL) revert InvalidExpiry();
+
         _sessionExpiry[user] = expiry;
 
         emit SessionStarted(user, expiry);
@@ -179,4 +182,6 @@ contract SessionManager is
     function version() external pure returns (string memory) {
         return "1.0.0";
     }
+
+    uint256[48] private __gap;
 }

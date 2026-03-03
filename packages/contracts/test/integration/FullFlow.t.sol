@@ -82,7 +82,7 @@ contract FullFlowTest is Test {
         sessionManager.grantRole(verifierRole, address(verifier));
 
         // 部署 Hook
-        hook = new ComplianceHook(address(registry), address(sessionManager));
+        hook = new ComplianceHook(address(1), address(registry), address(sessionManager)); // TODO: use real poolManager
     }
 
     function _configureSystem() internal {

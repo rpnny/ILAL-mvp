@@ -90,6 +90,15 @@ export async function apiKeyMiddleware(
       return;
     }
 
+    // Check expiration
+    if (matchedKey.expiresAt && new Date(matchedKey.expiresAt) < new Date()) {
+      res.status(401).json({
+        error: 'Unauthorized',
+        message: 'API Key has expired',
+      });
+      return;
+    }
+
     // Update last used time (async, non-blocking)
     prisma.apiKey.update({
       where: { id: matchedKey.id },

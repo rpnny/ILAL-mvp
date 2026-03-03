@@ -100,7 +100,7 @@ contract VerifiedPoolsPositionManagerTest is Test {
         // 这里为了简化 PositionManager 单位测试绕过 Hook 地狱限制，我们使用不带 hook 的池子或者 Mock Hook
         // 虽然业务需要 hook，但 position manager 本质与 hook 解耦
         
-        hook = new ComplianceHook(address(registry), address(sessionManager));
+        hook = new ComplianceHook(address(poolManager), address(registry), address(sessionManager));
 
         positionManager = new VerifiedPoolsPositionManager(
             address(poolManager),

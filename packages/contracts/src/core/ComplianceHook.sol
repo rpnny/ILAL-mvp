@@ -14,28 +14,18 @@ import {EIP712Verifier} from "../libraries/EIP712Verifier.sol";
 
 /**
  * @title ComplianceHook
- * @notice Uniswap v4 合规 Hook — 实现身份验证和准入控制
- * @dev 实现完整的 IHooks 接口，与 Uniswap v4 PoolManager 完全兼容
- *
- * 合规流程：
- *   beforeSwap / beforeAddLiquidity / beforeRemoveLiquidity
- *   → 解析 hookData 获取用户身份
- *   → 检查 SessionManager.isSessionActive(user)
- *   → 放行或拒绝
- *
- * hookData 支持三种模式：
- *   1. 完整 EIP-712 签名（最安全）
- *   2. EOA 直接调用（hookData 为空）
- *   3. 白名单路由转发（hookData 仅含地址）
+ * @notice Uniswap v4 compliance hook — identity verification and access control
+ * @dev Only callable by the PoolManager (prevents nonce griefing).
+ *      hookData modes:
+ *        1. Full EIP-712 signature (hookData >= 148 bytes)
+ *        2. EOA direct call (hookData empty, sender = user)
  */
 contract ComplianceHook is IComplianceHook, IHooks, EIP712Verifier {
-    // ============ 状态变量 ============
+    // ============ State ============
 
-    /// @notice Registry 合约引用
     IRegistry public immutable registry;
-
-    /// @notice SessionManager 合约引用
     ISessionManager public immutable sessionManager;
+    IPoolManager public immutable poolManager;
 
     // ============ Events ============
 
@@ -47,10 +37,10 @@ contract ComplianceHook is IComplianceHook, IHooks, EIP712Verifier {
     error NotVerified(address user);
     error EmergencyPaused();
     error InvalidHookData();
+    error OnlyPoolManager();
 
     // ============ Structs ============
 
-    /// @notice hookData 解析结构
     struct PermitData {
         address user;
         uint256 deadline;
@@ -58,25 +48,36 @@ contract ComplianceHook is IComplianceHook, IHooks, EIP712Verifier {
         bytes signature;
     }
 
-    // ============ 构造函数 ============
+    // ============ Modifiers ============
 
-    constructor(address _registry, address _sessionManager) EIP712Verifier() {
-        if (_registry == address(0) || _sessionManager == address(0)) {
+    modifier onlyPoolManager() {
+        if (msg.sender != address(poolManager)) revert OnlyPoolManager();
+        _;
+    }
+
+    // ============ Constructor ============
+
+    constructor(
+        address _poolManager,
+        address _registry,
+        address _sessionManager
+    ) EIP712Verifier() {
+        if (_poolManager == address(0) || _registry == address(0) || _sessionManager == address(0)) {
             revert("Invalid addresses");
         }
+        poolManager = IPoolManager(_poolManager);
         registry = IRegistry(_registry);
         sessionManager = ISessionManager(_sessionManager);
     }
 
-    // ============ Uniswap v4 IHooks — 完整实现 ============
+    // ============ Uniswap v4 IHooks ============
 
-    /// @notice Swap 前合规检查
     function beforeSwap(
         address sender,
         PoolKey calldata,
         IPoolManager.SwapParams calldata,
         bytes calldata hookData
-    ) external override returns (bytes4, BeforeSwapDelta, uint24) {
+    ) external override onlyPoolManager returns (bytes4, BeforeSwapDelta, uint24) {
         if (registry.emergencyPaused()) {
             revert EmergencyPaused();
         }
@@ -93,13 +94,12 @@ contract ComplianceHook is IComplianceHook, IHooks, EIP712Verifier {
         return (IHooks.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
 
-    /// @notice 添加流动性前合规检查
     function beforeAddLiquidity(
         address sender,
         PoolKey calldata,
         IPoolManager.ModifyLiquidityParams calldata,
         bytes calldata hookData
-    ) external override returns (bytes4) {
+    ) external override onlyPoolManager returns (bytes4) {
         if (registry.emergencyPaused()) {
             revert EmergencyPaused();
         }
@@ -116,28 +116,26 @@ contract ComplianceHook is IComplianceHook, IHooks, EIP712Verifier {
         return IHooks.beforeAddLiquidity.selector;
     }
 
-    /// @notice 移除流动性前合规检查
-    /// @dev 紧急暂停时仍允许移除（机构"逃生舱"）
+    /// @dev Emergency pause does NOT block removals — ensures users can always withdraw.
+    ///      Session check is advisory; non-active users can still withdraw but trigger a warning.
     function beforeRemoveLiquidity(
         address sender,
         PoolKey calldata,
         IPoolManager.ModifyLiquidityParams calldata,
         bytes calldata hookData
-    ) external override returns (bytes4) {
-        // 不检查 emergencyPaused — 确保紧急情况下可撤资
+    ) external override onlyPoolManager returns (bytes4) {
         address user = _resolveUser(sender, hookData);
         bool allowed = sessionManager.isSessionActive(user);
 
         if (!allowed) {
-            emit AccessDenied(user, "Session not active");
-            revert NotVerified(user);
+            emit AccessDenied(user, "Session not active but withdrawal allowed");
         }
 
         emit LiquidityAttempt(user, false, allowed);
         return IHooks.beforeRemoveLiquidity.selector;
     }
 
-    // ============ IHooks — 未使用的 Hook（返回默认值） ============
+    // ============ IHooks — unused hooks (return defaults) ============
 
     function beforeInitialize(address, PoolKey calldata, uint160) external pure override returns (bytes4) {
         return IHooks.beforeInitialize.selector;
@@ -180,20 +178,23 @@ contract ComplianceHook is IComplianceHook, IHooks, EIP712Verifier {
         return IHooks.afterDonate.selector;
     }
 
-    // ============ 用户解析 ============
+    // ============ User Resolution ============
 
     /**
-     * @notice 解析实际用户地址
-     * @dev 支持三种模式：
-     *   1. 完整 EIP-712 签名（hookData >= 148 bytes）
-     *   2. EOA 直接调用（hookData 为空）
-     *   3. 白名单路由转发（hookData >= 20 bytes，仅含地址）
+     * @notice Resolve the actual user address from hookData
+     * @dev Two modes only:
+     *   1. Full EIP-712 signature (hookData >= 148 bytes)
+     *   2. EOA direct call (hookData empty — sender IS the user)
+     *
+     *   All operations (swap, addLiquidity, removeLiquidity) use the same SwapPermit
+     *   type for identity verification. The hook's role is access control (session check),
+     *   not operation-level authorization. verifyLiquidityPermit in EIP712Verifier is
+     *   available for future use if operation-specific permits are needed.
      */
     function _resolveUser(address sender, bytes calldata hookData)
         internal
         returns (address user)
     {
-        // 模式 1: 完整签名验证
         if (hookData.length >= 148) {
             PermitData memory permit = abi.decode(hookData, (PermitData));
             verifySwapPermit(permit.user, permit.deadline, permit.nonce, permit.signature);
@@ -201,24 +202,14 @@ contract ComplianceHook is IComplianceHook, IHooks, EIP712Verifier {
             return permit.user;
         }
 
-        // 模式 2: EOA 直接调用
         if (hookData.length == 0) {
             return sender;
-        }
-
-        // 模式 3: 白名单路由转发
-        if (hookData.length >= 20) {
-            user = address(bytes20(hookData[0:20]));
-            if (!registry.isRouterApproved(sender)) {
-                revert InvalidHookData();
-            }
-            return user;
         }
 
         revert InvalidHookData();
     }
 
-    // ============ 查询函数 ============
+    // ============ View Functions ============
 
     /// @inheritdoc IComplianceHook
     function isUserAllowed(address user) external view override(IComplianceHook) returns (bool) {

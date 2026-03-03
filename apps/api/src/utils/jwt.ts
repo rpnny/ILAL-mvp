@@ -9,30 +9,31 @@ export interface JWTPayload {
   userId: string;
   email: string;
   plan: string;
+  type: 'access' | 'refresh';
   iat?: number;
   exp?: number;
 }
 
 /**
- * Generate access token
+ * Generate access token (short-lived)
  */
-export function generateAccessToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
-  return jwt.sign(payload, JWT_SECRET, {
+export function generateAccessToken(payload: Omit<JWTPayload, 'iat' | 'exp' | 'type'>): string {
+  return jwt.sign({ ...payload, type: 'access' }, JWT_SECRET, {
     expiresIn: JWT_EXPIRES_IN as any,
   });
 }
 
 /**
- * Generate refresh token
+ * Generate refresh token (long-lived)
  */
-export function generateRefreshToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
-  return jwt.sign(payload, JWT_SECRET, {
+export function generateRefreshToken(payload: Omit<JWTPayload, 'iat' | 'exp' | 'type'>): string {
+  return jwt.sign({ ...payload, type: 'refresh' }, JWT_SECRET, {
     expiresIn: JWT_REFRESH_EXPIRES_IN as any,
   });
 }
 
 /**
- * Verify token
+ * Verify and decode a token. Throws on invalid/expired tokens.
  */
 export function verifyToken(token: string): JWTPayload {
   try {
@@ -43,7 +44,7 @@ export function verifyToken(token: string): JWTPayload {
 }
 
 /**
- * Decode token (without verifying signature)
+ * Decode token without signature verification (for debugging only)
  */
 export function decodeToken(token: string): JWTPayload | null {
   try {

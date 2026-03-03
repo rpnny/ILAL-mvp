@@ -1,45 +1,56 @@
 #!/bin/bash
 
-# ILAL 电路编译脚本
+# ILAL Circuit Compilation Script
 
 set -e
 
-echo "🔨 编译 ILAL 合规电路..."
+echo "Compiling ILAL compliance circuit..."
 
-# 检查 Circom 是否安装
 if ! command -v circom &> /dev/null; then
-    echo "❌ 错误: Circom 未安装"
-    echo "请运行: cargo install circom"
+    echo "Error: Circom not installed. Run: cargo install circom"
     exit 1
 fi
 
-echo "✅ Circom 版本: $(circom --version)"
+echo "Circom version: $(circom --version)"
 
-# 创建输出目录
-mkdir -p ../build
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+CIRCUIT_DIR="$(dirname "$SCRIPT_DIR")"
 
-# 编译电路
+# Resolve circomlib include path: prefer local node_modules, fall back to parent
+if [ -d "$CIRCUIT_DIR/node_modules/circomlib/circuits" ]; then
+    CIRCOMLIB_PATH="$CIRCUIT_DIR/node_modules/circomlib/circuits"
+elif [ -d "$CIRCUIT_DIR/../../node_modules/circomlib/circuits" ]; then
+    CIRCOMLIB_PATH="$CIRCUIT_DIR/../../node_modules/circomlib/circuits"
+else
+    echo "Error: circomlib not found. Run 'npm install' in packages/circuits/"
+    exit 1
+fi
+
+echo "Using circomlib at: $CIRCOMLIB_PATH"
+
+mkdir -p "$CIRCUIT_DIR/build"
+
 echo ""
-echo "📦 编译 compliance.circom..."
-circom ../compliance.circom \
+echo "Compiling compliance.circom..."
+circom "$CIRCUIT_DIR/compliance.circom" \
     --r1cs \
     --wasm \
     --sym \
     --c \
-    -o ../build \
-    -l ../circuits-lib/circuits
+    -o "$CIRCUIT_DIR/build" \
+    -l "$CIRCOMLIB_PATH"
 
 echo ""
-echo "✅ 编译完成!"
+echo "Compilation complete!"
 echo ""
-echo "📊 电路信息:"
-snarkjs r1cs info ../build/compliance.r1cs
+echo "Circuit info:"
+npx snarkjs r1cs info "$CIRCUIT_DIR/build/compliance.r1cs"
 
 echo ""
-echo "📁 输出文件:"
-ls -lh ../build/
+echo "Output files:"
+ls -lh "$CIRCUIT_DIR/build/"
 
 echo ""
-echo "下一步:"
-echo "  1. 运行 ./setup.sh 进行 PLONK Setup"
-echo "  2. 运行 ./generate-proof.sh 生成测试证明"
+echo "Next steps:"
+echo "  1. Run ./setup.sh for PLONK trusted setup"
+echo "  2. Run node generate-test-proof.js to generate a test proof"

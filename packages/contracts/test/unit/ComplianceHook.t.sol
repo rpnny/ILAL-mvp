@@ -6,6 +6,7 @@ import "../../src/core/ComplianceHook.sol";
 import "../../src/core/Registry.sol";
 import "../../src/core/SessionManager.sol";
 import "../../src/core/MockVerifier.sol";
+import "../../src/interfaces/IComplianceHook.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {PoolKey} from "@uniswap/v4-core/types/PoolKey.sol";
 import {Currency} from "@uniswap/v4-core/types/Currency.sol";
@@ -23,6 +24,7 @@ contract ComplianceHookTest is Test {
     address public alice = makeAddr("alice");
     address public bob = makeAddr("bob");
     address public router = makeAddr("router");
+    address public constant POOL_MANAGER = address(1);
 
     function setUp() public {
         // 部署 Registry
@@ -59,8 +61,7 @@ contract ComplianceHookTest is Test {
         vm.prank(admin);
         sessionManager.grantRole(verifierRole, address(verifier));
 
-        // 部署 Hook
-        hook = new ComplianceHook(address(registry), address(sessionManager));
+        hook = new ComplianceHook(POOL_MANAGER, address(registry), address(sessionManager));
 
         // 批准路由器
         vm.prank(admin);
@@ -100,60 +101,65 @@ contract ComplianceHookTest is Test {
     // ============ 交换测试 ============
 
     function test_BeforeSwap_Allowed() public {
-        // 设置 Alice 的会话
         vm.prank(address(verifier));
         sessionManager.startSession(alice, block.timestamp + 24 hours);
 
-        // 模拟交换
-        bytes memory hookData = abi.encodePacked(alice);
+        bytes memory hookData = "";
         PoolKey memory key = _createPoolKey();
         IPoolManager.SwapParams memory params = _createSwapParams();
-        (bytes4 selector,,) = hook.beforeSwap(router, key, params, hookData);
+        vm.prank(POOL_MANAGER);
+        (bytes4 selector,,) = hook.beforeSwap(alice, key, params, hookData);
 
         assertTrue(selector == IHooks.beforeSwap.selector);
     }
 
     function test_RevertWhen_BeforeSwap_NotVerified() public {
-        // Bob 没有会话，应该失败
-        bytes memory hookData = abi.encodePacked(bob);
-        vm.prank(router);
+        bytes memory hookData = "";
+        vm.prank(POOL_MANAGER);
         vm.expectRevert(abi.encodeWithSelector(ComplianceHook.NotVerified.selector, bob));
         PoolKey memory key = _createPoolKey();
         IPoolManager.SwapParams memory params = _createSwapParams();
-        hook.beforeSwap(router, key, params, hookData);
+        hook.beforeSwap(bob, key, params, hookData);
     }
 
     function test_RevertWhen_BeforeSwap_EmergencyPaused() public {
-        // 设置 Alice 的会话
         vm.prank(address(verifier));
         sessionManager.startSession(alice, block.timestamp + 24 hours);
 
-        // 触发紧急暂停
         vm.prank(admin);
         registry.setEmergencyPause(true);
 
-        // 应该失败
-        bytes memory hookData = abi.encodePacked(alice);
-        vm.prank(router);
+        bytes memory hookData = "";
+        vm.prank(POOL_MANAGER);
         vm.expectRevert(ComplianceHook.EmergencyPaused.selector);
         PoolKey memory key = _createPoolKey();
         IPoolManager.SwapParams memory params = _createSwapParams();
-        hook.beforeSwap(router, key, params, hookData);
+        hook.beforeSwap(alice, key, params, hookData);
     }
 
     function test_BeforeSwap_EOA() public {
-        // Alice 直接调用 (不通过路由器)
         vm.prank(address(verifier));
         sessionManager.startSession(alice, block.timestamp + 24 hours);
 
-        // 模拟 EOA 调用 (空 hookData)
         bytes memory hookData = "";
-        vm.prank(alice);
+        vm.prank(POOL_MANAGER);
         PoolKey memory key = _createPoolKey();
         IPoolManager.SwapParams memory params = _createSwapParams();
         (bytes4 selector,,) = hook.beforeSwap(alice, key, params, hookData);
 
         assertTrue(selector == IHooks.beforeSwap.selector);
+    }
+
+    function test_RevertWhen_BeforeSwap_NotPoolManager() public {
+        vm.prank(address(verifier));
+        sessionManager.startSession(alice, block.timestamp + 24 hours);
+
+        bytes memory hookData = "";
+        vm.prank(router);
+        vm.expectRevert(ComplianceHook.OnlyPoolManager.selector);
+        PoolKey memory key = _createPoolKey();
+        IPoolManager.SwapParams memory params = _createSwapParams();
+        hook.beforeSwap(alice, key, params, hookData);
     }
 
     // ============ 流动性测试 ============
@@ -162,59 +168,62 @@ contract ComplianceHookTest is Test {
         vm.prank(address(verifier));
         sessionManager.startSession(alice, block.timestamp + 24 hours);
 
-        bytes memory hookData = abi.encodePacked(alice);
+        bytes memory hookData = "";
         PoolKey memory key = _createPoolKey();
         IPoolManager.ModifyLiquidityParams memory modParams = _createModifyLiquidityParams();
-        bytes4 selector = hook.beforeAddLiquidity(router, key, modParams, hookData);
+        vm.prank(POOL_MANAGER);
+        bytes4 selector = hook.beforeAddLiquidity(alice, key, modParams, hookData);
 
         assertTrue(selector == IHooks.beforeAddLiquidity.selector);
     }
 
     function test_RevertWhen_BeforeAddLiquidity_NotVerified() public {
-        bytes memory hookData = abi.encodePacked(bob);
-        vm.prank(router);
+        bytes memory hookData = "";
+        vm.prank(POOL_MANAGER);
         vm.expectRevert(abi.encodeWithSelector(ComplianceHook.NotVerified.selector, bob));
         PoolKey memory key = _createPoolKey();
         IPoolManager.ModifyLiquidityParams memory modParams = _createModifyLiquidityParams();
-        hook.beforeAddLiquidity(router, key, modParams, hookData);
+        hook.beforeAddLiquidity(bob, key, modParams, hookData);
     }
 
     function test_BeforeRemoveLiquidity_Allowed() public {
         vm.prank(address(verifier));
         sessionManager.startSession(alice, block.timestamp + 24 hours);
 
-        bytes memory hookData = abi.encodePacked(alice);
+        bytes memory hookData = "";
         PoolKey memory key = _createPoolKey();
         IPoolManager.ModifyLiquidityParams memory modParams = _createModifyLiquidityParams();
-        bytes4 selector = hook.beforeRemoveLiquidity(router, key, modParams, hookData);
+        vm.prank(POOL_MANAGER);
+        bytes4 selector = hook.beforeRemoveLiquidity(alice, key, modParams, hookData);
 
         assertTrue(selector == IHooks.beforeRemoveLiquidity.selector);
     }
 
-    function test_RevertWhen_BeforeRemoveLiquidity_NotVerified() public {
-        bytes memory hookData = abi.encodePacked(bob);
-        vm.prank(router);
-        vm.expectRevert(abi.encodeWithSelector(ComplianceHook.NotVerified.selector, bob));
+    function test_BeforeRemoveLiquidity_NotVerified_Allowed() public {
+        vm.expectEmit(true, true, true, true);
+        emit IComplianceHook.AccessDenied(bob, "Session not active but withdrawal allowed");
+        
+        bytes memory hookData = "";
+        vm.prank(POOL_MANAGER);
         PoolKey memory key = _createPoolKey();
         IPoolManager.ModifyLiquidityParams memory modParams = _createModifyLiquidityParams();
-        hook.beforeRemoveLiquidity(router, key, modParams, hookData);
+        bytes4 selector = hook.beforeRemoveLiquidity(bob, key, modParams, hookData);
+        
+        assertTrue(selector == IHooks.beforeRemoveLiquidity.selector);
     }
 
-    // ============ 用户解析测试 ============
+    // ============ hookData 验证测试 ============
 
-    function test_RevertWhen_ResolveUser_UntrustedRouter() public {
-        // 未批准的路由器传递 hookData 应该失败
-        address untrustedRouter = makeAddr("untrustedRouter");
-
+    function test_RevertWhen_InvalidHookData() public {
         vm.prank(address(verifier));
         sessionManager.startSession(alice, block.timestamp + 24 hours);
 
         bytes memory hookData = abi.encodePacked(alice);
-        vm.prank(untrustedRouter);
+        vm.prank(POOL_MANAGER);
         vm.expectRevert(ComplianceHook.InvalidHookData.selector);
         PoolKey memory key = _createPoolKey();
         IPoolManager.SwapParams memory params = _createSwapParams();
-        hook.beforeSwap(untrustedRouter, key, params, hookData);
+        hook.beforeSwap(alice, key, params, hookData);
     }
 
     // ============ 查询函数测试 ============
@@ -250,10 +259,10 @@ contract ComplianceHookTest is Test {
         vm.expectEmit(true, true, true, true);
         emit ComplianceHook.SwapAttempt(alice, true);
 
-        bytes memory hookData = abi.encodePacked(alice);
-        vm.prank(router);
+        bytes memory hookData = "";
+        vm.prank(POOL_MANAGER);
         PoolKey memory key = _createPoolKey();
         IPoolManager.SwapParams memory params = _createSwapParams();
-        hook.beforeSwap(router, key, params, hookData);
+        hook.beforeSwap(alice, key, params, hookData);
     }
 }

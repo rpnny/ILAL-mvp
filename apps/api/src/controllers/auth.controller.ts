@@ -437,8 +437,16 @@ export async function refresh(req: Request, res: Response): Promise<void> {
     // Validate request body
     const body = refreshSchema.parse(req.body);
 
-    // Verify refresh token
+    // Verify refresh token (must be of type 'refresh')
     const payload = verifyToken(body.refreshToken);
+
+    if (payload.type !== 'refresh') {
+      res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Invalid token type. Expected a refresh token.',
+      });
+      return;
+    }
 
     // Check if user exists
     const user = await prisma.user.findUnique({

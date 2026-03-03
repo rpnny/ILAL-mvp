@@ -7,7 +7,6 @@ import { verifyToken } from '../utils/jwt.js';
 import { prisma } from '../config/database.js';
 import { logger } from '../config/logger.js';
 
-// Extend Express Request type
 declare global {
   namespace Express {
     interface Request {
@@ -21,108 +20,61 @@ declare global {
 }
 
 /**
- * Mock Authentication Middleware
- * Bypasses JWT and automatically injects a demo user for API Key generation
+ * Requires a valid JWT access token in the Authorization header.
+ * Rejects all requests that lack valid credentials.
  */
 export async function authMiddleware(
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    res.status(401).json({
+      error: 'Unauthorized',
+      message: 'Missing or malformed Authorization header',
+    });
+    return;
+  }
+
   try {
-    const authHeader = req.headers.authorization;
+    const token = authHeader.substring(7);
+    const payload = verifyToken(token);
 
-    // Check if the frontend sent our mock token
-    if (authHeader && authHeader.startsWith('Bearer mock-access-token')) {
-      const isLegacy = authHeader === 'Bearer mock-access-token';
-      const deviceId = isLegacy ? 'anonymous_demo' : authHeader.replace('Bearer mock-access-token-', '');
-      const email = `developer_${deviceId}@ilal.xyz`;
-
-      // Ensure the anonymous demo user exists in the database so foreign keys don't fail
-      let user = await prisma.user.findUnique({
-        where: { email },
-        select: { id: true, email: true, plan: true }
+    if (payload.type !== 'access') {
+      res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Invalid token type. Use an access token.',
       });
-
-      if (!user) {
-        // Auto-create the anonymous user if it doesn't exist yet
-        user = await prisma.user.create({
-          data: {
-            id: `usr_${deviceId.substring(0, 20)}`, // id is max 30 chars usually, UUIDs are 36
-            email,
-            passwordHash: 'not-needed-for-demo',
-            name: `Developer ${deviceId.substring(0, 4)}`,
-            emailVerified: 1, // SQLite: 1 = true
-            plan: 'ENTERPRISE', // Give them enterprise limits
-          },
-          select: { id: true, email: true, plan: true }
-        });
-        logger.info(`Auto-created anonymous demo user for device: ${deviceId}`);
-      }
-
-      // Attach mock user info to request
-      req.user = {
-        userId: user.id,
-        email: user.email,
-        plan: user.plan,
-      };
-
-      next();
       return;
     }
 
-    // If it's a real JWT token (legacy), try to verify it
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7);
-      const payload = verifyToken(token);
-
-      const user = await prisma.user.findUnique({
-        where: { id: payload.userId },
-        select: { id: true, email: true, plan: true },
-      });
-
-      if (user) {
-        req.user = {
-          userId: user.id,
-          email: user.email,
-          plan: user.plan,
-        };
-        next();
-        return;
-      }
-    }
-
-    // Since we want the API to be usable out of the box even without a token
-    // header for public testing, fallback to the same anonymous user.
-    let fallbackUser = await prisma.user.findUnique({
-      where: { email: 'developer_anonymous_demo@ilal.xyz' },
-      select: { id: true, email: true, plan: true }
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: { id: true, email: true, plan: true },
     });
 
-    if (!fallbackUser) {
-      fallbackUser = await prisma.user.create({
-        data: {
-          id: 'usr_anonymous_demo',
-          email: 'developer_anonymous_demo@ilal.xyz',
-          passwordHash: 'not-needed-for-demo',
-          name: 'ILAL Developer',
-          emailVerified: 1,
-          plan: 'ENTERPRISE',
-        },
-        select: { id: true, email: true, plan: true }
+    if (!user) {
+      res.status(401).json({
+        error: 'Unauthorized',
+        message: 'User not found',
       });
+      return;
     }
 
     req.user = {
-      userId: fallbackUser.id,
-      email: fallbackUser.email,
-      plan: fallbackUser.plan,
+      userId: user.id,
+      email: user.email,
+      plan: user.plan,
     };
-    next();
 
-  } catch (error: any) {
-    logger.warn('Auth middleware failed, but bypassing for public access', { error: error.message });
-    // Still proceed so the user can test the API
     next();
+  } catch (error: any) {
+    logger.warn('Auth failed', { error: error.message });
+    res.status(401).json({
+      error: 'Unauthorized',
+      message: 'Invalid or expired token',
+    });
   }
 }

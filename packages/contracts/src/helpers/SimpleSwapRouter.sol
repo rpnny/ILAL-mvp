@@ -8,13 +8,13 @@ import "@uniswap/v4-core/types/Currency.sol";
 import "@uniswap/v4-core/types/BalanceDelta.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title SimpleSwapRouter
- * @notice 简单的 Uniswap v4 Swap Router
- * @dev 用于演示如何通过 unlock 机制执行 swap
+ * @notice Simple Uniswap v4 Swap Router with reentrancy protection
  */
-contract SimpleSwapRouter is IUnlockCallback {
+contract SimpleSwapRouter is IUnlockCallback, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using CurrencyLibrary for Currency;
 
@@ -59,7 +59,7 @@ contract SimpleSwapRouter is IUnlockCallback {
         IPoolManager.SwapParams memory params,
         bytes calldata hookData,
         uint128 minAmountOut
-    ) external payable returns (BalanceDelta delta) {
+    ) external payable nonReentrant returns (BalanceDelta delta) {
         // 准备回调数据
         SwapCallbackData memory data = SwapCallbackData({
             sender: msg.sender,
@@ -88,6 +88,12 @@ contract SimpleSwapRouter is IUnlockCallback {
             delta.amount0(),
             delta.amount1()
         );
+
+        // Refund any remaining ETH to the sender
+        if (address(this).balance > 0) {
+            (bool success, ) = msg.sender.call{value: address(this).balance}("");
+            require(success, "ETH refund failed");
+        }
     }
 
     /**

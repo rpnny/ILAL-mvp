@@ -63,7 +63,7 @@ contract E2EMockProofTest is Test {
         sessionManager = SessionManager(address(sessionProxy));
         
         // 4. 部署 ComplianceHook
-        hook = new ComplianceHook(address(registry), address(sessionManager));
+        hook = new ComplianceHook(address(1), address(registry), address(sessionManager)); // TODO: use real poolManager
         
         // 5. 配置系统
         vm.startPrank(admin);

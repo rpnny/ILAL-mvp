@@ -101,7 +101,9 @@ contract Registry is IRegistry, UUPSUpgradeable, OwnableUpgradeable {
     function revokeIssuer(bytes32 issuerId) external override onlyOwner {
         if (_issuers[issuerId].attester == address(0)) revert InvalidIssuer();
 
+        address attester = _issuers[issuerId].attester;
         _issuers[issuerId].active = false;
+        delete _attesterToIssuer[attester];
 
         emit IssuerRevoked(issuerId);
     }
@@ -195,4 +197,6 @@ contract Registry is IRegistry, UUPSUpgradeable, OwnableUpgradeable {
     function version() external pure returns (string memory) {
         return "1.0.0";
     }
+
+    uint256[45] private __gap;
 }

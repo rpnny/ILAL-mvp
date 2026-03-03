@@ -83,7 +83,7 @@ contract PlonkIntegrationTest is Test {
     function test_Adapter_RevertWhen_InvalidProofLength() public {
         // 错误的 proof 长度
         bytes memory invalidProof = new bytes(100);
-        uint256[] memory publicInputs = new uint256[](3);
+        uint256[] memory publicInputs = new uint256[](5);
 
         vm.expectRevert(PlonkVerifierAdapter.InvalidProofLength.selector);
         adapter.verifyComplianceProof(invalidProof, publicInputs);
@@ -101,14 +101,14 @@ contract PlonkIntegrationTest is Test {
     }
 
     function test_Adapter_ExtractUserAddress() public view {
-        // 创建测试数据
         bytes memory proof = new bytes(768);
-        uint256[] memory publicInputs = new uint256[](3);
+        uint256[] memory publicInputs = new uint256[](5);
 
-        // 第一个公共输入是用户地址
         publicInputs[0] = uint256(uint160(alice));
         publicInputs[1] = 0x123456; // merkleRoot
-        publicInputs[2] = 0x789abc; // issuerPubKeyHash
+        publicInputs[2] = 0x789abc; // issuerAx
+        publicInputs[3] = 0xdef012; // issuerAy
+        publicInputs[4] = block.timestamp; // timestamp
 
         // 调用 verifyAndExtractUser
         (address extractedUser, bool isValid) = adapter.verifyAndExtractUser(
@@ -140,7 +140,7 @@ contract PlonkIntegrationTest is Test {
     function test_PlonkVerifier_GasEstimate() public view {
         // 创建测试 proof（全零，仅用于 Gas 估算）
         uint256[24] memory proof;
-        uint256[3] memory pubSignals;
+        uint256[5] memory pubSignals;
 
         uint256 gasBefore = gasleft();
         try plonkVerifier.verifyProof(proof, pubSignals) {
@@ -181,10 +181,12 @@ contract PlonkIntegrationTest is Test {
         pure
         returns (uint256[] memory publicInputs)
     {
-        publicInputs = new uint256[](3);
+        publicInputs = new uint256[](5);
         publicInputs[0] = uint256(uint160(user));
         publicInputs[1] = uint256(keccak256("merkleRoot"));
-        publicInputs[2] = uint256(keccak256("issuerPubKeyHash"));
+        publicInputs[2] = uint256(keccak256("issuerAx"));
+        publicInputs[3] = uint256(keccak256("issuerAy"));
+        publicInputs[4] = 1700000000;
         return publicInputs;
     }
 }

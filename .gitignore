@@ -16,6 +16,8 @@ yarn-error.log*
 .env.local
 .env.production
 .env.development
+.env.backup
+*.env.backup
 !.env.example
 !.env*.example
 !apps/*/.env.example
@@ -91,3 +93,7 @@ circuits/keys/*.ptau
 /FINAL_DELIVERY*.md
 /*项目*.md
 /如何*.md
+
+# ZK trusted setup artifacts (too large for GitHub)
+packages/circuits/keys/compliance.zkey
+packages/circuits/keys/*.ptau
