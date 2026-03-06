@@ -148,19 +148,17 @@ export async function getSessionStatus(
 }
 
 /**
- * Trigger a session renewal via the verify endpoint.
- * In the MVP this re-submits a ZK proof; a real UX would guide the user
- * through their KYC provider again. For now the API accepts the call
- * and the backend re-activates the session if proof is valid.
+ * Renew an active (or recently expired) compliance session.
+ * Uses the dedicated renewal endpoint which only requires JWT — no ZK proof needed
+ * as long as the user was previously verified.
  */
 export async function renewSession(
   token: string,
-  walletAddress: string
-): Promise<{ message: string }> {
-  return apiFetch(`${API_URL}/api/v1/verify`, {
+  _walletAddress: string
+): Promise<{ success: boolean; message: string; txHash?: string; remainingSeconds?: number }> {
+  return apiFetch(`${API_URL}/api/v1/verify/renew`, {
     method: 'POST',
     headers: authHeaders(token),
-    body: JSON.stringify({ walletAddress }),
   });
 }
 

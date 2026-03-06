@@ -1,10 +1,10 @@
-# ILAL SaaS 快速开始
+# ILAL SaaS Quick Start
 
-本指南帮助你在 5 分钟内开始使用 ILAL SaaS 服务。
+This guide helps you get started with ILAL SaaS in 5 minutes.
 
-## 步骤 1: 注册账号
+## Step 1: Register an Account
 
-### 选项 A: 通过 API 注册
+### Option A: Register via API
 
 ```bash
 curl -X POST https://api.ilal.xyz/api/v1/auth/register \
@@ -16,7 +16,7 @@ curl -X POST https://api.ilal.xyz/api/v1/auth/register \
   }'
 ```
 
-**响应**:
+**Response**:
 ```json
 {
   "user": { "id": "clx123", "email": "your@example.com", ... },
@@ -25,15 +25,15 @@ curl -X POST https://api.ilal.xyz/api/v1/auth/register \
 }
 ```
 
-保存 `accessToken`，下一步需要使用。
+Save the `accessToken` for the next step.
 
-### 选项 B: 通过 Dashboard 注册
+### Option B: Register via Dashboard
 
-访问 `https://dashboard.ilal.xyz` 并注册账号（即将推出）。
+Visit `https://dashboard.ilal.xyz` to register (coming soon).
 
-## 步骤 2: 创建 API Key
+## Step 2: Create an API Key
 
-使用上一步获得的 `accessToken`:
+Using the `accessToken` from the previous step:
 
 ```bash
 curl -X POST https://api.ilal.xyz/api/v1/apikeys \
@@ -45,7 +45,7 @@ curl -X POST https://api.ilal.xyz/api/v1/apikeys \
   }'
 ```
 
-**响应**:
+**Response**:
 ```json
 {
   "apiKey": "ilal_live_1234567890abcdef1234567890abcdef12345678",
@@ -55,9 +55,9 @@ curl -X POST https://api.ilal.xyz/api/v1/apikeys \
 }
 ```
 
-⚠️ **重要**: 保存 `apiKey`，它只显示这一次！
+⚠️ **Important**: Save the `apiKey`—it is shown only once!
 
-## 步骤 3: 安装 SDK
+## Step 3: Install the SDK
 
 ```bash
 npm install @ilal/sdk
@@ -67,25 +67,25 @@ yarn add @ilal/sdk
 pnpm add @ilal/sdk
 ```
 
-## 步骤 4: 使用 SDK
+## Step 4: Use the SDK
 
-创建 `test.ts`:
+Create `test.ts`:
 
 ```typescript
 import { ILALApiClient } from '@ilal/sdk';
 
 const client = new ILALApiClient({
-  apiKey: 'ilal_live_xxxxxxxxxxxxx', // 你的 API Key
+  apiKey: 'ilal_live_xxxxxxxxxxxxx', // Your API Key
   apiBaseUrl: 'https://api.ilal.xyz',
   chainId: 8453, // Base Mainnet
 });
 
 async function main() {
-  // 1. 健康检查
+  // 1. Health check
   const health = await client.healthCheck();
   console.log('✅ API Service:', health.status);
 
-  // 2. 查询 Session 状态
+  // 2. Query Session status
   const userAddress = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb';
   const status = await client.getSessionStatus(userAddress);
   
@@ -94,8 +94,8 @@ async function main() {
     remainingSeconds: status.remainingSeconds,
   });
 
-  // 3. 验证 ZK Proof 并激活 Session
-  // (需要先生成 Proof，见完整文档)
+  // 3. Verify ZK Proof and activate Session
+  // (Proof generation required first—see full documentation)
   /*
   const result = await client.verifyAndActivate({
     userAddress,
@@ -110,20 +110,20 @@ async function main() {
 main().catch(console.error);
 ```
 
-运行:
+Run:
 
 ```bash
 npx tsx test.ts
 ```
 
-## 步骤 5: 查看使用统计
+## Step 5: View Usage Statistics
 
 ```bash
 curl https://api.ilal.xyz/api/v1/usage/stats \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 ```
 
-**响应**:
+**Response**:
 ```json
 {
   "usage": {
@@ -142,7 +142,7 @@ curl https://api.ilal.xyz/api/v1/usage/stats \
 }
 ```
 
-## 完整示例：从 EAS 验证到 Session 激活
+## Complete Example: From EAS Verification to Session Activation
 
 ```typescript
 import { ILALApiClient } from '@ilal/sdk';
@@ -151,7 +151,7 @@ const client = new ILALApiClient({
   apiKey: process.env.ILAL_API_KEY!,
   apiBaseUrl: 'https://api.ilal.xyz',
   chainId: 8453,
-  // 如果需要生成 ZK Proof，提供配置
+  // Provide config if ZK Proof generation is needed
   zkConfig: {
     wasmPath: './circuits/compliance.wasm',
     zkeyPath: './circuits/compliance_final.zkey',
@@ -161,7 +161,7 @@ const client = new ILALApiClient({
 async function completeFlow() {
   const userAddress = '0x...';
 
-  // 1. 准备 EAS 认证数据（从链上获取）
+  // 1. Prepare EAS attestation data (fetch from chain)
   const attestationData = {
     schema: 123456789012345678n,
     attester: 987654321098765432n,
@@ -173,7 +173,7 @@ async function completeFlow() {
     data: 555555555555555555n,
   };
 
-  // 2. 生成 ZK Proof 并通过 API 验证激活
+  // 2. Generate ZK Proof and verify/activate via API
   const result = await client.generateAndActivate({
     userAddress,
     attestationData,
@@ -185,7 +185,7 @@ async function completeFlow() {
     gasUsed: result.gasUsed,
   });
 
-  // 3. 确认 Session 已激活
+  // 3. Confirm Session is active
   const status = await client.getSessionStatus(userAddress);
   console.log('📊 Session Active:', status.isActive);
 }
@@ -193,9 +193,9 @@ async function completeFlow() {
 completeFlow().catch(console.error);
 ```
 
-## 套餐升级
+## Plan Upgrade
 
-当免费套餐（100次/月）不够用时，升级到专业版：
+When the free tier (100 calls/month) is insufficient, upgrade to Pro:
 
 ```bash
 curl -X POST https://api.ilal.xyz/api/v1/billing/upgrade \
@@ -204,26 +204,26 @@ curl -X POST https://api.ilal.xyz/api/v1/billing/upgrade \
   -d '{"targetPlan": "PRO"}'
 ```
 
-**专业版套餐**:
-- 10,000 次调用/月
-- 100 req/min 限流
-- Email 技术支持
-- $99/月
+**Pro Plan**:
+- 10,000 calls/month
+- 100 req/min rate limit
+- Email technical support
+- $99/month
 
-## 环境变量配置
+## Environment Variable Configuration
 
-创建 `.env`:
+Create `.env`:
 
 ```bash
 # API
 ILAL_API_KEY=ilal_live_xxxxxxxxxxxxx
 ILAL_API_URL=https://api.ilal.xyz
 
-# JWT (如果需要管理 API Keys)
+# JWT (if managing API Keys)
 ILAL_ACCESS_TOKEN=eyJhbGciOi...
 ```
 
-在代码中使用:
+Use in code:
 
 ```typescript
 import * as dotenv from 'dotenv';
@@ -236,27 +236,27 @@ const client = new ILALApiClient({
 });
 ```
 
-## 错误处理
+## Error Handling
 
 ```typescript
 try {
   await client.verifyAndActivate({ ... });
 } catch (error) {
   if (error.message.includes('Payment Required')) {
-    console.error('❌ 配额不足，请升级套餐');
+    console.error('❌ Quota exceeded. Please upgrade your plan.');
   } else if (error.message.includes('Too Many Requests')) {
-    console.error('❌ 请求过于频繁，请稍后重试');
+    console.error('❌ Too many requests. Please try again later.');
   } else if (error.message.includes('Invalid proof')) {
-    console.error('❌ ZK Proof 验证失败');
+    console.error('❌ ZK Proof verification failed');
   } else {
-    console.error('❌ 未知错误:', error.message);
+    console.error('❌ Unknown error:', error.message);
   }
 }
 ```
 
-## 监控和调试
+## Monitoring and Debugging
 
-### 1. 检查 API 健康
+### 1. Check API Health
 
 ```typescript
 const health = await client.healthCheck();
@@ -270,17 +270,17 @@ console.log(health);
 // }
 ```
 
-### 2. 查看使用统计
+### 2. View Usage Statistics
 
-通过 Dashboard 或 API 端点实时查看：
-- 总调用次数
-- 成功/失败比例
-- 配额使用情况
-- 各端点调用分布
+Monitor in real time via Dashboard or API:
+- Total call count
+- Success/failure ratio
+- Quota usage
+- Endpoint call distribution
 
-### 3. API 日志
+### 3. API Logs
 
-所有 API 请求都会返回标准 headers:
+All API requests return standard headers:
 
 ```
 RateLimit-Remaining: 95
@@ -288,11 +288,11 @@ X-Quota-Remaining: 9950
 X-Response-Time: 234ms
 ```
 
-## 进阶用法
+## Advanced Usage
 
-### 直接上链模式（无需 API Key）
+### Direct On-Chain Mode (No API Key)
 
-如果你想完全去中心化，可以使用传统的 `ILALClient`:
+For fully decentralized usage, use the traditional `ILALClient`:
 
 ```typescript
 import { ILALClient } from '@ilal/sdk';
@@ -303,13 +303,13 @@ const client = await ILALClient.fromRPC({
   privateKey: process.env.PRIVATE_KEY,
 });
 
-// 直接上链，需要支付 Gas
+// Direct on-chain; you pay gas
 await client.session.activate();
 ```
 
-### 混合模式
+### Hybrid Mode
 
-API Key 模式用于生产，直接上链用于测试：
+Use API Key mode for production and direct on-chain for testing:
 
 ```typescript
 const client = process.env.NODE_ENV === 'production'
@@ -317,30 +317,30 @@ const client = process.env.NODE_ENV === 'production'
   : await ILALClient.fromRPC({ rpcUrl: process.env.RPC_URL!, ... });
 ```
 
-## 常见问题
+## FAQ
 
-**Q: 如何获取测试网 API Key？**  
-A: 测试网（Base Sepolia）也使用相同的 API，只需在创建客户端时指定 `chainId: 84532`。
+**Q: How do I get a testnet API Key?**  
+A: The testnet (Base Sepolia) uses the same API. Specify `chainId: 84532` when creating the client.
 
-**Q: API Key 可以共享吗？**  
-A: 不推荐。每个应用/环境应使用独立的 API Key，便于追踪和撤销。
+**Q: Can API Keys be shared?**  
+A: Not recommended. Each app/environment should use a separate API Key for tracking and revocation.
 
-**Q: 免费套餐足够吗？**  
-A: 免费套餐（100次/月）适合开发测试和小规模应用。生产环境建议升级到专业版。
+**Q: Is the free tier sufficient?**  
+A: The free tier (100 calls/month) is suitable for development and small-scale apps. Production use is recommended on the Pro plan.
 
-**Q: 如何获得技术支持？**  
+**Q: How do I get technical support?**  
 A: 
-- 社区（Discord）: https://discord.gg/ilal
-- 文档: https://docs.ilal.xyz
-- Email（专业版+）: support@ilal.xyz
+- Community (Discord): https://discord.gg/ilal
+- Documentation: https://docs.ilal.xyz
+- Email (Pro+): 2867755637@qq.com
 
-## 下一步
+## Next Steps
 
-- 📖 阅读完整 API 文档：`apps/api/docs/API.md`
-- 🏗️ 了解 SaaS 架构：`docs/guides/saas/SAAS_ARCHITECTURE.md`
-- 🔧 查看 SDK 文档：`packages/sdk/README.md`
-- 💬 加入 [Discord 社区](https://discord.gg/ilal)
+- 📖 Read the full API docs: `apps/api/docs/API.md`
+- 🏗️ Learn about the SaaS architecture: `docs/guides/saas/SAAS_ARCHITECTURE.md`
+- 🔧 See the SDK docs: `packages/sdk/README.md`
+- 💬 Join the [Discord community](https://discord.gg/ilal)
 
 ---
 
-**享受构建合规 DeFi 应用！**
+**Happy building compliant DeFi applications!**

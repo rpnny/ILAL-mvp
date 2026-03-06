@@ -11,7 +11,7 @@ export const MOCK_ADDRESSES: ContractAddresses = {
   verifier: '0x428aC1E38197bf37A42abEbA5f35B080438Ada22',
   complianceHook: '0xc2eD8e6F4C3a29275cC43e435795c5528BC9CF6A',
   positionManager: '0x2A1046A6d0EBdbfe4e45072CAf25833f4FAaEAB4',
-  simpleSwapRouter: '0x5b460c8Bd32951183a721bdaa3043495D8861f31',
+  simpleSwapRouter: '0x664858fa4d3938788C7b7fE4f8d8f0864d087eA6',
   plonkVerifier: '0x92eF7F6440466eb2138F7d179Cf2031902eF94be',
   poolManager: '0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408',
 };

@@ -82,6 +82,7 @@ contract ComplianceHook is IComplianceHook, IHooks, EIP712Verifier {
             revert EmergencyPaused();
         }
 
+        _requireApprovedRouter(sender, hookData);
         address user = _resolveUser(sender, hookData);
         bool allowed = sessionManager.isSessionActive(user);
 
@@ -104,7 +105,8 @@ contract ComplianceHook is IComplianceHook, IHooks, EIP712Verifier {
             revert EmergencyPaused();
         }
 
-        address user = _resolveUser(sender, hookData);
+        _requireApprovedRouter(sender, hookData);
+        address user = _resolveLiquidityUser(sender, hookData, true);
         bool allowed = sessionManager.isSessionActive(user);
 
         if (!allowed) {
@@ -124,7 +126,7 @@ contract ComplianceHook is IComplianceHook, IHooks, EIP712Verifier {
         IPoolManager.ModifyLiquidityParams calldata,
         bytes calldata hookData
     ) external override onlyPoolManager returns (bytes4) {
-        address user = _resolveUser(sender, hookData);
+        address user = _resolveLiquidityUser(sender, hookData, false);
         bool allowed = sessionManager.isSessionActive(user);
 
         if (!allowed) {
@@ -178,18 +180,27 @@ contract ComplianceHook is IComplianceHook, IHooks, EIP712Verifier {
         return IHooks.afterDonate.selector;
     }
 
+    // ============ Router Validation ============
+
+    error RouterNotApproved(address router);
+
+    /**
+     * @notice Verify that the sender (router) is approved, unless Mode 2 (EOA direct).
+     * @dev In Mode 2 (hookData empty), sender is the user's EOA — no router check needed.
+     *      In Mode 1 (EIP-712), sender is a router contract — must be whitelisted.
+     */
+    function _requireApprovedRouter(address sender, bytes calldata hookData) internal view {
+        if (hookData.length > 0 && !registry.isRouterApproved(sender)) {
+            revert RouterNotApproved(sender);
+        }
+    }
+
     // ============ User Resolution ============
 
     /**
-     * @notice Resolve the actual user address from hookData
-     * @dev Two modes only:
-     *   1. Full EIP-712 signature (hookData >= 148 bytes)
-     *   2. EOA direct call (hookData empty — sender IS the user)
-     *
-     *   All operations (swap, addLiquidity, removeLiquidity) use the same SwapPermit
-     *   type for identity verification. The hook's role is access control (session check),
-     *   not operation-level authorization. verifyLiquidityPermit in EIP712Verifier is
-     *   available for future use if operation-specific permits are needed.
+     * @notice Resolve user from hookData for swap operations.
+     * @dev Mode 1: EIP-712 SwapPermit signature (hookData >= 148 bytes)
+     *      Mode 2: EOA direct call (hookData empty — sender IS the user)
      */
     function _resolveUser(address sender, bytes calldata hookData)
         internal
@@ -198,6 +209,30 @@ contract ComplianceHook is IComplianceHook, IHooks, EIP712Verifier {
         if (hookData.length >= 148) {
             PermitData memory permit = abi.decode(hookData, (PermitData));
             verifySwapPermit(permit.user, permit.deadline, permit.nonce, permit.signature);
+            emit UserVerified(permit.user);
+            return permit.user;
+        }
+
+        if (hookData.length == 0) {
+            return sender;
+        }
+
+        revert InvalidHookData();
+    }
+
+    /**
+     * @notice Resolve user from hookData for liquidity operations.
+     * @dev Uses LiquidityPermit type (not SwapPermit) for proper permission separation.
+     *      Mode 1: EIP-712 LiquidityPermit signature
+     *      Mode 2: EOA direct call
+     */
+    function _resolveLiquidityUser(address sender, bytes calldata hookData, bool isAdd)
+        internal
+        returns (address user)
+    {
+        if (hookData.length >= 148) {
+            PermitData memory permit = abi.decode(hookData, (PermitData));
+            verifyLiquidityPermit(permit.user, permit.deadline, permit.nonce, isAdd, permit.signature);
             emit UserVerified(permit.user);
             return permit.user;
         }

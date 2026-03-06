@@ -37,7 +37,7 @@ const ADDRESSES = {
   registry: '0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD' as Address,
   sessionManager: '0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2' as Address,
   verifier: '0x0cDcD82E5efba9De4aCc255402968397F323AFBB' as Address,
-  complianceHook: '0xDeDcFDF10b03AB45eEbefD2D91EDE66D9E5c8a80' as Address,
+  complianceHook: '0xE1AF9f1D1ddF819f729ec08A612a2212D1058a80' as Address,
 };
 
 // SessionManager ABI（精简版，仅包含需要的函数）

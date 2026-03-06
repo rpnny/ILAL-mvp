@@ -1,57 +1,30 @@
-# ILAL Documentation Index
+# ILAL Documentation
 
-This page is the unified documentation entry point, prioritizing the new Monorepo structure.
+## Overview
 
-## 1. Getting Started
+- [README](../README.md) — Project overview, quick start, contract addresses
+- [Architecture](guides/ARCHITECTURE_EN.md) — System design, contract details, ZK circuit, API flow
+- [Deployment Guide](guides/DEPLOYMENT_EN.md) — How to deploy and configure
 
-- Project Overview: `README.md`
-- Quick Start: `START_HERE.md`
-- SDK Introduction: `packages/sdk/README.md`
-- **Frontend Ready**: `docs/frontend/FRONTEND_READY.md` → http://localhost:3003
-- **Functional Test Plan**: `docs/testing/FUNCTIONAL_TEST_PLAN.md`
-- **Functional Test Results**: `docs/testing/FUNCTIONAL_TEST_RESULTS_2026-02-16.md`
-- **E2E Test Results**: `docs/testing/E2E_TEST_RESULTS_2026-02-16.md`
-- **User Experience Report**: `docs/reports/USER_EXPERIENCE_REPORT.md`
-- **Functional Test Checklist**: `docs/testing/FUNCTIONAL_TEST_CHECKLIST.md`
-- **UX Test Plan**: `docs/testing/USER_EXPERIENCE_TEST_PLAN.md`
-- **Frontend Strategy**: `docs/frontend/FRONTEND_STRATEGY.md`
+## Testing
 
-## 2. Core Technical Documentation
+- [Test Report](testing/TEST_REPORT.md) — 136/136 tests, ZK benchmarks, gas analysis
 
-- Architecture Design: `docs/guides/ARCHITECTURE.md`
-- Deployment Guide: `docs/guides/DEPLOYMENT.md`
-- SaaS Architecture: `docs/guides/saas/SAAS_ARCHITECTURE.md`
-- SaaS Quick Start: `docs/guides/saas/SAAS_QUICKSTART.md`
-- SaaS Implementation Summary: `docs/guides/saas/SAAS_IMPLEMENTATION_COMPLETE.md`
-- Database (Supabase): `docs/guides/setup/SupabaseGuide.md`
-- Database (PostgreSQL): `docs/guides/setup/PostgreSQLGuide.md`
-- Test Reports: `docs/testing/TEST_REPORT.md`
+## API
 
-## 3. Module Documentation
+- [API Reference](guides/saas/API_REFERENCE.md) — REST endpoints, authentication, swap payloads
+- [SaaS Architecture](guides/saas/SAAS_ARCHITECTURE.md) — Multi-tenant design
+- [SaaS Quick Start](guides/saas/SAAS_QUICKSTART.md) — Getting started with the API
 
-- SDK: `packages/sdk/README.md`
-- API (SaaS & Verifier Relay): `apps/api/docs/API.md`
-- API Reference: `docs/guides/saas/API_REFERENCE.md`
-- Landing: `apps/landing/README.md`
-- Subgraph: `subgraph/README.md`
+## Outreach
 
-## 4. Business & Outreach Materials
+- [Executive Brief](outreach/ILAL_EXECUTIVE_BRIEF.md) — Technical deep-dive for partners
+- [One-Pager](outreach/ILAL_ONE_PAGER.md) — Summary for quick evaluation
 
-- Outreach Guide: `docs/outreach/OUTREACH_GUIDE.md`
-- Outreach Index: `docs/outreach/OUTREACH_MATERIALS_INDEX.md`
-- Executive Brief: `docs/outreach/ILAL_EXECUTIVE_BRIEF.md`
+## Security
 
-## 5. Historical Archives
+- [Slither Audit (Feb 2026)](archives/SLITHER_AUDIT_REPORT_2026-02-11.md) — Static analysis results
 
-- Archive Overview: `docs/archives/README.md`
-- Historical Reports Index: `docs/reports/REPORTS_INDEX.md`
+## Contact
 
-## 6. Path Conventions (Important)
-
-The project now uses the Monorepo structure:
-
-- `packages/`: SDK, contracts, circuits
-- `apps/`: Web Demo, API
-- `scripts/`: Diagnostics and system tests
-
-Legacy paths (`frontend/`, `contracts/`, `circuits/`, `relay/`) are for historical reference only and are no longer primary entry points.
+**Email:** 2867755637@qq.com

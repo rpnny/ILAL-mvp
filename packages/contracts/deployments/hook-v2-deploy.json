@@ -1,0 +1,9 @@
+{
+  "network": "base-sepolia",
+  "contracts": {
+    "complianceHook": "0xE1AF9f1D1ddF819f729ec08A612a2212D1058a80",
+    "hookFactory": "0x39f50D54E1BB31C4a501E06c4c7e8A2FFdE778Fc",
+    "positionManager": "0x664858fa4d3938788C7b7fE4f8d8f0864d087eA6",
+    "salt": "0x0000000000000000000000000000000000000000000000000000000000002777"
+  }
+}

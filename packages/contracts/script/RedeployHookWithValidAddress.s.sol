@@ -44,10 +44,10 @@ contract RedeployHookWithValidAddress is Script {
         console.log("Required mask: 0x%x", REQUIRED_MASK);
         console.log("");
 
-        // 计算 creation code
+        // 计算 creation code (constructor takes poolManager, registry, sessionManager)
         bytes memory creationCode = abi.encodePacked(
             type(ComplianceHook).creationCode,
-            abi.encode(registry, sessionManager)
+            abi.encode(poolManager, registry, sessionManager)
         );
         bytes32 creationCodeHash = keccak256(creationCode);
 

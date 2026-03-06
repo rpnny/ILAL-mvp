@@ -8,7 +8,7 @@ import type { SwapParams, SwapResult, PoolKey } from '../types';
 import { simpleSwapRouterABI, ERC20_ABI } from '../constants/abis';
 import { MIN_SQRT_PRICE, MAX_SQRT_PRICE, DEFAULT_SLIPPAGE_TOLERANCE } from '../constants';
 import { validateSwapParams } from '../utils/validation';
-import { sortTokens, encodeWhitelistHookData } from '../utils';
+import { sortTokens, DIRECT_HOOK_DATA } from '../utils';
 import { InsufficientLiquidityError, SlippageExceededError } from '../utils/errors';
 
 export class SwapModule {
@@ -56,10 +56,16 @@ export class SwapModule {
     const sqrtPriceLimitX96 = params.sqrtPriceLimitX96 || 
       (zeroForOne ? MIN_SQRT_PRICE + 1n : MAX_SQRT_PRICE - 1n);
 
-    // 7. 构建 hookData（白名单模式：直接使用用户地址）
-    const hookData = encodeWhitelistHookData(user);
+    // 7. hookData = 0x (Mode 2: EOA 直接调用，sender 即 user)
+    const hookData = DIRECT_HOOK_DATA;
 
-    // 8. 执行 Swap
+    // 8. 计算 minAmountOut（滑点保护）
+    const slippageBps = BigInt(Math.floor((params.slippageTolerance ?? DEFAULT_SLIPPAGE_TOLERANCE) * 100));
+    const minAmountOut = slippageBps > 0n
+      ? (params.amountIn * (10000n - slippageBps)) / 10000n
+      : 0n;
+
+    // 9. 执行 Swap
     try {
       const hash = await this.walletClient.writeContract({
         address: this.swapRouterAddress,
@@ -70,23 +76,43 @@ export class SwapModule {
           poolKey,
           {
             zeroForOne,
-            amountSpecified: zeroForOne ? params.amountIn : -BigInt(params.amountIn),
+            amountSpecified: -BigInt(params.amountIn),
             sqrtPriceLimitX96,
           },
           hookData,
+          minAmountOut,
         ],
         account: user,
       });
 
-      // 9. 等待交易确认
+      // 10. 等待交易确认
       const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
 
-      // 10. 解析交易结果
-      // TODO: 从 logs 中提取实际的 amount0 和 amount1
+      // 11. 解析交易结果（从 SwapExecuted 事件提取实际金额）
+      let amount0 = 0n;
+      let amount1 = 0n;
+      for (const log of receipt.logs) {
+        try {
+          if (log.address.toLowerCase() === this.swapRouterAddress.toLowerCase() && log.topics[0]) {
+            const { args } = this.publicClient.decodeEventLog?.({
+              abi: simpleSwapRouterABI,
+              eventName: 'SwapExecuted',
+              data: log.data,
+              topics: log.topics,
+            }) as any ?? {};
+            if (args) {
+              amount0 = args.amount0 ?? 0n;
+              amount1 = args.amount1 ?? 0n;
+              break;
+            }
+          }
+        } catch { /* skip non-matching logs */ }
+      }
+
       const result: SwapResult = {
         hash,
-        amount0: 0n,  // 从事件日志中提取
-        amount1: 0n,  // 从事件日志中提取
+        amount0,
+        amount1,
         gasUsed: receipt.gasUsed,
       };
 
@@ -118,8 +144,7 @@ export class SwapModule {
     };
 
     try {
-      // 使用静态调用估算输出
-      await this.publicClient.simulateContract({
+      const { result } = await this.publicClient.simulateContract({
         address: this.swapRouterAddress,
         abi: simpleSwapRouterABI,
         functionName: 'swap',
@@ -127,16 +152,16 @@ export class SwapModule {
           poolKey,
           {
             zeroForOne,
-            amountSpecified: zeroForOne ? params.amountIn : -BigInt(params.amountIn),
+            amountSpecified: -BigInt(params.amountIn),
             sqrtPriceLimitX96: zeroForOne ? MIN_SQRT_PRICE + 1n : MAX_SQRT_PRICE - 1n,
           },
-          encodeWhitelistHookData(this.walletClient.account?.address as Address),
+          DIRECT_HOOK_DATA,
+          0n,
         ],
+        account: this.walletClient.account?.address,
       });
 
-      // 从结果中提取输出金额
-      // TODO: 根据实际合约返回值解析
-      return 0n;
+      return result as bigint;
     } catch (error) {
       throw new Error('Failed to estimate swap output');
     }

@@ -7,7 +7,7 @@ import type { Address, PublicClient, WalletClient } from 'viem';
 import type { LiquidityParams, RemoveLiquidityParams, LiquidityResult, LiquidityPosition } from '../types';
 import { positionManagerABI, ERC20_ABI } from '../constants/abis';
 import { validateLiquidityParams } from '../utils/validation';
-import { encodeWhitelistHookData, tickToSqrtPriceX96 } from '../utils';
+import { DIRECT_HOOK_DATA, tickToSqrtPriceX96, getLiquidityForAmounts } from '../utils';
 
 export class LiquidityModule {
   constructor(
@@ -35,20 +35,34 @@ export class LiquidityModule {
       throw new Error('No user address available');
     }
 
-    // 3. 检查并授权代币
+    // 3. 检查并授权代币（授权给 PositionManager）
     await Promise.all([
       this.ensureAllowance(params.poolKey.currency0, params.amount0Desired, user),
       this.ensureAllowance(params.poolKey.currency1, params.amount1Desired, user),
     ]);
 
-    // 4. 设置最小金额（如果未指定）
-    const amount0Min = params.amount0Min || (params.amount0Desired * 95n) / 100n; // 5% 滑点
-    const amount1Min = params.amount1Min || (params.amount1Desired * 95n) / 100n;
+    // 4. 计算 liquidity（合约 mint 接受 liquidity 而非 token amounts）
+    const sqrtPriceLower = tickToSqrtPriceX96(params.tickLower);
+    const sqrtPriceUpper = tickToSqrtPriceX96(params.tickUpper);
+    const sqrtPriceCurrent = tickToSqrtPriceX96(
+      Math.floor((params.tickLower + params.tickUpper) / 2)
+    );
+    const liquidity = getLiquidityForAmounts(
+      sqrtPriceCurrent,
+      sqrtPriceLower,
+      sqrtPriceUpper,
+      params.amount0Desired,
+      params.amount1Desired,
+    );
 
-    // 5. 构建 hookData
-    const hookData = encodeWhitelistHookData(user);
+    if (liquidity === 0n) {
+      throw new Error('Computed liquidity is zero; increase token amounts or narrow price range');
+    }
 
-    // 6. 执行添加流动性
+    // 5. hookData = 0x (Mode 2: EOA 直接调用)
+    const hookData = DIRECT_HOOK_DATA;
+
+    // 6. 执行添加流动性 — 合约签名: mint(poolKey, tickLower, tickUpper, liquidity, hookData)
     try {
       const hash = await this.walletClient.writeContract({
         address: this.positionManagerAddress,
@@ -59,12 +73,7 @@ export class LiquidityModule {
           params.poolKey,
           params.tickLower,
           params.tickUpper,
-          params.amount0Desired,
-          params.amount1Desired,
-          amount0Min,
-          amount1Min,
-          user,
-          params.deadline || BigInt(Math.floor(Date.now() / 1000) + 1200),
+          liquidity,
           hookData,
         ],
         account: user,
@@ -73,15 +82,32 @@ export class LiquidityModule {
       // 7. 等待交易确认
       const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
 
-      // 8. 从事件日志中提取 tokenId
-      // TODO: 解析 PositionMinted 事件
-      const tokenId = 0n;  // 从日志中提取
+      // 8. 从 PositionMinted 事件提取 tokenId 和 liquidity
+      let tokenId = 0n;
+      let mintedLiquidity = liquidity;
+      for (const log of receipt.logs) {
+        try {
+          if (log.address.toLowerCase() === this.positionManagerAddress.toLowerCase()) {
+            const decoded = (this.publicClient as any).decodeEventLog?.({
+              abi: positionManagerABI,
+              eventName: 'PositionMinted',
+              data: log.data,
+              topics: log.topics,
+            });
+            if (decoded?.args) {
+              tokenId = decoded.args.tokenId ?? 0n;
+              mintedLiquidity = decoded.args.liquidity ?? liquidity;
+              break;
+            }
+          }
+        } catch { /* skip non-matching logs */ }
+      }
 
       return {
         hash,
         tokenId,
-        liquidity: 0n,  // 从日志中提取
-        amount0: params.amount0Desired,  // 实际使用的金额从日志提取
+        liquidity: mintedLiquidity,
+        amount0: params.amount0Desired,
         amount1: params.amount1Desired,
       };
     } catch (error: any) {
@@ -100,33 +126,46 @@ export class LiquidityModule {
       throw new Error('No user address available');
     }
 
-    const amount0Min = params.amount0Min || 0n;
-    const amount1Min = params.amount1Min || 0n;
-    const hookData = encodeWhitelistHookData(user);
+    const hookData = DIRECT_HOOK_DATA;
 
     try {
       const hash = await this.walletClient.writeContract({
         address: this.positionManagerAddress,
         abi: positionManagerABI,
-        functionName: 'burn',
+        functionName: 'decreaseLiquidity',
         chain: undefined,
         args: [
           params.tokenId,
           params.liquidity,
-          amount0Min,
-          amount1Min,
-          params.deadline || BigInt(Math.floor(Date.now() / 1000) + 1200),
           hookData,
         ],
         account: user,
       });
 
-      await this.publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
+
+      let removedLiquidity = params.liquidity;
+      for (const log of receipt.logs) {
+        try {
+          if (log.address.toLowerCase() === this.positionManagerAddress.toLowerCase()) {
+            const decoded = (this.publicClient as any).decodeEventLog?.({
+              abi: positionManagerABI,
+              eventName: 'LiquidityDecreased',
+              data: log.data,
+              topics: log.topics,
+            });
+            if (decoded?.args) {
+              removedLiquidity = decoded.args.liquidityDelta ?? params.liquidity;
+              break;
+            }
+          }
+        } catch { /* skip non-matching logs */ }
+      }
 
       return {
         hash,
-        liquidity: params.liquidity,
-        amount0: 0n,  // 从日志中提取
+        liquidity: removedLiquidity,
+        amount0: 0n,
         amount1: 0n,
       };
     } catch (error: any) {
@@ -170,8 +209,32 @@ export class LiquidityModule {
       throw new Error('No user address available');
     }
 
-    // TODO: 实现从合约或 subgraph 查询用户的所有头寸
-    return [];
+    const nextTokenId = await this.publicClient.readContract({
+      address: this.positionManagerAddress,
+      abi: positionManagerABI,
+      functionName: 'nextTokenId',
+    }) as bigint;
+
+    const positions: LiquidityPosition[] = [];
+    for (let id = 1n; id < nextTokenId; id++) {
+      try {
+        const owner = await this.publicClient.readContract({
+          address: this.positionManagerAddress,
+          abi: positionManagerABI,
+          functionName: 'ownerOf',
+          args: [id],
+        }) as Address;
+
+        if (owner.toLowerCase() === userAddress.toLowerCase()) {
+          const pos = await this.getPosition(id);
+          if (pos && pos.liquidity > 0n) {
+            positions.push(pos);
+          }
+        }
+      } catch { /* token may not exist */ }
+    }
+
+    return positions;
   }
 
   /**
@@ -188,9 +251,13 @@ export class LiquidityModule {
     const sqrtPriceUpper = tickToSqrtPriceX96(tickUpper);
     const sqrtPriceCurrent = tickToSqrtPriceX96(currentTick);
 
-    // 简化的流动性计算
-    // TODO: 使用完整的 Uniswap V3/V4 流动性计算公式
-    return 0n;
+    return getLiquidityForAmounts(
+      sqrtPriceCurrent,
+      sqrtPriceLower,
+      sqrtPriceUpper,
+      amount0,
+      amount1,
+    );
   }
 
   /**

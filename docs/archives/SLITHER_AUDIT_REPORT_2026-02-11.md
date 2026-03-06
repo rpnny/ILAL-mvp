@@ -1,351 +1,351 @@
-# ILAL Slither 自助审计报告
+# ILAL Slither Self-Audit Report
 
-**日期**: 2026-02-11  
-**工具**: Slither 0.11.4  
-**范围**: ILAL 核心合约  
-**审计人员**: AI 自动审计
-
----
-
-## 📋 执行摘要
-
-### 审计范围
-
-| 合约 | LOC | 描述 |
-|------|-----|------|
-| `ComplianceHook` | ~400 | Uniswap v4 合规性 Hook |
-| `Registry` | ~200 | 多发行方注册表 (UUPS) |
-| `SessionManager` | ~150 | Session 管理 (UUPS) |
-| `VerifiedPoolsPositionManager` | ~450 | 非转让 LP NFT 管理器 |
-| `SimpleSwapRouter` | ~200 | 轻量级 Swap Router |
-| `PlonkVerifier` | ~800 | ZK 证明验证器 (自动生成) |
-| `PlonkVerifierAdapter` | ~100 | PLONK 适配器 |
-| `EIP712Verifier` | ~150 | EIP-712 签名验证库 |
-
-**总计**: ~2,450 LOC
-
-### 发现统计
-
-| 严重性 | 数量 | 状态 |
-|--------|------|------|
-| 🔴 高危 | 0 | N/A |
-| 🟠 中危 | 2 | ⚠️ 需审查 |
-| 🟡 低危 | 5 | ⚠️ 待优化 |
-| 🔵 信息 | 15 | ℹ️ 已知/接受 |
-| **总计** | **22** | |
+**Date**: 2026-02-11  
+**Tool**: Slither 0.11.4  
+**Scope**: ILAL core contracts  
+**Auditor**: AI automated audit
 
 ---
 
-## 🔍 详细发现
+## 📋 Executive Summary
 
-### 🟠 中危发现 (2)
+### Audit Scope
+
+| Contract | LOC | Description |
+|----------|-----|-------------|
+| `ComplianceHook` | ~400 | Uniswap v4 compliance hook |
+| `Registry` | ~200 | Multi-issuer registry (UUPS) |
+| `SessionManager` | ~150 | Session management (UUPS) |
+| `VerifiedPoolsPositionManager` | ~450 | Non-transferable LP NFT manager |
+| `SimpleSwapRouter` | ~200 | Lightweight swap router |
+| `PlonkVerifier` | ~800 | ZK proof verifier (auto-generated) |
+| `PlonkVerifierAdapter` | ~100 | PLONK adapter |
+| `EIP712Verifier` | ~150 | EIP-712 signature verification library |
+
+**Total**: ~2,450 LOC
+
+### Findings Summary
+
+| Severity | Count | Status |
+|----------|-------|--------|
+| 🔴 High | 0 | N/A |
+| 🟠 Medium | 2 | ⚠️ Under review |
+| 🟡 Low | 5 | ⚠️ Pending optimization |
+| 🔵 Info | 15 | ℹ️ Known/accepted |
+| **Total** | **22** | |
+
+---
+
+## 🔍 Detailed Findings
+
+### 🟠 Medium Findings (2)
 
 #### M-1: Arbitrary `from` in `transferFrom`
 
-**文件**: 
+**Files**: 
 - `VerifiedPoolsPositionManager.sol#360-370`
 - `SimpleSwapRouter.sol#139-153`
 
-**描述**:  
-`_settleToken()` 和 `_settle()` 函数使用 `safeTransferFrom(from, ...)` 其中 `from` 参数从外部传入。
+**Description**:  
+`_settleToken()` and `_settle()` use `safeTransferFrom(from, ...)` where `from` is passed in from external callers.
 
-**代码**:
+**Code**:
 ```solidity
 IERC20(Currency.unwrap(currency)).safeTransferFrom(
-    from,  // ⚠️ 任意地址
+    from,  // ⚠️ Arbitrary address
     address(poolManager),
     amount
 );
 ```
 
-**风险**:
-- 攻击者可能尝试从其他用户地址转移代币
-- 依赖于前置的 `allowance` 检查
+**Risk**:
+- Attacker could attempt to transfer tokens from another user's address
+- Relies on prior `allowance` checks
 
-**缓解措施**:
-✅ **当前设计已安全**:
-1. 这些函数在 `unlockCallback` 内被调用 (msg.sender 是 PoolManager)
-2. Uniswap v4 的 flash accounting 机制保证了调用上下文
-3. 用户必须预先批准 `PositionManager` 或 `Router` 的 allowance
-4. 没有 allowance = 交易自动失败
+**Mitigation**:
+✅ **Current design is safe**:
+1. These functions are called inside `unlockCallback` (msg.sender is PoolManager)
+2. Uniswap v4 flash accounting guarantees the call context
+3. User must pre-approve allowance for `PositionManager` or `Router`
+4. No allowance = transaction fails automatically
 
-**建议**:
-- ✅ 保持现状 (Uniswap v4 标准模式)
-- 📌 在文档中明确说明 allowance 要求
+**Recommendation**:
+- ✅ Keep as-is (Uniswap v4 standard pattern)
+- 📌 Document allowance requirements clearly
 
 ---
 
-#### M-2: Reentrancy 风险 (State after External Call)
+#### M-2: Reentrancy Risk (State after External Call)
 
-**文件**: 
+**Files**: 
 - `VerifiedPoolsPositionManager.mint()` #143-191
 - `VerifiedPoolsPositionManager.increaseLiquidity()` #199-229
 - `VerifiedPoolsPositionManager.decreaseLiquidity()` #237-274
 
-**描述**:  
-在调用 `poolManager.unlock()` 之后更新状态变量 `positions` 或 `liquidity`。
+**Description**:  
+State variables `positions` or `liquidity` are updated after calling `poolManager.unlock()`.
 
-**代码**:
+**Code**:
 ```solidity
-poolManager.unlock(abi.encode(callbackData)); // 外部调用
-position.liquidity += liquidityDelta;          // ⚠️ 状态写入在外部调用后
+poolManager.unlock(abi.encode(callbackData)); // External call
+position.liquidity += liquidityDelta;          // ⚠️ State write after external call
 ```
 
-**风险**:
-- 潜在的跨函数重入风险
-- 状态可能在 unlock 期间被意外修改
+**Risk**:
+- Potential cross-function reentrancy
+- State could be modified unexpectedly during unlock
 
-**缓解措施**:
-✅ **当前设计已安全**:
-1. `poolManager` 是受信任的 Uniswap v4 核心合约
-2. 遵循 Checks-Effects-Interactions 模式的特殊情况
-3. Uniswap v4 的 `unlock` 机制是单次调用，不会触发恶意重入
+**Mitigation**:
+✅ **Current design is safe**:
+1. `poolManager` is a trusted Uniswap v4 core contract
+2. Special case of Checks-Effects-Interactions pattern
+3. Uniswap v4 `unlock` is a single call and does not trigger malicious reentrancy
 
-**建议**:
-- 🔄 **考虑优化**: 将状态更新移到 `unlock` 调用前（如果可行）
-- 📌 添加 Natspec 注释说明安全性保证
+**Recommendation**:
+- 🔄 **Consider optimization**: Move state updates before `unlock` if feasible
+- 📌 Add NatSpec comments explaining safety guarantees
 
 ---
 
-### 🟡 低危发现 (5)
+### 🟡 Low Findings (5)
 
-#### L-1: 未使用的返回值
+#### L-1: Unused Return Values
 
-**文件**: 多处  
-**示例**:
+**Files**: Multiple  
+**Example**:
 ```solidity
-poolManager.unlock(abi.encode(callbackData));  // 返回值未使用
-poolManager.settle{value: amount}();            // 返回值未使用
+poolManager.unlock(abi.encode(callbackData));  // Return value unused
+poolManager.settle{value: amount}();            // Return value unused
 ```
 
-**建议**:
-- ✅ 如果返回值不重要，添加注释说明
-- ⚠️ 或者使用返回值进行验证
+**Recommendation**:
+- ✅ Add comments if return value is intentionally ignored
+- ⚠️ Or validate return values where relevant
 
 ---
 
-#### L-2: 循环中的外部调用
+#### L-2: External Calls in Loop
 
-**文件**: `ComplianceHook.sol#228-235`  
-**函数**: `batchIsUserAllowed()`
+**File**: `ComplianceHook.sol#228-235`  
+**Function**: `batchIsUserAllowed()`
 
-**代码**:
+**Code**:
 ```solidity
 for (uint256 i = 0; i < users.length; i++) {
-    allowed[i] = sessionManager.isSessionActive(users[i]);  // 外部调用
+    allowed[i] = sessionManager.isSessionActive(users[i]);  // External call
 }
 ```
 
-**风险**:
-- Gas 消耗随 `users.length` 线性增长
-- 可能导致 gas limit 超限
+**Risk**:
+- Gas scales linearly with `users.length`
+- May exceed gas limit
 
-**建议**:
-- ✅ 在文档中限制 `users.length` (例如 ≤ 50)
-- 🔄 或使用链下查询 + Merkle proof 优化
+**Recommendation**:
+- ✅ Document a limit on `users.length` (e.g., ≤ 50)
+- 🔄 Or optimize with off-chain query + Merkle proof
 
 ---
 
-#### L-3: 循环中的昂贵操作
+#### L-3: Expensive Operations in Loop
 
-**文件**: `SessionManager.sol#108-119`  
-**函数**: `endSessionBatch()`
+**File**: `SessionManager.sol#108-119`  
+**Function**: `endSessionBatch()`
 
-**代码**:
+**Code**:
 ```solidity
 for (uint256 i = 0; i < users.length; i++) {
-    delete _sessionExpiry[users[i]];  // 昂贵的 SSTORE 操作
+    delete _sessionExpiry[users[i]];  // Expensive SSTORE
 }
 ```
 
-**建议**:
-- ✅ 当前已有长度限制 (`MAX_BATCH = 100`)
-- 📌 Gas 估算: ~5,000 gas/user
+**Recommendation**:
+- ✅ Length limit already in place (`MAX_BATCH = 100`)
+- 📌 Gas estimate: ~5,000 gas/user
 
 ---
 
-#### L-4: `block.timestamp` 依赖
+#### L-4: `block.timestamp` Dependency
 
-**文件**: 多处 (`SessionManager`, `EIP712Verifier`)
+**Files**: Multiple (`SessionManager`, `EIP712Verifier`)
 
-**风险**:
-- 矿工可操纵 timestamp (~15秒)
+**Risk**:
+- Miner can manipulate timestamp (~15 seconds)
 
-**评估**:
-- ✅ **可接受风险**，因为：
-  1. Session TTL 通常为 24 小时
-  2. 15 秒的误差影响可忽略
-  3. 标准 EIP-712 设计模式
+**Assessment**:
+- ✅ **Acceptable risk** because:
+  1. Session TTL is typically 24 hours
+  2. 15-second skew is negligible
+  3. Standard EIP-712 design pattern
 
 ---
 
-#### L-5: 未初始化的局部变量
+#### L-5: Uninitialized Local Variable
 
-**文件**: `PlonkVerifierAdapter.sol#51`  
-**变量**: `proofArray`
+**File**: `PlonkVerifierAdapter.sol#51`  
+**Variable**: `proofArray`
 
-**代码**:
+**Code**:
 ```solidity
-uint256[24] memory proofArray;  // ⚠️ 未初始化
+uint256[24] memory proofArray;  // ⚠️ Uninitialized
 ```
 
-**建议**:
-- 🔄 在声明时初始化，或在循环前初始化
+**Recommendation**:
+- 🔄 Initialize at declaration or before the loop
 
 ---
 
-### 🔵 信息级发现 (15)
+### 🔵 Informational Findings (15)
 
-#### I-1: PlonkVerifier 使用汇编 (Assembly)
+#### I-1: PlonkVerifier Uses Assembly
 
-**评估**: ✅ **已知设计**  
-- PlonkVerifier 是由 snarkjs 自动生成的
-- 汇编用于椭圆曲线运算优化
-- 不建议手动修改
-
----
-
-#### I-2: 命名规范不一致
-
-**示例**: `_pubSignals`, `_forceFailure`, `pMem_verifyProof_asm_0_calculateChallenges`
-
-**评估**: ✅ **可接受**  
-- 大部分来自自动生成的 PlonkVerifier
-- 核心合约已遵循 Solidity 命名规范
+**Assessment**: ✅ **Known design**  
+- PlonkVerifier is auto-generated by snarkjs
+- Assembly used for elliptic curve optimizations
+- Manual changes not recommended
 
 ---
 
-#### I-3: PlonkVerifier 使用宽泛的 Solidity 版本约束
+#### I-2: Inconsistent Naming Conventions
 
-**约束**: `>=0.7.0<0.9.0`
+**Examples**: `_pubSignals`, `_forceFailure`, `pMem_verifyProof_asm_0_calculateChallenges`
 
-**评估**: ✅ **自动生成合约特殊情况**  
-- 核心合约使用 `^0.8.26`
-- PlonkVerifier 由 snarkjs 生成，不建议修改
+**Assessment**: ✅ **Acceptable**  
+- Most from auto-generated PlonkVerifier
+- Core contracts follow Solidity naming conventions
 
 ---
 
-#### I-4: 死代码 (Dead Code)
+#### I-3: PlonkVerifier Uses Broad Solidity Version Constraint
 
-**文件**: 
+**Constraint**: `>=0.7.0<0.9.0`
+
+**Assessment**: ✅ **Auto-generated contract exception**  
+- Core contracts use `^0.8.26`
+- PlonkVerifier from snarkjs; modification not recommended
+
+---
+
+#### I-4: Dead Code
+
+**Files**: 
 - `PlonkVerifier.verifyProof.asm_0.g1_mulAcc()`
 - `PlonkVerifierAdapter._bytesToUint256Array24()`
 
-**建议**:
-- 🧹 移除未使用的辅助函数
+**Recommendation**:
+- 🧹 Remove unused helper functions
 
 ---
 
-#### I-5: PlonkVerifier `incorrect-return` 警告
+#### I-5: PlonkVerifier `incorrect-return` Warning
 
-**评估**: ✅ **误报**  
-- 这是 snarkjs 生成的标准 PLONK 验证器模式
-- 汇编中的 `return(0, 0x20)` 是正常的错误处理
-
----
-
-## 📊 Gas 优化建议
-
-### 高影响优化
-
-1. **PositionManager 批量操作**
-   - 当前: 每次 `unlock` 调用 ~50k gas
-   - 优化: 添加 `mintBatch()` 函数
-
-2. **SessionManager 缓存**
-   - 当前: 每次 `isSessionActive` 调用 ~2.5k gas (SLOAD)
-   - 优化: 在 ComplianceHook 中缓存 session 结果
-
-3. **ComplianceHook nonce 管理**
-   - 当前: 每次 swap 更新 nonce (5k gas SSTORE)
-   - 优化: 使用 bitmap 批量管理 nonce
-
-### 中等影响优化
-
-4. **EIP-712 Domain Separator 缓存**
-   - ✅ 已实现 (存储在 immutable 中)
-
-5. **Registry router 批准优化**
-   - 当前: 单次操作
-   - 优化: 添加 `approveRouterBatch()`
+**Assessment**: ✅ **False positive**  
+- Standard snarkjs-generated PLONK verifier pattern
+- `return(0, 0x20)` in assembly is normal error handling
 
 ---
 
-## 🛡️ 安全最佳实践检查
+## 📊 Gas Optimization Suggestions
 
-| 检查项 | 状态 | 备注 |
-|--------|------|------|
-| ✅ CEI 模式 | 🟢 Pass | 大部分遵循 |
+### High-Impact Optimizations
+
+1. **PositionManager batch operations**
+   - Current: ~50k gas per `unlock` call
+   - Optimization: Add `mintBatch()` function
+
+2. **SessionManager caching**
+   - Current: ~2.5k gas per `isSessionActive` call (SLOAD)
+   - Optimization: Cache session result in ComplianceHook
+
+3. **ComplianceHook nonce management**
+   - Current: Nonce updated per swap (5k gas SSTORE)
+   - Optimization: Use bitmap for batch nonce management
+
+### Medium-Impact Optimizations
+
+4. **EIP-712 Domain Separator caching**
+   - ✅ Already implemented (stored in immutable)
+
+5. **Registry router approval optimization**
+   - Current: Single operation
+   - Optimization: Add `approveRouterBatch()`
+
+---
+
+## 🛡️ Security Best Practices Checklist
+
+| Check | Status | Notes |
+|-------|--------|-------|
+| ✅ CEI Pattern | 🟢 Pass | Mostly followed |
 | ✅ Access Control | 🟢 Pass | OpenZeppelin AccessControl |
-| ✅ Reentrancy 保护 | 🟢 Pass | 受信任合约调用 |
+| ✅ Reentrancy Protection | 🟢 Pass | Trusted contract calls |
 | ✅ Integer Overflow | 🟢 Pass | Solidity 0.8+ |
-| ✅ Flash Loan 保护 | 🟢 Pass | Session 机制 |
-| ✅ Front-Running 保护 | 🟢 Pass | EIP-712 签名 |
-| ⚠️ Gas Limit DoS | 🟡 Review | 批量操作有长度限制 |
-| ✅ Upgradeable 安全 | 🟢 Pass | UUPS + 初始化保护 |
-| ✅ External Call 安全 | 🟢 Pass | 仅调用受信任合约 |
-| ✅ 随机数生成 | N/A | 不涉及 |
+| ✅ Flash Loan Protection | 🟢 Pass | Session mechanism |
+| ✅ Front-Running Protection | 🟢 Pass | EIP-712 signatures |
+| ⚠️ Gas Limit DoS | 🟡 Review | Batch ops have length limits |
+| ✅ Upgradeable Safety | 🟢 Pass | UUPS + init protection |
+| ✅ External Call Safety | 🟢 Pass | Trusted contracts only |
+| ✅ Randomness | N/A | Not applicable |
 
 ---
 
-## 🎯 优先级修复建议
+## 🎯 Prioritized Remediation
 
-### 🔥 立即处理 (审计前)
+### 🔥 Immediate (Pre-Audit)
 
-1. **无关键问题** — 系统核心安全
+1. **No critical issues** — Core security in place
 
-### 📋 中期优化 (上线后)
+### 📋 Medium-Term (Post-Launch)
 
-1. ✅ L-2: 限制 `batchIsUserAllowed()` 数组长度
-2. ✅ L-5: 初始化 `PlonkVerifierAdapter.proofArray`
-3. 🔄 L-1: 检查关键返回值或添加注释
+1. ✅ L-2: Limit `batchIsUserAllowed()` array length
+2. ✅ L-5: Initialize `PlonkVerifierAdapter.proofArray`
+3. 🔄 L-1: Check critical return values or add comments
 
-### 🧹 长期优化 (v2)
+### 🧹 Long-Term (v2)
 
-1. Gas 优化: 批量操作、缓存机制
-2. I-4: 移除死代码
-3. 架构重构: 考虑 EIP-4337 集成
-
----
-
-## 📌 审计结论
-
-### 总体评估: 🟢 **安全可用**
-
-**优点**:
-- ✅ 核心逻辑清晰，遵循最佳实践
-- ✅ 使用成熟的 OpenZeppelin 库
-- ✅ 完善的 Access Control 机制
-- ✅ 120/120 测试全部通过
-- ✅ UUPS 升级模式正确实现
-
-**需要注意**:
-- ⚠️ 2 个中危问题已评估为"设计已安全"
-- 📌 5 个低危问题可在上线后优化
-- ℹ️ 15 个信息级问题多为自动生成代码特性
-
-### 机构客户 (Ondo) 就绪度
-
-**合规性**: ✅ **Ready**  
-- Session 机制健壮
-- 多发行方支持
-- 紧急暂停功能
-
-**安全性**: ✅ **Production-Ready**  
-- 无高危漏洞
-- 中危问题已有缓解措施
-- 代码质量高
-
-**建议后续审计**:
-1. **短期**: 专业审计公司复审 (OpenZeppelin/Trail of Bits)
-2. **中期**: Code4rena 公开竞赛
-3. **长期**: Runtime 监控 (Forta/Tenderly)
+1. Gas optimizations: batch ops, caching
+2. I-4: Remove dead code
+3. Architecture: Consider EIP-4337 integration
 
 ---
 
-## 📝 附录
+## 📌 Audit Conclusion
 
-### A. Slither 命令
+### Overall Assessment: 🟢 **Safe for Use**
+
+**Strengths**:
+- ✅ Clear core logic, follows best practices
+- ✅ Uses mature OpenZeppelin libraries
+- ✅ Solid access control
+- ✅ 120/120 tests passing
+- ✅ UUPS upgrade pattern correctly implemented
+
+**Caveats**:
+- ⚠️ 2 medium findings assessed as "design is safe"
+- 📌 5 low findings can be optimized post-launch
+- ℹ️ 15 informational findings mostly from auto-generated code
+
+### Institutional Client (Ondo) Readiness
+
+**Compliance**: ✅ **Ready**  
+- Robust session mechanism
+- Multi-issuer support
+- Emergency pause capability
+
+**Security**: ✅ **Production-Ready**  
+- No high-severity vulnerabilities
+- Medium findings have mitigations
+- High code quality
+
+**Recommended Follow-Up Audits**:
+1. **Short-term**: Professional audit (OpenZeppelin/Trail of Bits)
+2. **Medium-term**: Code4rena public contest
+3. **Long-term**: Runtime monitoring (Forta/Tenderly)
+
+---
+
+## 📝 Appendix
+
+### A. Slither Commands
 
 ```bash
 cd contracts/
@@ -355,21 +355,22 @@ slither . \
   --json slither-report.json
 ```
 
-### B. 审计环境
+### B. Audit Environment
 
-- **Slither 版本**: 0.11.4
-- **Solidity 版本**: 0.8.26
-- **Foundry 版本**: forge 0.2.0
-- **审计时间**: 2026-02-11 17:30 UTC
-- **代码提交**: 最新 (包含 ComplianceHook v2)
+- **Slither version**: 0.11.4
+- **Solidity version**: 0.8.26
+- **Foundry version**: forge 0.2.0
+- **Audit time**: 2026-02-11 17:30 UTC
+- **Code commit**: Latest (includes ComplianceHook v2)
 
-### C. 联系方式
+### C. Contact
 
-如有疑问，请联系：
-- **项目**: ILAL (Institutional Liquidity Access Layer)
+For questions, contact:
+- **Project**: ILAL (Institutional Liquidity Access Layer)
 - **GitHub**: [ilal/contracts]
-- **审计工具**: Slither by Trail of Bits
+- **Audit tool**: Slither by Trail of Bits
+- **Email**: 2867755637@qq.com
 
 ---
 
-*本报告由 AI 自动生成，建议人工审查后再用于生产环境。*
+*This report was auto-generated by AI. Manual review is recommended before use in production.*

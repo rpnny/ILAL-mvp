@@ -106,7 +106,7 @@ contract AddLiquidity is Script {
     address constant POOL_MANAGER = 0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408;
     address constant WETH = 0x4200000000000000000000000000000000000006;
     address constant USDC = 0x036CbD53842c5426634e7929541eC2318f3dCF7e;
-    address constant HOOK = 0xDeDcFDF10b03AB45eEbefD2D91EDE66D9E5c8a80;
+    address constant HOOK = 0xE1AF9f1D1ddF819f729ec08A612a2212D1058a80;
     address constant SESSION_MANAGER = 0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2;
     address constant REGISTRY = 0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD;
 
@@ -131,21 +131,14 @@ contract AddLiquidity is Script {
         require(s1, "Failed to approve router");
         console.log("Helper approved as router");
 
-        // 3. 确保 deployer 有 active session
-        (bool s2, bytes memory sessionData) = SESSION_MANAGER.call(
-            abi.encodeWithSignature("isSessionActive(address)", deployer)
-        );
-        require(s2, "Failed to check session");
-        bool isActive = abi.decode(sessionData, (bool));
-        if (!isActive) {
+        // 3. Activate session for helper (sender in beforeAddLiquidity is helper, not deployer)
+        {
             uint256 expiry = block.timestamp + 24 hours;
             (bool s3, ) = SESSION_MANAGER.call(
-                abi.encodeWithSignature("startSession(address,uint256)", deployer, expiry)
+                abi.encodeWithSignature("startSession(address,uint256)", address(helper), expiry)
             );
-            require(s3, "Failed to start session");
-            console.log("Session activated");
-        } else {
-            console.log("Session already active");
+            require(s3, "Failed to start session for helper");
+            console.log("Session activated for helper");
         }
 
         // 4. Approve WETH 给 helper
@@ -172,8 +165,8 @@ contract AddLiquidity is Script {
         int24 tickUpper = 196250;   // = current tick (整好覆盖到当前价格)
         int256 liquidity = 2000000000000; // 2e12 — reasonable liquidity
 
-        // hookData: deployer 地址 (20 bytes) — 白名单路由模式
-        bytes memory hookData = abi.encodePacked(deployer);
+        // hookData: empty = sender is user (helper has active session)
+        bytes memory hookData = "";
 
         console.log("");
         console.log("Adding liquidity...");

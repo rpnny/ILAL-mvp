@@ -27,7 +27,7 @@ const account = privateKeyToAccount(PRIVATE_KEY);
 const ADDRESSES = {
   registry: '0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD' as Address,
   sessionManager: '0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2' as Address,
-  complianceHook: '0xDeDcFDF10b03AB45eEbefD2D91EDE66D9E5c8a80' as Address,
+  complianceHook: '0xE1AF9f1D1ddF819f729ec08A612a2212D1058a80' as Address,
   simpleSwapRouter: '0x96ad5eAE7e5797e628F9d3FD21995dB19aE17d58' as Address,  // 新部署
   poolManager: '0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408' as Address,
   USDC: '0x036CbD53842c5426634e7929541eC2318f3dCF7e' as Address,

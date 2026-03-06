@@ -60,6 +60,8 @@ contract SimpleSwapRouter is IUnlockCallback, ReentrancyGuard {
         bytes calldata hookData,
         uint128 minAmountOut
     ) external payable nonReentrant returns (BalanceDelta delta) {
+        uint256 ethBefore = address(this).balance - msg.value;
+
         // 准备回调数据
         SwapCallbackData memory data = SwapCallbackData({
             sender: msg.sender,
@@ -89,9 +91,10 @@ contract SimpleSwapRouter is IUnlockCallback, ReentrancyGuard {
             delta.amount1()
         );
 
-        // Refund any remaining ETH to the sender
-        if (address(this).balance > 0) {
-            (bool success, ) = msg.sender.call{value: address(this).balance}("");
+        // Refund only the ETH excess from THIS call, not prior stuck ETH
+        uint256 ethExcess = address(this).balance - ethBefore;
+        if (ethExcess > 0) {
+            (bool success, ) = msg.sender.call{value: ethExcess}("");
             require(success, "ETH refund failed");
         }
     }

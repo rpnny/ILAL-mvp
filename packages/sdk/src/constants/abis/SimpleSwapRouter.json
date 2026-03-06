@@ -23,7 +23,8 @@
           { "name": "sqrtPriceLimitX96", "type": "uint160" }
         ]
       },
-      { "name": "hookData", "type": "bytes" }
+      { "name": "hookData", "type": "bytes" },
+      { "name": "minAmountOut", "type": "uint128" }
     ],
     "outputs": [
       {
@@ -50,5 +51,15 @@
       { "name": "amount0", "type": "int256", "indexed": false },
       { "name": "amount1", "type": "int256", "indexed": false }
     ]
+  },
+  {
+    "type": "error",
+    "name": "UnauthorizedCallback",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InsufficientOutput",
+    "inputs": []
   }
 ]

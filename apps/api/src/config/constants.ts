@@ -16,8 +16,9 @@ export const DATABASE_URL = process.env.DATABASE_URL!;
 
 // ============ JWT Config ============
 export const JWT_SECRET = process.env.JWT_SECRET!;
-export const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
-export const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '30d';
+export const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || (JWT_SECRET + '_refresh');
+export const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1h';
+export const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
 // ============ API Key Config ============
 export const API_KEY_SECRET = process.env.API_KEY_SECRET!;
@@ -32,16 +33,31 @@ export const VERIFIER_PRIVATE_KEY = process.env.VERIFIER_PRIVATE_KEY as Hex;
 export const CONTRACTS = {
   sessionManager: (process.env.SESSION_MANAGER_ADDRESS || '0x4CB61d41E8D4ceCFb8C477ed069adFF309fB6d0e') as Address,
   verifier: (process.env.VERIFIER_ADDRESS || '0x92eF7F6440466eb2138F7d179Cf2031902eF94be') as Address,
-  simpleSwapRouter: (process.env.SIMPLE_SWAP_ROUTER_ADDRESS || '0x851A12a1A0A5670F4D8A74aD0f3534825EC5e7c2') as Address,
+  simpleSwapRouter: (process.env.SIMPLE_SWAP_ROUTER_ADDRESS || '0x9450fAfdE8aB1E68E29cB6F3faCaEC0CF2221C73') as Address,
   poolManager: (process.env.POOL_MANAGER_ADDRESS || '0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408') as Address,
-  positionManager: (process.env.POSITION_MANAGER_ADDRESS || '0x5b460c8Bd32951183a721bdaa3043495D8861f31') as Address,
-  complianceHook: (process.env.COMPLIANCE_HOOK_ADDRESS || '0xDeDcFDF10b03AB45eEbefD2D91EDE66D9E5c8a80') as Address,
+  positionManager: (process.env.POSITION_MANAGER_ADDRESS || '0x664858fa4d3938788C7b7fE4f8d8f0864d087eA6') as Address,
+  complianceHook: (process.env.COMPLIANCE_HOOK_ADDRESS || '0xE1AF9f1D1ddF819f729ec08A612a2212D1058a80') as Address,
 };
 
 // ============ ZK Verification Config ============
+// Supports multiple Merkle roots for smooth tree rotation.
+// EXPECTED_MERKLE_ROOT is the primary root.
+// EXPECTED_MERKLE_ROOT_PREV is the previous root, accepted during a transition window.
 export const EXPECTED_MERKLE_ROOT = process.env.EXPECTED_MERKLE_ROOT;
+export const EXPECTED_MERKLE_ROOT_PREV = process.env.EXPECTED_MERKLE_ROOT_PREV;
 export const EXPECTED_ISSUER_AX = process.env.EXPECTED_ISSUER_AX;
 export const EXPECTED_ISSUER_AY = process.env.EXPECTED_ISSUER_AY;
+
+/**
+ * Returns the set of currently valid Merkle roots.
+ * During a tree rotation, both current and previous roots are accepted.
+ */
+export function getValidMerkleRoots(): bigint[] {
+  const roots: bigint[] = [];
+  if (EXPECTED_MERKLE_ROOT) roots.push(BigInt(EXPECTED_MERKLE_ROOT));
+  if (EXPECTED_MERKLE_ROOT_PREV) roots.push(BigInt(EXPECTED_MERKLE_ROOT_PREV));
+  return roots;
+}
 
 // ============ Rate Limit Config ============
 export const RATE_LIMITS = {

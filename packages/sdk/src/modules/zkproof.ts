@@ -15,6 +15,24 @@ import { InvalidProofError } from '../utils/errors';
 
 const TREE_DEPTH = 20;
 
+/**
+ * Pre-signed attestation from the Issuer (obtained server-side, never contains private key).
+ * The client receives this from the ILAL API or Issuer service.
+ */
+export interface IssuerAttestation {
+  sigR8x: string;
+  sigR8y: string;
+  sigS: string;
+  issuerAx: string;
+  issuerAy: string;
+  kycStatus: string;
+  countryCode: string;
+  timestamp: string;
+  merkleRoot: string;
+  merkleProof: string[];
+  merkleIndex: string;
+}
+
 export class ZKProofModule {
   private poseidonInstance: any = null;
   private snarkjsInstance: any = null;
@@ -23,32 +41,61 @@ export class ZKProofModule {
   constructor(private config?: ZKProofConfig) {}
 
   /**
-   * 生成合规证明
-   * @param userAddress - 用户地址
-   * @param onProgress - 进度回调
-   * @returns 证明结果
+   * Generate a compliance proof using a pre-signed issuer attestation.
+   * The issuer private key is NEVER on the client — the issuer service
+   * provides a signed attestation which the client uses to build the ZK proof.
+   *
+   * @param userAddress - User's Ethereum address
+   * @param attestation - Pre-signed attestation from the Issuer service
+   * @param onProgress - Progress callback
    */
   async generate(
     userAddress: string,
+    attestationOrProgress?: IssuerAttestation | ProofProgressCallback,
     onProgress?: ProofProgressCallback
   ): Promise<ProofResult> {
     if (!this.config) {
       throw new Error('ZK config not provided. Please provide wasmUrl and zkeyUrl in ILALClient constructor.');
     }
 
-    onProgress?.(5, 'Loading Poseidon hash...');
+    let attestation: IssuerAttestation | undefined;
+    let progressCb: ProofProgressCallback | undefined;
+
+    if (typeof attestationOrProgress === 'function') {
+      progressCb = attestationOrProgress;
+    } else {
+      attestation = attestationOrProgress;
+      progressCb = onProgress;
+    }
+
+    progressCb?.(5, 'Loading Poseidon hash...');
     const poseidon = await this.getPoseidon();
 
-    onProgress?.(10, 'Computing circuit inputs...');
-    const input = await this.prepareCircuitInput(userAddress, poseidon);
+    progressCb?.(10, 'Computing circuit inputs...');
+    let input: CircuitInput;
 
-    onProgress?.(15, 'Loading circuit files...');
+    if (attestation) {
+      input = this.buildCircuitInputFromAttestation(userAddress, attestation);
+    } else if (this.config?.issuerPrivateKey) {
+      console.warn(
+        '[ILAL SDK] WARNING: issuerPrivateKey in client config is deprecated and insecure. ' +
+        'Use server-side attestation instead. See IssuerAttestation type.'
+      );
+      input = await this.prepareCircuitInput(userAddress, poseidon);
+    } else {
+      throw new Error(
+        'Either an IssuerAttestation or issuerPrivateKey (deprecated) must be provided. ' +
+        'Obtain an attestation from your Issuer service endpoint.'
+      );
+    }
+
+    progressCb?.(15, 'Loading circuit files...');
     const [wasmBuffer, zkeyBuffer] = await Promise.all([
       this.loadFile(this.config.wasmUrl),
       this.loadFile(this.config.zkeyUrl),
     ]);
 
-    onProgress?.(25, 'Generating proof (this may take a while)...');
+    progressCb?.(25, 'Generating proof (this may take a while)...');
     const snarkjs = await this.getSnarkJS();
 
     const startTime = Date.now();
@@ -61,7 +108,7 @@ export class ZKProofModule {
       );
 
       const elapsedTime = Date.now() - startTime;
-      onProgress?.(100, 'Proof generation complete!');
+      progressCb?.(100, 'Proof generation complete!');
 
       return {
         proof,
@@ -71,6 +118,29 @@ export class ZKProofModule {
     } catch (error: any) {
       throw new InvalidProofError({ originalError: error, input });
     }
+  }
+
+  /**
+   * Build circuit input from a pre-signed Issuer attestation (no private key needed).
+   */
+  private buildCircuitInputFromAttestation(
+    userAddress: string,
+    attestation: IssuerAttestation
+  ): CircuitInput {
+    return {
+      userAddress: BigInt(userAddress).toString(),
+      merkleRoot: attestation.merkleRoot,
+      issuerAx: attestation.issuerAx,
+      issuerAy: attestation.issuerAy,
+      timestamp: attestation.timestamp,
+      sigR8x: attestation.sigR8x,
+      sigR8y: attestation.sigR8y,
+      sigS: attestation.sigS,
+      kycStatus: attestation.kycStatus,
+      countryCode: attestation.countryCode,
+      merkleProof: attestation.merkleProof,
+      merkleIndex: attestation.merkleIndex,
+    };
   }
 
   /**
@@ -129,8 +199,9 @@ export class ZKProofModule {
   // ============ 私有方法 ============
 
   /**
-   * Prepare circuit input with real EdDSA-Poseidon signature.
-   * Requires issuer private key to sign the user data.
+   * @deprecated Use IssuerAttestation flow instead.
+   * This method requires the issuer private key on the client, which is insecure.
+   * Kept only for backward compatibility and testing.
    */
   private async prepareCircuitInput(
     userAddress: string,

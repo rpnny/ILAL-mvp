@@ -28,7 +28,7 @@ export const SESSION_MANAGER_ABI = [
   },
   {
     inputs: [{ name: 'user', type: 'address' }],
-    name: 'sessionExpiry',
+    name: 'getRemainingTime',
     outputs: [{ name: '', type: 'uint256' }],
     stateMutability: 'view',
     type: 'function',

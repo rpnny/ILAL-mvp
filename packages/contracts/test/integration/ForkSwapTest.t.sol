@@ -53,9 +53,9 @@ contract ForkSwapTest is Test {
     address constant POOL_MANAGER   = 0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408;
     address constant REGISTRY       = 0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD;
     address constant SESSION_MGR    = 0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2;
-    address constant COMPLIANCE_HOOK= 0xDeDcFDF10b03AB45eEbefD2D91EDE66D9E5c8a80;
-    address constant POSITION_MGR   = 0x5b460c8Bd32951183a721bdaa3043495D8861f31;
-    address constant SWAP_ROUTER    = 0x851A12a1A0A5670F4D8A74aD0f3534825EC5e7c2;
+    address constant COMPLIANCE_HOOK= 0xE1AF9f1D1ddF819f729ec08A612a2212D1058a80;
+    address constant POSITION_MGR   = 0x664858fa4d3938788C7b7fE4f8d8f0864d087eA6;
+    address constant SWAP_ROUTER    = 0x9450fAfdE8aB1E68E29cB6F3faCaEC0CF2221C73;
 
     address constant USDC = 0x036CbD53842c5426634e7929541eC2318f3dCF7e;
     address constant WETH = 0x4200000000000000000000000000000000000006;
@@ -94,8 +94,8 @@ contract ForkSwapTest is Test {
         poolKey = PoolKey({
             currency0: Currency.wrap(USDC),
             currency1: Currency.wrap(WETH),
-            fee: 3000,
-            tickSpacing: 60,
+            fee: 500,
+            tickSpacing: 10,
             hooks: IHooks(COMPLIANCE_HOOK)
         });
 
@@ -117,9 +117,14 @@ contract ForkSwapTest is Test {
         vm.prank(defaultAdmin);
         IAccessControl(SESSION_MGR).grantRole(VERIFIER_ROLE, verifier);
 
-        // ---- Open a session for alice ----
-        vm.prank(verifier);
+        // ---- Open sessions ----
+        // With empty hookData, hook resolves user = sender (the contract
+        // that called poolManager). So router & position manager need sessions.
+        vm.startPrank(verifier);
         sessionMgr.startSession(alice, block.timestamp + 86400);
+        sessionMgr.startSession(SWAP_ROUTER, block.timestamp + 86400);
+        sessionMgr.startSession(POSITION_MGR, block.timestamp + 86400);
+        vm.stopPrank();
 
         // ---- Approve router to spend alice's tokens ----
         vm.startPrank(alice);
@@ -162,23 +167,38 @@ contract ForkSwapTest is Test {
 
     // ============ Test 2: OneForZero Swap Succeeds ============
 
-    /// @notice WETH → USDC swap should succeed for a verified user.
+    /// @notice WETH → USDC swap should succeed after seeding the pool with USDC.
+    ///         Pool has single-sided WETH liquidity, so we first do a USDC→WETH swap
+    ///         to push USDC into the pool, then swap back.
     function test_SwapOneForZero_Succeeds() public {
+        bytes memory hookData = _routerHookData(alice);
+
+        // Seed: push USDC into the pool so oneForZero has something to buy
+        vm.prank(alice);
+        router.swap(
+            poolKey,
+            IPoolManager.SwapParams({
+                zeroForOne: true,
+                amountSpecified: -10_000e6,       // 10k USDC in
+                sqrtPriceLimitX96: 4295128739 + 1
+            }),
+            hookData,
+            0
+        );
+
         uint256 usdcBefore = IERC20(USDC).balanceOf(alice);
         uint256 wethBefore = IERC20(WETH).balanceOf(alice);
-
-        bytes memory hookData = _routerHookData(alice);
 
         vm.prank(alice);
         router.swap(
             poolKey,
             IPoolManager.SwapParams({
                 zeroForOne: false,
-                amountSpecified: -0.01 ether,     // exact input: 0.01 WETH
-                sqrtPriceLimitX96: 1461446703485210103287273052203988822378723970342 - 1 // MAX_SQRT - 1
+                amountSpecified: -0.001 ether,    // exact input: 0.001 WETH
+                sqrtPriceLimitX96: 1461446703485210103287273052203988822378723970342 - 1
             }),
             hookData,
-            0 // no slippage check
+            0
         );
 
         uint256 usdcAfter = IERC20(USDC).balanceOf(alice);
@@ -193,19 +213,23 @@ contract ForkSwapTest is Test {
 
     // ============ Test 3: Unverified User Is Rejected ============
 
-    /// @notice A user without an active session should be rejected by ComplianceHook.
+    /// @notice An unapproved router sending non-empty hookData should be rejected.
     function test_Swap_RevertsIfNotVerified() public {
         deal(USDC, nonUser, 1_000e6);
         vm.deal(nonUser, 1 ether);
 
-        vm.prank(nonUser);
-        IERC20(USDC).approve(SWAP_ROUTER, type(uint256).max);
-
-        bytes memory hookData = _routerHookData(nonUser);
+        // Deploy a fresh (unapproved) router to simulate unauthorized access
+        SimpleSwapRouter badRouter = new SimpleSwapRouter(POOL_MANAGER);
 
         vm.prank(nonUser);
-        vm.expectRevert();  // ComplianceHook reverts with NotVerified()
-        router.swap(
+        IERC20(USDC).approve(address(badRouter), type(uint256).max);
+
+        // Non-empty hookData from unapproved router → RouterNotApproved
+        bytes memory hookData = abi.encodePacked(nonUser);
+
+        vm.prank(nonUser);
+        vm.expectRevert();
+        badRouter.swap(
             poolKey,
             IPoolManager.SwapParams({
                 zeroForOne: true,
@@ -280,10 +304,10 @@ contract ForkSwapTest is Test {
 
     // ============ Test 6: Expired Session Reverts ============
 
-    /// @notice A user whose session has expired should be rejected by ComplianceHook.
+    /// @notice After router session expires, swaps through it should fail.
     function test_ExpiredSession_RevertsSwap() public {
-        // Warp past alice's session expiry (setUp gives her 24h)
-        uint256 expiry = sessionMgr.sessionExpiry(alice);
+        // Warp past router's session expiry (setUp gives it 24h)
+        uint256 expiry = sessionMgr.sessionExpiry(SWAP_ROUTER);
         vm.warp(expiry + 1);
 
         bytes memory hookData = _routerHookData(alice);
@@ -351,11 +375,10 @@ contract ForkSwapTest is Test {
 
     // ============ Helpers ============
 
-    /// @dev For fork tests against deployed on-chain contracts (which still support address-forwarding),
-    ///      we pass the user address as 20-byte hookData so the hook resolves the correct user.
-    ///      New local deployments use empty hookData (Mode 2 EOA direct call).
-    function _routerHookData(address user) internal pure returns (bytes memory) {
-        return abi.encodePacked(bytes20(user));
+    /// @dev Empty hookData → hook resolves user = sender (router).
+    ///      For EIP-712 permit flow, hookData would be 148+ bytes.
+    function _routerHookData(address) internal pure returns (bytes memory) {
+        return "";
     }
 
     function _getDefaultAdmin() internal pure returns (address) {

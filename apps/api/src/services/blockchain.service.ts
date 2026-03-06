@@ -207,7 +207,8 @@ class BlockchainService {
   }
 
   /**
-   * Execute a raw contract write (used by legacy DeFi path).
+   * Execute a contract write restricted to the SessionManager.startSession function.
+   * The relay wallet's VERIFIER_ROLE must not be used for arbitrary contract calls.
    */
   async executeContractWrite(params: {
     address: Address;
@@ -219,6 +220,18 @@ class BlockchainService {
   }): Promise<string> {
     if (!this.walletClient || !this.account) {
       throw new Error('VERIFIER_PRIVATE_KEY not configured — contract writes disabled');
+    }
+
+    const ALLOWED_CALLS: Record<string, string[]> = {
+      [CONTRACTS.sessionManager!.toLowerCase()]: ['startSession'],
+    };
+
+    const allowedFns = ALLOWED_CALLS[params.address.toLowerCase()];
+    if (!allowedFns || !allowedFns.includes(params.functionName)) {
+      throw new Error(
+        `Blocked: relay wallet may only call whitelisted functions. ` +
+        `Attempted: ${params.address}.${params.functionName}`
+      );
     }
 
     const hash = await this.walletClient.writeContract({

@@ -25,7 +25,7 @@ export interface SessionStatus {
  */
 export async function checkSession(): Promise<SessionStatus> {
   try {
-    const [isActive, expiry] = await Promise.all([
+    const [isActive, remainingTime] = await Promise.all([
       publicClient.readContract({
         address: contracts.sessionManager,
         abi: SESSION_MANAGER_ABI,
@@ -35,13 +35,14 @@ export async function checkSession(): Promise<SessionStatus> {
       publicClient.readContract({
         address: contracts.sessionManager,
         abi: SESSION_MANAGER_ABI,
-        functionName: 'sessionExpiry',
+        functionName: 'getRemainingTime',
         args: [botAddress],
       }),
     ]);
 
+    const remainingSeconds = isActive ? Number(remainingTime) : 0;
     const now = BigInt(Math.floor(Date.now() / 1000));
-    const remainingSeconds = isActive ? Number(expiry - now) : 0;
+    const expiry = isActive ? now + BigInt(remainingSeconds) : 0n;
     const needsRenewal = remainingSeconds < config.session.renewThreshold;
 
     log.debug('Session 状态检查', {
@@ -64,19 +65,20 @@ export async function checkSession(): Promise<SessionStatus> {
 }
 
 /**
- * 检查是否已验证
+ * 检查 Bot 是否有活跃的 compliance session (NOT issuer status).
+ * Bot 是交易者，不是 Issuer。应检查 session 而非 issuer 状态。
  */
 export async function checkVerification(): Promise<boolean> {
   try {
-    const isVerified = await publicClient.readContract({
-      address: contracts.registry,
-      abi: REGISTRY_ABI,
-      functionName: 'isIssuerActive',
+    const isActive = await publicClient.readContract({
+      address: contracts.sessionManager,
+      abi: SESSION_MANAGER_ABI,
+      functionName: 'isSessionActive',
       args: [botAddress],
     });
 
-    log.debug('验证状态检查', { isVerified });
-    return isVerified;
+    log.debug('Bot session 验证状态', { isActive });
+    return isActive;
   } catch (error) {
     log.error('检查验证状态失败', { error: String(error) });
     throw error;

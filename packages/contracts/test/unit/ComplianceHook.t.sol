@@ -215,12 +215,28 @@ contract ComplianceHookTest is Test {
     // ============ hookData 验证测试 ============
 
     function test_RevertWhen_InvalidHookData() public {
+        // When hookData is non-empty but sender is an approved router,
+        // invalid hookData length should revert with InvalidHookData.
+        vm.prank(address(verifier));
+        sessionManager.startSession(router, block.timestamp + 24 hours);
+
+        bytes memory hookData = abi.encodePacked(alice); // 20 bytes — invalid length
+        vm.prank(POOL_MANAGER);
+        vm.expectRevert(ComplianceHook.InvalidHookData.selector);
+        PoolKey memory key = _createPoolKey();
+        IPoolManager.SwapParams memory params = _createSwapParams();
+        hook.beforeSwap(router, key, params, hookData);
+    }
+
+    function test_RevertWhen_RouterNotApproved() public {
+        // When hookData is non-empty and sender is NOT an approved router,
+        // should revert with RouterNotApproved before checking hookData format.
         vm.prank(address(verifier));
         sessionManager.startSession(alice, block.timestamp + 24 hours);
 
         bytes memory hookData = abi.encodePacked(alice);
         vm.prank(POOL_MANAGER);
-        vm.expectRevert(ComplianceHook.InvalidHookData.selector);
+        vm.expectRevert(abi.encodeWithSelector(ComplianceHook.RouterNotApproved.selector, alice));
         PoolKey memory key = _createPoolKey();
         IPoolManager.SwapParams memory params = _createSwapParams();
         hook.beforeSwap(alice, key, params, hookData);

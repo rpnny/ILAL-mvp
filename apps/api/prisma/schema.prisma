@@ -12,20 +12,36 @@ datasource db {
 
 // Users table
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  passwordHash  String
-  name          String?
-  walletAddress String?  @unique
-  emailVerified Int      @default(0)  // SQLite: 1=true, 0=false
-  plan          String   @default("FREE")  // "FREE" | "PRO" | "ENTERPRISE"
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id              String   @id @default(cuid())
+  email           String   @unique
+  passwordHash    String
+  name            String?
+  walletAddress   String?  @unique
+  emailVerified   Int      @default(0)  // SQLite: 1=true, 0=false
+  plan            String   @default("FREE")  // "FREE" | "PRO" | "ENTERPRISE"
+  lastVerifiedAt  String?  // ISO string — last successful ZK proof verification
+  renewalCount    Int      @default(0)  // renewals since last ZK proof
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
   
   apiKeys           ApiKey[]
   usageRecords      UsageRecord[]
   subscriptions     Subscription[]
   verificationCodes VerificationCode[]
+  proofRecords      ProofRecord[]
+}
+
+// ZK proof usage records — anti-replay
+model ProofRecord {
+  id           String   @id @default(cuid())
+  userId       String
+  proofHash    String   @unique // keccak256(proof + publicInputs) prevents replay
+  userAddress  String   // wallet address the proof was for
+  merkleRoot   String   // merkle root used in this proof
+  timestamp    Int      // proof timestamp from publicInputs
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // Email verification codes

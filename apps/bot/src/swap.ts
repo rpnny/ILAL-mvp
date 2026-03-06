@@ -45,6 +45,7 @@ const SIMPLE_SWAP_ROUTER_ABI = [
         type: 'tuple',
       },
       { name: 'hookData', type: 'bytes' },
+      { name: 'minAmountOut', type: 'uint128' },
     ],
     name: 'swap',
     outputs: [{ name: 'delta', type: 'int256' }],
@@ -281,7 +282,7 @@ export async function executeSwap(params: SwapParams): Promise<SwapResult> {
 
     const swapParams = {
       zeroForOne,
-      amountSpecified: params.amountIn, // 正数 = exact input
+      amountSpecified: -params.amountIn, // 负数 = exact input（Uniswap v4 约定）
       sqrtPriceLimitX96: zeroForOne ? MIN_SQRT_PRICE + 1n : MAX_SQRT_PRICE - 1n,
     };
 
@@ -292,12 +293,12 @@ export async function executeSwap(params: SwapParams): Promise<SwapResult> {
       router: routerAddress,
     });
 
-    // 6. 调用 SimpleSwapRouter.swap
+    // 6. 调用 SimpleSwapRouter.swap（传入 minAmountOut 做滑点保护）
     const hash = await walletClient.writeContract({
       address: routerAddress,
       abi: SIMPLE_SWAP_ROUTER_ABI,
       functionName: 'swap',
-      args: [poolKey, swapParams, hookData],
+      args: [poolKey, swapParams, hookData, params.minAmountOut],
       value: 0n,
     });
 

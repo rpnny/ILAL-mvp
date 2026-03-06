@@ -3,7 +3,7 @@
  */
 
 import jwt from 'jsonwebtoken';
-import { JWT_SECRET, JWT_EXPIRES_IN, JWT_REFRESH_EXPIRES_IN } from '../config/constants.js';
+import { JWT_SECRET, JWT_REFRESH_SECRET, JWT_EXPIRES_IN, JWT_REFRESH_EXPIRES_IN } from '../config/constants.js';
 
 export interface JWTPayload {
   userId: string;
@@ -15,7 +15,7 @@ export interface JWTPayload {
 }
 
 /**
- * Generate access token (short-lived)
+ * Generate access token (short-lived, 1 hour default)
  */
 export function generateAccessToken(payload: Omit<JWTPayload, 'iat' | 'exp' | 'type'>): string {
   return jwt.sign({ ...payload, type: 'access' }, JWT_SECRET, {
@@ -24,20 +24,27 @@ export function generateAccessToken(payload: Omit<JWTPayload, 'iat' | 'exp' | 't
 }
 
 /**
- * Generate refresh token (long-lived)
+ * Generate refresh token (longer-lived, separate secret)
  */
 export function generateRefreshToken(payload: Omit<JWTPayload, 'iat' | 'exp' | 'type'>): string {
-  return jwt.sign({ ...payload, type: 'refresh' }, JWT_SECRET, {
+  return jwt.sign({ ...payload, type: 'refresh' }, JWT_REFRESH_SECRET, {
     expiresIn: JWT_REFRESH_EXPIRES_IN as any,
   });
 }
 
 /**
- * Verify and decode a token. Throws on invalid/expired tokens.
+ * Verify and decode a token. Uses the correct secret based on expected type.
  */
-export function verifyToken(token: string): JWTPayload {
+export function verifyToken(token: string, expectedType?: 'access' | 'refresh'): JWTPayload {
   try {
-    return jwt.verify(token, JWT_SECRET) as JWTPayload;
+    const secret = expectedType === 'refresh' ? JWT_REFRESH_SECRET : JWT_SECRET;
+    const payload = jwt.verify(token, secret) as JWTPayload;
+
+    if (expectedType && payload.type !== expectedType) {
+      throw new Error(`Expected ${expectedType} token, got ${payload.type}`);
+    }
+
+    return payload;
   } catch (error) {
     throw new Error('Invalid or expired token');
   }

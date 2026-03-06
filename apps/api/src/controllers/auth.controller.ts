@@ -79,7 +79,6 @@ export async function register(req: Request, res: Response): Promise<void> {
         passwordHash,
         name: body.name,
         walletAddress: body.walletAddress,
-        emailVerified: 1 as any,
         plan: 'FREE',
       },
       select: {
@@ -213,15 +212,7 @@ export async function refresh(req: Request, res: Response): Promise<void> {
   try {
     const body = refreshSchema.parse(req.body);
 
-    const payload = verifyToken(body.refreshToken);
-
-    if (payload.type !== 'refresh') {
-      res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Invalid token type. Expected a refresh token.',
-      });
-      return;
-    }
+    const payload = verifyToken(body.refreshToken, 'refresh');
 
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },

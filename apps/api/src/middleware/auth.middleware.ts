@@ -40,15 +40,7 @@ export async function authMiddleware(
 
   try {
     const token = authHeader.substring(7);
-    const payload = verifyToken(token);
-
-    if (payload.type !== 'access') {
-      res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Invalid token type. Use an access token.',
-      });
-      return;
-    }
+    const payload = verifyToken(token, 'access');
 
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },

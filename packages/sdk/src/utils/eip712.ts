@@ -118,10 +118,15 @@ export function encodeHookData(permit: SignedPermit): Hex {
 }
 
 /**
- * 编码简化的 hookData（仅用户地址，用于白名单模式）
+ * 编码空 hookData（Mode 2：EOA 直接调用）
+ * ComplianceHook 要求 hookData 长度为 0（直接调用）或 ≥148（EIP-712），
+ * 中间长度会 revert InvalidHookData。
+ * EOA 直接调用时 sender 即 user，无需传地址。
+ *
+ * @deprecated 使用 DIRECT_HOOK_DATA 或 encodeEip712HookData 代替
  */
-export function encodeWhitelistHookData(user: Address): Hex {
-  return user.toLowerCase() as Hex;
+export function encodeWhitelistHookData(_user: Address): Hex {
+  return '0x';
 }
 
 // ============ 辅助函数 ============

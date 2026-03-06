@@ -63,7 +63,7 @@ dataSources:
     name: ComplianceHook
     network: base-sepolia
     source:
-      address: "0xDeDcFDF10b03AB45eEbefD2D91EDE66D9E5c8a80"
+      address: "0xE1AF9f1D1ddF819f729ec08A612a2212D1058a80"
       abi: ComplianceHook
       startBlock: 21000000
     mapping:

@@ -44,12 +44,15 @@ export const dynamicRateLimiter = rateLimit({
   },
 });
 
+const isDev = process.env.NODE_ENV === 'development' && process.env.RATE_LIMIT_DEV_OVERRIDE === 'true';
+
 /**
- * Fixed rate limiter for specific endpoints
+ * Fixed rate limiter for specific endpoints.
+ * Dev mode relaxation requires explicit RATE_LIMIT_DEV_OVERRIDE=true.
  */
 export const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Max 5 login attempts per 15 minutes
+  max: isDev ? 50 : 5,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req: Request, res: Response) => {
@@ -66,7 +69,7 @@ export const authRateLimiter = rateLimit({
  */
 export const registerRateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3, // Max 3 registrations per hour
+  max: isDev ? 20 : 3,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req: Request, res: Response) => {
