@@ -113,7 +113,9 @@ export async function apiKeyMiddleware(
       userId: matchedKey.userId,
       permissions: Array.isArray(matchedKey.permissions)
         ? matchedKey.permissions as string[]
-        : [],
+        : typeof matchedKey.permissions === 'string'
+          ? matchedKey.permissions.split(',').map(p => p.trim()).filter(Boolean)
+          : [],
       rateLimit: matchedKey.rateLimit,
       keyPrefix: matchedKey.keyPrefix,
     };

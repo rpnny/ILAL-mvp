@@ -156,18 +156,18 @@ export default function AboutPage() {
               <div className="grid md:grid-cols-3 gap-6">
                 {[
                   {
-                    title: "5,405x Cheaper",
-                    detail: "Than per-transaction ZK verification",
+                    title: "99.7% Cost Reduction",
+                    detail: "$50 → $0.0003 per-trade compliance overhead",
                     highlight: true
                   },
                   {
                     title: "6-12 Month Lead",
-                    detail: "First compliance Hook on Uniswap v4",
+                    detail: "First ZK Session compliance Hook on Uniswap v4",
                     highlight: false
                   },
                   {
-                    title: "99% Test Coverage",
-                    detail: "Production-ready, audit-prepared",
+                    title: "216/216 Tests Pass",
+                    detail: "100% pass rate, 52+ attack vectors, production-ready",
                     highlight: false
                   },
                 ].map((stat, i) => (
@@ -267,9 +267,9 @@ export default function AboutPage() {
               <div className="grid md:grid-cols-3 gap-6">
                 {[
                   { 
-                    title: "Uniswap v4 Launch", 
-                    detail: "Hook architecture enables native compliance integration without wrappers",
-                    timing: "Q4 2026"
+                    title: "Uniswap v4 is Live", 
+                    detail: "Hook architecture is live now — ILAL deploys natively on v4, no wrappers needed",
+                    timing: "Now"
                   },
                   { 
                     title: "RWA Explosion", 

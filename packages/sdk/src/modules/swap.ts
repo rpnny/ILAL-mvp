@@ -3,12 +3,13 @@
  * 提供代币交换功能
  */
 
-import type { Address, PublicClient, WalletClient } from 'viem';
+import { type Address, type Hex, type PublicClient, type WalletClient, decodeEventLog } from 'viem';
 import type { SwapParams, SwapResult, PoolKey } from '../types';
 import { simpleSwapRouterABI, ERC20_ABI } from '../constants/abis';
 import { MIN_SQRT_PRICE, MAX_SQRT_PRICE, DEFAULT_SLIPPAGE_TOLERANCE } from '../constants';
 import { validateSwapParams } from '../utils/validation';
 import { sortTokens, DIRECT_HOOK_DATA } from '../utils';
+import { createSignedSwapPermit } from '../utils/eip712';
 import { InsufficientLiquidityError, SlippageExceededError } from '../utils/errors';
 
 export class SwapModule {
@@ -56,7 +57,7 @@ export class SwapModule {
     const sqrtPriceLimitX96 = params.sqrtPriceLimitX96 || 
       (zeroForOne ? MIN_SQRT_PRICE + 1n : MAX_SQRT_PRICE - 1n);
 
-    // 7. hookData = 0x (Mode 2: EOA 直接调用，sender 即 user)
+    // 7. hookData = 0x → v2 router auto-injects abi.encode(msg.sender) (Mode 2)
     const hookData = DIRECT_HOOK_DATA;
 
     // 8. 计算 minAmountOut（滑点保护）
@@ -71,7 +72,7 @@ export class SwapModule {
         address: this.swapRouterAddress,
         abi: simpleSwapRouterABI,
         functionName: 'swap',
-        chain: undefined,
+        chain: this.walletClient.chain ?? undefined,
         args: [
           poolKey,
           {
@@ -82,7 +83,7 @@ export class SwapModule {
           hookData,
           minAmountOut,
         ],
-        account: user,
+        account: this.walletClient.account ?? user,
       });
 
       // 10. 等待交易确认
@@ -94,13 +95,14 @@ export class SwapModule {
       for (const log of receipt.logs) {
         try {
           if (log.address.toLowerCase() === this.swapRouterAddress.toLowerCase() && log.topics[0]) {
-            const { args } = this.publicClient.decodeEventLog?.({
+            const decoded = decodeEventLog({
               abi: simpleSwapRouterABI,
               eventName: 'SwapExecuted',
               data: log.data,
               topics: log.topics,
-            }) as any ?? {};
-            if (args) {
+            });
+            if (decoded.args) {
+              const args = decoded.args as any;
               amount0 = args.amount0 ?? 0n;
               amount1 = args.amount1 ?? 0n;
               break;
@@ -119,6 +121,109 @@ export class SwapModule {
       return result;
     } catch (error: any) {
       // 解析合约错误
+      if (error.message?.includes('InsufficientLiquidity')) {
+        throw new InsufficientLiquidityError({ params, originalError: error });
+      }
+      if (error.message?.includes('PRICE_LIMIT')) {
+        throw new SlippageExceededError({ params, originalError: error });
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * 使用 Mode 1 (EIP-712 permit) 执行 Swap
+   *
+   * 与 execute() 的区别：此方法让用户签名一个 EIP-712 SwapPermit，
+   * 将签名编码进 hookData，由 ComplianceHook 在链上验证用户身份。
+   * 注意：当前链上逻辑仍要求该用户已有有效 session。
+   *
+   * @param params - Swap 参数
+   * @param chainId - 链 ID（用于 EIP-712 domain）
+   */
+  async executeWithPermit(params: SwapParams, chainId: number): Promise<SwapResult> {
+    const validation = validateSwapParams(params);
+    if (!validation.valid) {
+      throw new Error(validation.error);
+    }
+
+    const user = params.recipient || (this.walletClient.account?.address as Address);
+    if (!user) {
+      throw new Error('No user address available');
+    }
+
+    const [currency0, currency1, zeroForOne] = sortTokens(params.tokenIn, params.tokenOut);
+
+    const poolKey: PoolKey = {
+      currency0,
+      currency1,
+      fee: 500,
+      tickSpacing: 10,
+      hooks: this.complianceHookAddress,
+    };
+
+    await this.ensureAllowance(params.tokenIn, params.amountIn, user);
+
+    const sqrtPriceLimitX96 = params.sqrtPriceLimitX96 ||
+      (zeroForOne ? MIN_SQRT_PRICE + 1n : MAX_SQRT_PRICE - 1n);
+
+    const hookData: Hex = await createSignedSwapPermit(
+      this.walletClient,
+      this.publicClient,
+      this.complianceHookAddress,
+      chainId,
+      user,
+    );
+
+    const slippageBps = BigInt(Math.floor((params.slippageTolerance ?? DEFAULT_SLIPPAGE_TOLERANCE) * 100));
+    const minAmountOut = slippageBps > 0n
+      ? (params.amountIn * (10000n - slippageBps)) / 10000n
+      : 0n;
+
+    try {
+      const hash = await this.walletClient.writeContract({
+        address: this.swapRouterAddress,
+        abi: simpleSwapRouterABI,
+        functionName: 'swap',
+        chain: this.walletClient.chain ?? undefined,
+        args: [
+          poolKey,
+          {
+            zeroForOne,
+            amountSpecified: -BigInt(params.amountIn),
+            sqrtPriceLimitX96,
+          },
+          hookData,
+          minAmountOut,
+        ],
+        account: this.walletClient.account ?? user,
+      });
+
+      const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
+
+      let amount0 = 0n;
+      let amount1 = 0n;
+      for (const log of receipt.logs) {
+        try {
+          if (log.address.toLowerCase() === this.swapRouterAddress.toLowerCase() && log.topics[0]) {
+            const decoded = decodeEventLog({
+              abi: simpleSwapRouterABI,
+              eventName: 'SwapExecuted',
+              data: log.data,
+              topics: log.topics,
+            });
+            if (decoded.args) {
+              const args = decoded.args as any;
+              amount0 = args.amount0 ?? 0n;
+              amount1 = args.amount1 ?? 0n;
+              break;
+            }
+          }
+        } catch { /* skip non-matching logs */ }
+      }
+
+      return { hash, amount0, amount1, gasUsed: receipt.gasUsed };
+    } catch (error: any) {
       if (error.message?.includes('InsufficientLiquidity')) {
         throw new InsufficientLiquidityError({ params, originalError: error });
       }
@@ -208,9 +313,9 @@ export class SwapModule {
         address: token,
         abi: ERC20_ABI,
         functionName: 'approve',
-        chain: undefined,
+        chain: this.walletClient.chain ?? undefined,
         args: [this.swapRouterAddress, amount],
-        account: user,
+        account: this.walletClient.account ?? user,
       });
 
       // 等待授权交易确认

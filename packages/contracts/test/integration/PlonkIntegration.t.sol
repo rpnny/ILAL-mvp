@@ -18,8 +18,10 @@ contract PlonkIntegrationTest is Test {
     SessionManager public sessionManager;
     Registry public registry;
 
+    bytes32 public constant ISSUER_ID = keccak256("PlonkIntegrationIssuer");
     address public admin = makeAddr("admin");
     address public alice = makeAddr("alice");
+    address public attester = makeAddr("attester");
 
     function setUp() public {
         // 1. 部署 PLONK 验证器
@@ -58,8 +60,10 @@ contract PlonkIntegrationTest is Test {
 
         // 5. 赋予适配器 VERIFIER_ROLE
         bytes32 verifierRole = sessionManager.VERIFIER_ROLE();
-        vm.prank(admin);
+        vm.startPrank(admin);
         sessionManager.grantRole(verifierRole, address(adapter));
+        registry.registerIssuer(ISSUER_ID, attester, address(adapter));
+        vm.stopPrank();
 
         console.log("Setup complete!");
     }

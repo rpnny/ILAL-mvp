@@ -19,8 +19,10 @@ contract RealPlonkProofTest is Test {
     SessionManager public sessionManager;
     Registry public registry;
     
+    bytes32 public constant ISSUER_ID = keccak256("RealPlonkIssuer");
     address public governance = makeAddr("governance");
     address public testUser = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266; // Anvil account #0
+    address public attester = makeAddr("attester");
     
     function setUp() public {
         vm.startPrank(governance);
@@ -56,6 +58,8 @@ contract RealPlonkProofTest is Test {
             sessionData
         );
         sessionManager = SessionManager(address(sessionManagerProxy));
+
+        registry.registerIssuer(ISSUER_ID, attester, address(verifierAdapter));
         
         vm.stopPrank();
         

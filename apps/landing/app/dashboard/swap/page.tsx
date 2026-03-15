@@ -52,7 +52,7 @@ export default function SwapPage() {
                             </div>
                             <div className="flex justify-between border-b border-white/[0.04] pb-2">
                                 <span className="text-gray-500">Router Version</span>
-                                <span className="font-medium text-white">v1.1 (Slippage Protected)</span>
+                                <span className="font-medium text-white">v2.0 (Mode 2 + Slippage)</span>
                             </div>
                         </div>
 

@@ -12,9 +12,11 @@ contract SessionManagerTest is Test {
     Registry public registry;
     MockVerifier public verifier;
 
+    bytes32 public constant ISSUER_ID = keccak256("SessionManagerIssuer");
     address public admin = makeAddr("admin");
     address public alice = makeAddr("alice");
     address public bob = makeAddr("bob");
+    address public attester = makeAddr("attester");
 
     function setUp() public {
         // 部署 Registry
@@ -48,8 +50,10 @@ contract SessionManagerTest is Test {
 
         // 赋予 verifier VERIFIER_ROLE (先获取角色再 prank)
         bytes32 verifierRole = sessionManager.VERIFIER_ROLE();
-        vm.prank(admin);
+        vm.startPrank(admin);
         sessionManager.grantRole(verifierRole, address(verifier));
+        registry.registerIssuer(ISSUER_ID, attester, address(verifier));
+        vm.stopPrank();
     }
 
     // ============ 初始化测试 ============
@@ -86,6 +90,19 @@ contract SessionManagerTest is Test {
 
         vm.prank(alice);
         vm.expectRevert();
+        sessionManager.startSession(alice, expiry);
+    }
+
+    function test_RevertWhen_StartSession_VerifierRevokedInRegistry() public {
+        uint256 expiry = block.timestamp + 24 hours;
+
+        vm.prank(admin);
+        registry.revokeIssuer(ISSUER_ID);
+
+        vm.prank(address(verifier));
+        vm.expectRevert(
+            abi.encodeWithSelector(SessionManager.InactiveVerifier.selector, address(verifier))
+        );
         sessionManager.startSession(alice, expiry);
     }
 

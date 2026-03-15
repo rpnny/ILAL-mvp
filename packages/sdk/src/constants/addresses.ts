@@ -17,14 +17,14 @@ export const BASE_MAINNET_ADDRESSES: ContractAddresses = {
   poolManager: '0x0000000000000000000000000000000000000000' as Address,
 };
 
-// Base Sepolia (84532) - last updated: 2026-02-27
+// Base Sepolia (84532) - last updated: 2026-03-12 (v2 contracts with Mode 2 router-mediated identity)
 export const BASE_SEPOLIA_ADDRESSES: ContractAddresses = {
   registry: '0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD' as Address,
   sessionManager: '0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2' as Address,
   verifier: '0x0cDcD82E5efba9De4aCc255402968397F323AFBB' as Address,
-  complianceHook: '0xE1AF9f1D1ddF819f729ec08A612a2212D1058a80' as Address,
-  positionManager: '0x664858fa4d3938788C7b7fE4f8d8f0864d087eA6' as Address,
-  simpleSwapRouter: '0x9450fAfdE8aB1E68E29cB6F3faCaEC0CF2221C73' as Address, // fixed 2026-02-27: CurrencyNotSettled
+  complianceHook: '0xe633220f15932428FcA60A1A2C2C48797A180A80' as Address,
+  positionManager: '0x692548a6E1797d2762b9d04f29112C172E5Cea32' as Address,
+  simpleSwapRouter: '0xd46D84Dc2D098c767451675C9BcB85bf3f8a2891' as Address,
   plonkVerifier: '0x2645C48A7DB734C9179A195C51Ea5F022B86261f' as Address,
   poolManager: '0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408' as Address,
 };

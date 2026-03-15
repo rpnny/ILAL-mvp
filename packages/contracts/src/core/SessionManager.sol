@@ -34,6 +34,7 @@ contract SessionManager is
     error SessionNotActive();
     error InvalidExpiry();
     error ZeroAddress();
+    error InactiveVerifier(address verifier);
 
     // ============ 初始化 ============
 
@@ -75,6 +76,7 @@ contract SessionManager is
     {
         if (user == address(0)) revert ZeroAddress();
         if (expiry <= block.timestamp) revert InvalidExpiry();
+        if (!registry.isVerifierActive(msg.sender)) revert InactiveVerifier(msg.sender);
 
         uint256 maxTTL = registry.getSessionTTL();
         if (expiry > block.timestamp + maxTTL) revert InvalidExpiry();

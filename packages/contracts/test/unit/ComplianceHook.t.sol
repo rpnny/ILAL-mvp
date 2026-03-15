@@ -20,6 +20,7 @@ contract ComplianceHookTest is Test {
     SessionManager public sessionManager;
     MockVerifier public verifier;
 
+    bytes32 public constant ISSUER_ID = keccak256("ComplianceHookIssuer");
     address public admin = makeAddr("admin");
     address public alice = makeAddr("alice");
     address public bob = makeAddr("bob");
@@ -58,14 +59,15 @@ contract ComplianceHookTest is Test {
 
         // 赋予 verifier VERIFIER_ROLE (先获取角色再 prank)
         bytes32 verifierRole = sessionManager.VERIFIER_ROLE();
-        vm.prank(admin);
+        vm.startPrank(admin);
         sessionManager.grantRole(verifierRole, address(verifier));
+        registry.registerIssuer(ISSUER_ID, makeAddr("attester"), address(verifier));
 
         hook = new ComplianceHook(POOL_MANAGER, address(registry), address(sessionManager));
 
         // 批准路由器
-        vm.prank(admin);
         registry.approveRouter(router, true);
+        vm.stopPrank();
     }
     
     // ============================================

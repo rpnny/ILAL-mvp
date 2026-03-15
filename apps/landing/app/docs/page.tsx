@@ -58,7 +58,7 @@ export default function DocsPage() {
 
         <div className="grid md:grid-cols-2 gap-4 mb-10">
           {[
-            { icon: CheckCircle2, title: 'ZK Compliance Verification', desc: 'Verify KYC/AML status without revealing identity. Powered by Groth16 ZK proofs.' },
+            { icon: CheckCircle2, title: 'ZK Compliance Verification', desc: 'Verify KYC/AML status without revealing identity. Powered by PLONK ZK proofs (snarkjs, Circom).' },
             { icon: CheckCircle2, title: 'Unsigned Transaction Builder', desc: 'Get pre-built calldata for Uniswap V4 swaps and liquidity operations. Sign with your own wallet.' },
             { icon: CheckCircle2, title: 'Uniswap V4 ComplianceHook', desc: 'Every swap/liquidity tx is gated via an on-chain compliance hook — automatic regulatory enforcement.' },
             { icon: CheckCircle2, title: 'Session Management', desc: '24-hour on-chain sessions reduce re-verification overhead for active traders.' },

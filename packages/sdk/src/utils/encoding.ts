@@ -7,20 +7,26 @@ import { encodeAbiParameters, decodeAbiParameters, parseAbiParameters, encodePac
 import type { PoolKey } from '../types';
 
 // ============================================================
-// ComplianceHook — hookData encoding utilities
+// ComplianceHook v2 — hookData encoding utilities
 // ============================================================
 //
-// ComplianceHook._resolveUser supports two modes (by hookData length):
+// Three-mode architecture (by hookData length):
 //
-//   Mode 1 (EIP-712): hookData.length >= 148
-//     Format: abi.encode(address user, uint256 deadline, uint256 nonce, bytes sig)
+//   Mode 1 (EIP-712 permit): hookData.length >= 148
+//     Format: abi.encode((address user, uint256 deadline, uint256 nonce, bytes sig))
 //     Use case: DApp asks user to sign, router forwards the signed permit
 //
-//   Mode 2 (direct call): hookData.length == 0
-//     Format: 0x (empty)
-//     Use case: EOA calls the router directly, sender IS the user
+//   Mode 2 (router-mediated identity): hookData.length == 32
+//     Format: abi.encode(address user)
+//     Use case: Approved router auto-encodes msg.sender into hookData.
+//              SimpleSwapRouter and PositionManager inject this when receiving 0x.
 //
-// Mode 3 (address-only router forwarding) was removed to prevent impersonation.
+//   Mode 3 (direct call): hookData.length == 0
+//     Format: 0x (empty)
+//     Use case: Caller IS the user (e.g. PositionManager calling PoolManager directly)
+//
+// SDK users: pass DIRECT_HOOK_DATA (0x) when calling through the v2 routers.
+// The router automatically converts it to Mode 2 by encoding msg.sender.
 // ============================================================
 
 /**
@@ -33,14 +39,14 @@ export function encodeEip712HookData(
   signature: Hex
 ): Hex {
   return encodeAbiParameters(
-    parseAbiParameters('address, uint256, uint256, bytes'),
-    [user, deadline, nonce, signature]
+    parseAbiParameters('(address user, uint256 deadline, uint256 nonce, bytes signature)'),
+    [{ user, deadline, nonce, signature }]
   );
 }
 
 /**
- * Mode 2 — 直接调用（空 hookData）
- * 适用于 EOA 直接作为 msg.sender 调用路由器。
+ * Pass-through hookData — v2 routers convert 0x into abi.encode(msg.sender)
+ * (Mode 2), so the ComplianceHook sees the real user address.
  */
 export const DIRECT_HOOK_DATA: Hex = '0x';
 

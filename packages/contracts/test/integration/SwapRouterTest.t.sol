@@ -11,6 +11,7 @@ import "../../src/core/MockVerifier.sol";
 import "@uniswap/v4-core/interfaces/IPoolManager.sol";
 import "@uniswap/v4-core/types/PoolKey.sol";
 import "@uniswap/v4-core/types/Currency.sol";
+import "@uniswap/v4-core/interfaces/IHooks.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
@@ -192,6 +193,30 @@ contract SwapRouterTest is Test {
         sessionManager.startSession(user, block.timestamp + 86400);
     }
 
+    function _buildSwapPermitHookData(
+        uint256 privateKey,
+        address user,
+        uint256 deadline,
+        uint256 nonce
+    ) internal view returns (bytes memory) {
+        bytes32 structHash = keccak256(
+            abi.encode(hook.SWAP_PERMIT_TYPEHASH(), user, deadline, nonce)
+        );
+        bytes32 digest = keccak256(
+            abi.encodePacked("\x19\x01", hook.getDomainSeparator(), structHash)
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
+        return abi.encode(
+            ComplianceHook.PermitData({
+                user: user,
+                deadline: deadline,
+                nonce: nonce,
+                signature: signature
+            })
+        );
+    }
+
     function test_FullVerificationFlow() public {
         // 1. Alice 还没有 Session
         assertFalse(sessionManager.isSessionActive(alice));
@@ -295,6 +320,64 @@ contract SwapRouterTest is Test {
         // 编码 hookData
         bytes memory hookData = abi.encode(alice, deadline, nonce, signature);
         assertTrue(hookData.length > 0, "HookData should not be empty");
+    }
+
+    function test_RouterRejectsPermitBorrowing() public {
+        PoolKey memory poolKey = PoolKey({
+            currency0: Currency.wrap(address(token0)),
+            currency1: Currency.wrap(address(token1)),
+            fee: 3000,
+            tickSpacing: 60,
+            hooks: IHooks(address(hook))
+        });
+
+        IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+            zeroForOne: true,
+            amountSpecified: -int256(1 ether),
+            sqrtPriceLimitX96: 4295128740
+        });
+
+        bytes memory hookData = _buildSwapPermitHookData(
+            aliceKey,
+            alice,
+            block.timestamp + 10 minutes,
+            0
+        );
+
+        vm.prank(bob);
+        vm.expectRevert(
+            abi.encodeWithSelector(SimpleSwapRouter.PermitCallerMismatch.selector, alice, bob)
+        );
+        router.swap(poolKey, params, hookData, 0);
+    }
+
+    function test_PositionManagerRejectsBorrowedPermitOnMint() public {
+        _startSessionForUser(bob);
+
+        PoolKey memory poolKey = PoolKey({
+            currency0: Currency.wrap(address(token0)),
+            currency1: Currency.wrap(address(token1)),
+            fee: 3000,
+            tickSpacing: 60,
+            hooks: IHooks(address(hook))
+        });
+
+        bytes memory hookData = _buildSwapPermitHookData(
+            aliceKey,
+            alice,
+            block.timestamp + 10 minutes,
+            0
+        );
+
+        vm.prank(bob);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                VerifiedPoolsPositionManager.PermitCallerMismatch.selector,
+                alice,
+                bob
+            )
+        );
+        positionManager.mint(poolKey, -887220, 887220, 1e18, hookData);
     }
 
     // ============ 紧急暂停测试 ============

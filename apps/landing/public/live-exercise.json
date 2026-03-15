@@ -1,0 +1,25 @@
+{
+  "generatedAt": "2026-03-12T13:48:55.490Z",
+  "network": "Base Sepolia",
+  "mode": "permit",
+  "pool": {
+    "fee": 500,
+    "tickSpacing": 10,
+    "hook": "0xe633220f15932428FcA60A1A2C2C48797A180A80"
+  },
+  "tokenA": {
+    "symbol": "mUSD",
+    "address": "0xdd3d112a48906807c4b73c94ed884552427e4cf9",
+    "decimals": 18
+  },
+  "tokenB": {
+    "symbol": "mTBILL",
+    "address": "0xfb080423cedd4ca56da3f60a4b901f51846459ae",
+    "decimals": 18
+  },
+  "notes": [
+    "Open /live-exercise or /dashboard/live-exercise in the landing app.",
+    "This page signs a real EIP-712 SwapPermit in the browser.",
+    "Use the zk-verified wallet 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 or any blue wallet that already has an active session."
+  ]
+}

@@ -54,6 +54,7 @@ export async function signSwapPermit(
   nonce: bigint
 ): Promise<Hex> {
   const domain = getDomain(chainId, hookAddress);
+  const signingAccount = walletClient.account ?? user;
 
   const message: SwapPermit = {
     user,
@@ -63,7 +64,7 @@ export async function signSwapPermit(
 
   // 使用 viem 的 signTypedData
   const signature = await walletClient.signTypedData({
-    account: user,
+    account: signingAccount,
     domain,
     types: SWAP_PERMIT_TYPES,
     primaryType: 'SwapPermit',
@@ -86,6 +87,7 @@ export async function signLiquidityPermit(
   isAdd: boolean
 ): Promise<Hex> {
   const domain = getDomain(chainId, hookAddress);
+  const signingAccount = walletClient.account ?? user;
 
   const message: LiquidityPermit = {
     user,
@@ -95,7 +97,7 @@ export async function signLiquidityPermit(
   };
 
   const signature = await walletClient.signTypedData({
-    account: user,
+    account: signingAccount,
     domain,
     types: LIQUIDITY_PERMIT_TYPES,
     primaryType: 'LiquidityPermit',
@@ -112,18 +114,18 @@ export async function signLiquidityPermit(
  */
 export function encodeHookData(permit: SignedPermit): Hex {
   return encodeAbiParameters(
-    parseAbiParameters('address, uint256, uint256, bytes'),
-    [permit.user, permit.deadline, permit.nonce, permit.signature]
+    parseAbiParameters('(address user, uint256 deadline, uint256 nonce, bytes signature)'),
+    [{ user: permit.user, deadline: permit.deadline, nonce: permit.nonce, signature: permit.signature }]
   );
 }
 
 /**
- * 编码空 hookData（Mode 2：EOA 直接调用）
- * ComplianceHook 要求 hookData 长度为 0（直接调用）或 ≥148（EIP-712），
- * 中间长度会 revert InvalidHookData。
- * EOA 直接调用时 sender 即 user，无需传地址。
+ * @deprecated 使用 DIRECT_HOOK_DATA (from encoding.ts) 或 encodeHookData 代替。
  *
- * @deprecated 使用 DIRECT_HOOK_DATA 或 encodeEip712HookData 代替
+ * v2 三模式架构：
+ *   Mode 1 (>= 148 bytes): EIP-712 permit
+ *   Mode 2 (== 32 bytes):  Router-mediated identity (router auto-injects)
+ *   Mode 3 (== 0 bytes):   Direct call (sender IS user)
  */
 export function encodeWhitelistHookData(_user: Address): Hex {
   return '0x';

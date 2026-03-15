@@ -1,6 +1,14 @@
 /**
  * Session 管理模块
- * 提供 Session 激活、查询和管理功能
+ * 提供 Session 查询和管理功能
+ *
+ * 重要：Session 激活需要 VERIFIER_ROLE 权限，普通用户钱包无法直接调用。
+ * 正确的激活流程：
+ *   1. 生成 ZK proof → client.zkproof.generate()
+ *   2. 提交 proof 到 ILAL API → POST /api/v1/verify
+ *   3. API 验证通过后自动调用 SessionManager.startSession()
+ *
+ * 使用 activateViaApi() 方法完成上述流程。
  */
 
 import type { Address, Hex, PublicClient, WalletClient } from 'viem';
@@ -9,7 +17,14 @@ import { sessionManagerABI } from '../constants/abis';
 import { SessionExpiredError, SessionNotFoundError } from '../utils/errors';
 import { DEFAULT_SESSION_DURATION } from '../constants';
 
+export interface ApiSessionConfig {
+  apiBaseUrl: string;
+  apiKey: string;
+}
+
 export class SessionModule {
+  private apiConfig?: ApiSessionConfig;
+
   constructor(
     private walletClient: WalletClient,
     private publicClient: PublicClient,
@@ -17,7 +32,70 @@ export class SessionModule {
   ) {}
 
   /**
-   * 激活用户 Session
+   * 设置 API 连接配置（用于 activateViaApi）
+   */
+  configureApi(config: ApiSessionConfig): void {
+    this.apiConfig = config;
+  }
+
+  /**
+   * 通过 ILAL API 激活 Session（推荐的机构接入方式）
+   *
+   * 流程：将 ZK proof 提交到 ILAL API，API 拥有 VERIFIER_ROLE，
+   * 验证通过后自动调用 SessionManager.startSession()。
+   *
+   * @param proof - ZK proof hex
+   * @param publicInputs - proof public inputs
+   * @returns API 响应（包含 txHash、sessionExpiry 等）
+   */
+  async activateViaApi(params: {
+    proof: Hex;
+    publicInputs: string[];
+    apiBaseUrl?: string;
+    apiKey?: string;
+  }): Promise<{ success: boolean; txHash?: string; sessionExpiry?: string }> {
+    const baseUrl = params.apiBaseUrl || this.apiConfig?.apiBaseUrl;
+    const apiKey = params.apiKey || this.apiConfig?.apiKey;
+
+    if (!baseUrl || !apiKey) {
+      throw new Error(
+        'API config required. Call session.configureApi({ apiBaseUrl, apiKey }) first, ' +
+        'or pass apiBaseUrl/apiKey in params.'
+      );
+    }
+
+    const user = this.walletClient.account?.address;
+    if (!user) {
+      throw new Error('No user address available');
+    }
+
+    const res = await fetch(`${baseUrl.replace(/\/$/, '')}/api/v1/verify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': apiKey,
+      },
+      body: JSON.stringify({
+        userAddress: user,
+        proof: params.proof,
+        publicInputs: params.publicInputs,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText })) as any;
+      throw new Error(`Session activation failed: ${err.error || err.message || res.statusText}`);
+    }
+
+    return res.json();
+  }
+
+  /**
+   * 直接调用链上 SessionManager.startSession()
+   *
+   * ⚠️ 此方法需要调用方钱包拥有 VERIFIER_ROLE 权限。
+   * 普通用户钱包无法使用此方法，请使用 activateViaApi() 代替。
+   *
    * @param params - Session 参数
    * @returns 交易哈希
    */
@@ -39,7 +117,6 @@ export class SessionModule {
       chain: undefined,
     } as any);
 
-    // 等待交易确认
     await this.publicClient.waitForTransactionReceipt({ hash });
 
     return hash;
@@ -147,6 +224,9 @@ export class SessionModule {
 
   /**
    * 激活 Session 并等待确认（如果尚未激活）
+   *
+   * ⚠️ 内部调用 activate()，需要 VERIFIER_ROLE。
+   * 机构用户请使用 activateViaApi() 代替。
    */
   async activateIfNeeded(params?: ActivateSessionParams): Promise<{ activated: boolean; hash?: Hex }> {
     const user = params?.user || (this.walletClient.account?.address as Address);

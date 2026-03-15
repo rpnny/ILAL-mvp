@@ -1,25 +1,98 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings2, ShieldCheck, ArrowDownUp, Loader2 } from 'lucide-react';
 import { executeSwap } from '../lib/api';
 import { getAccessToken } from '../lib/auth';
 import { ADDRESSES } from '../lib/contracts';
 import toast from 'react-hot-toast';
-import { createWalletClient, custom, createPublicClient, parseAbi } from 'viem';
+import {
+    createWalletClient,
+    custom,
+    createPublicClient,
+    parseAbi,
+    encodeAbiParameters,
+    parseAbiParameters,
+} from 'viem';
 import { baseSepolia } from 'viem/chains';
 
 const erc20Abi = parseAbi([
     'function allowance(address owner, address spender) view returns (uint256)',
-    'function approve(address spender, uint256 amount) returns (bool)'
+    'function approve(address spender, uint256 amount) returns (bool)',
 ]);
+
+const hookAbi = parseAbi([
+    'function getNonce(address user) view returns (uint256)',
+]);
+
+const routerAbi = [
+    {
+        type: 'function' as const,
+        name: 'swap' as const,
+        stateMutability: 'payable' as const,
+        inputs: [
+            {
+                name: 'key',
+                type: 'tuple' as const,
+                components: [
+                    { name: 'currency0', type: 'address' as const },
+                    { name: 'currency1', type: 'address' as const },
+                    { name: 'fee', type: 'uint24' as const },
+                    { name: 'tickSpacing', type: 'int24' as const },
+                    { name: 'hooks', type: 'address' as const },
+                ],
+            },
+            {
+                name: 'params',
+                type: 'tuple' as const,
+                components: [
+                    { name: 'zeroForOne', type: 'bool' as const },
+                    { name: 'amountSpecified', type: 'int256' as const },
+                    { name: 'sqrtPriceLimitX96', type: 'uint160' as const },
+                ],
+            },
+            { name: 'hookData', type: 'bytes' as const },
+            { name: 'minAmountOut', type: 'uint128' as const },
+        ],
+        outputs: [{ name: 'delta', type: 'int256' as const }],
+    },
+] as const;
+
+const MIN_SQRT_PRICE = 4295128739n + 1n;
+const MAX_SQRT_PRICE = 1461446703485210103287273052203988822378723970342n - 1n;
+
+type TokenConfig = {
+    symbol: string;
+    address: `0x${string}`;
+    decimals: number;
+};
 
 interface SwapWidgetProps {
     walletAddress?: string;
+    tokenA?: TokenConfig;
+    tokenB?: TokenConfig;
+    mode?: 'api' | 'permit';
 }
 
-export default function SwapWidget({ walletAddress }: SwapWidgetProps) {
+const DEFAULT_TOKEN_A: TokenConfig = {
+    symbol: 'USDC',
+    address: ADDRESSES.USDC,
+    decimals: 6,
+};
+
+const DEFAULT_TOKEN_B: TokenConfig = {
+    symbol: 'WETH',
+    address: ADDRESSES.WETH,
+    decimals: 18,
+};
+
+export default function SwapWidget({
+    walletAddress,
+    tokenA = DEFAULT_TOKEN_A,
+    tokenB = DEFAULT_TOKEN_B,
+    mode = 'api',
+}: SwapWidgetProps) {
     const [amount, setAmount] = useState('');
     const [zeroForOne, setZeroForOne] = useState(true);
     const [slippage, setSlippage] = useState(0.5);
@@ -27,115 +100,181 @@ export default function SwapWidget({ walletAddress }: SwapWidgetProps) {
     const [loading, setLoading] = useState(false);
     const [txHash, setTxHash] = useState<string | null>(null);
 
-    const tokenIn = zeroForOne ? 'USDC' : 'WETH';
-    const tokenOut = zeroForOne ? 'WETH' : 'USDC';
+    const tokenIn = zeroForOne ? tokenA.symbol : tokenB.symbol;
+    const tokenOut = zeroForOne ? tokenB.symbol : tokenA.symbol;
+    const tokenInConfig = zeroForOne ? tokenA : tokenB;
+    const tokenOutConfig = zeroForOne ? tokenB : tokenA;
 
-    // Simulated Exchange Rate (MVP): 1 WETH ~ 3000 USDC
     const estimatedOutput = useMemo(() => {
         if (!amount || isNaN(Number(amount))) return '';
         const val = Number(amount);
-        if (zeroForOne) {
-            // USDC -> WETH
+        if (tokenInConfig.decimals <= tokenOutConfig.decimals) {
             const parsed = val / 3000;
-            return parsed < 0.000001 ? '< 0.000001' : parsed.toFixed(6).replace(/\.?0+$/, "");
-        } else {
-            // WETH -> USDC
-            return (val * 3000).toFixed(2);
+            return parsed < 0.000001 ? '< 0.000001' : parsed.toFixed(6).replace(/\.?0+$/, '');
         }
-    }, [amount, zeroForOne]);
+        return (val * 3000).toFixed(2);
+    }, [amount, tokenInConfig.decimals, tokenOutConfig.decimals]);
+
+    const getInjectedClients = () => {
+        if (typeof window === 'undefined' || !(window as any).ethereum) {
+            throw new Error('Please install a Web3 wallet (e.g. MetaMask)');
+        }
+
+        const transport = custom((window as any).ethereum);
+        return {
+            walletClient: createWalletClient({ chain: baseSepolia, transport }),
+            publicClient: createPublicClient({ chain: baseSepolia, transport }),
+        };
+    };
+
+    const buildPermitHookData = async (
+        walletClient: ReturnType<typeof createWalletClient>,
+        publicClient: ReturnType<typeof createPublicClient>,
+        account: `0x${string}`
+    ) => {
+        const nonce = await publicClient.readContract({
+            address: ADDRESSES.COMPLIANCE_HOOK,
+            abi: hookAbi,
+            functionName: 'getNonce',
+            args: [account],
+        });
+
+        const deadline = BigInt(Math.floor(Date.now() / 1000) + 10 * 60);
+        const signature = await walletClient.signTypedData({
+            account,
+            domain: {
+                name: 'ILAL ComplianceHook',
+                version: '1',
+                chainId: baseSepolia.id,
+                verifyingContract: ADDRESSES.COMPLIANCE_HOOK,
+            },
+            types: {
+                SwapPermit: [
+                    { name: 'user', type: 'address' },
+                    { name: 'deadline', type: 'uint256' },
+                    { name: 'nonce', type: 'uint256' },
+                ],
+            },
+            primaryType: 'SwapPermit',
+            message: {
+                user: account,
+                deadline,
+                nonce,
+            },
+        });
+
+        return encodeAbiParameters(
+            parseAbiParameters('(address user, uint256 deadline, uint256 nonce, bytes signature)'),
+            [{ user: account, deadline, nonce, signature }]
+        );
+    };
 
     const handleSwap = async () => {
         if (!amount || isNaN(Number(amount))) {
             toast.error('Please enter a valid amount');
             return;
         }
-        if (!walletAddress) {
-            toast.error('Wallet address not found in profile');
-            return;
-        }
 
         const token = getAccessToken();
-        if (!token) return;
+        if (!token && mode === 'api') return;
 
         setLoading(true);
         setTxHash(null);
-        try {
-            // Very naive decimal scaling: WETH has 18, USDC has 6
-            const decimalsIn = zeroForOne ? 6 : 18;
-            const amountScaled = (parseFloat(amount) * (10 ** decimalsIn)).toString();
 
-            const result = await executeSwap(token, {
-                tokenIn: zeroForOne ? ADDRESSES.USDC : ADDRESSES.WETH,
-                tokenOut: zeroForOne ? ADDRESSES.WETH : ADDRESSES.USDC,
-                amount: amountScaled,
-                zeroForOne,
-                userAddress: walletAddress,
-                slippage,
+        try {
+            const { walletClient, publicClient } = getInjectedClients();
+            const [account] = await walletClient.requestAddresses();
+
+            const amountScaled = (
+                parseFloat(amount) * (10 ** tokenInConfig.decimals)
+            ).toString();
+            const amountBigInt = BigInt(amountScaled);
+
+            toast.loading('Checking allowance...', { id: 'swap-toast' });
+            const allowance = await publicClient.readContract({
+                address: tokenInConfig.address,
+                abi: erc20Abi,
+                functionName: 'allowance',
+                args: [account, ADDRESSES.SWAP_ROUTER],
             });
 
-            if (!result.success || !result.transaction) {
-                throw new Error('Failed to generate swap transaction');
+            if (allowance < amountBigInt) {
+                toast.loading(`Please approve ${tokenIn} in your wallet...`, { id: 'swap-toast' });
+                const approveHash = await walletClient.writeContract({
+                    account,
+                    address: tokenInConfig.address,
+                    abi: erc20Abi,
+                    functionName: 'approve',
+                    args: [ADDRESSES.SWAP_ROUTER, amountBigInt],
+                });
+                toast.loading('Waiting for approval confirmation...', { id: 'swap-toast' });
+                await publicClient.waitForTransactionReceipt({ hash: approveHash });
+                toast.success(`${tokenIn} approved!`, { id: 'swap-toast' });
             }
 
-            if (typeof window !== 'undefined' && (window as any).ethereum) {
-                const walletClient = createWalletClient({
-                    chain: baseSepolia,
-                    transport: custom((window as any).ethereum)
+            let hash: `0x${string}`;
+
+            if (mode === 'permit') {
+                const token0 = tokenA.address.toLowerCase() < tokenB.address.toLowerCase() ? tokenA : tokenB;
+                const token1 = token0.address.toLowerCase() === tokenA.address.toLowerCase() ? tokenB : tokenA;
+                const zeroForOneActual = tokenInConfig.address.toLowerCase() === token0.address.toLowerCase();
+                const minAmountOut = slippage > 0
+                    ? (amountBigInt * BigInt(10_000 - Math.round(slippage * 100))) / 10_000n
+                    : 0n;
+                const hookData = await buildPermitHookData(walletClient, publicClient, account);
+
+                toast.loading('Signing permit and confirming swap...', { id: 'swap-toast' });
+                hash = await walletClient.writeContract({
+                    account,
+                    address: ADDRESSES.SWAP_ROUTER,
+                    abi: routerAbi,
+                    functionName: 'swap',
+                    args: [
+                        {
+                            currency0: token0.address,
+                            currency1: token1.address,
+                            fee: 500,
+                            tickSpacing: 10,
+                            hooks: ADDRESSES.COMPLIANCE_HOOK,
+                        },
+                        {
+                            zeroForOne: zeroForOneActual,
+                            amountSpecified: -amountBigInt,
+                            sqrtPriceLimitX96: zeroForOneActual ? MIN_SQRT_PRICE : MAX_SQRT_PRICE,
+                        },
+                        hookData,
+                        minAmountOut,
+                    ],
                 });
-                const publicClient = createPublicClient({
-                    chain: baseSepolia,
-                    transport: custom((window as any).ethereum)
+            } else {
+                const result = await executeSwap(token!, {
+                    tokenIn: tokenInConfig.address,
+                    tokenOut: tokenOutConfig.address,
+                    amount: amountScaled,
+                    zeroForOne,
+                    userAddress: walletAddress || account,
+                    slippage,
                 });
 
-                const [account] = await walletClient.requestAddresses();
-
-                const tokenInAddress = zeroForOne ? ADDRESSES.USDC : ADDRESSES.WETH;
-                const amountBigInt = BigInt(amountScaled);
-
-                // 1) Check Allowance
-                toast.loading('Checking allowance...', { id: 'swap-toast' });
-                const allowance = await publicClient.readContract({
-                    address: tokenInAddress as `0x${string}`,
-                    abi: erc20Abi,
-                    functionName: 'allowance',
-                    args: [account, ADDRESSES.SWAP_ROUTER as `0x${string}`],
-                });
-
-                // 2) Request Approval if needed
-                if (allowance < amountBigInt) {
-                    toast.loading(`Please approve ${tokenIn} in your wallet...`, { id: 'swap-toast' });
-                    const approveHash = await walletClient.writeContract({
-                        account,
-                        address: tokenInAddress as `0x${string}`,
-                        abi: erc20Abi,
-                        functionName: 'approve',
-                        args: [ADDRESSES.SWAP_ROUTER as `0x${string}`, amountBigInt],
-                    });
-
-                    toast.loading(`Waiting for approval confirmation...`, { id: 'swap-toast' });
-                    await publicClient.waitForTransactionReceipt({ hash: approveHash });
-                    toast.success(`${tokenIn} Approved!`, { id: 'swap-toast' });
+                if (!result.success || !result.transaction) {
+                    throw new Error('Failed to generate swap transaction');
                 }
 
-                // 3) Execute Swap
                 toast.loading('Confirming swap in wallet...', { id: 'swap-toast' });
-
-                const hash = await walletClient.sendTransaction({
+                hash = await walletClient.sendTransaction({
                     account,
                     to: result.transaction.to as `0x${string}`,
                     data: result.transaction.data as `0x${string}`,
                     value: BigInt(result.transaction.value || 0),
                 });
-
-                toast.loading('Waiting for swap confirmation...', { id: 'swap-toast' });
-                await publicClient.waitForTransactionReceipt({ hash });
-
-                toast.success('Swap executed successfully!', { id: 'swap-toast' });
-                setTxHash(hash);
-                setAmount('');
-            } else {
-                toast.error('Please install a Web3 wallet (e.g. MetaMask)');
             }
+
+            toast.loading('Waiting for swap confirmation...', { id: 'swap-toast' });
+            await publicClient.waitForTransactionReceipt({ hash });
+
+            toast.success('Swap executed successfully!', { id: 'swap-toast' });
+            setTxHash(hash);
+            setAmount('');
         } catch (err: any) {
             toast.error(err.message || 'Swap failed', { id: 'swap-toast' });
         } finally {
@@ -262,12 +401,14 @@ export default function SwapWidget({ walletAddress }: SwapWidgetProps) {
                     <div className="relative flex justify-center items-center text-[#0A0A0A]">
                         {loading ? (
                             <Loader2 className="w-6 h-6 animate-spin" />
-                        ) : !walletAddress ? (
-                            'No Wallet Linked'
                         ) : !amount ? (
                             'Enter Amount'
-                        ) : (
+                        ) : mode === 'permit' ? (
+                            'Sign Permit & Swap'
+                        ) : walletAddress ? (
                             'Execute Compliant Swap'
+                        ) : (
+                            'Connect Wallet & Swap'
                         )}
                     </div>
                 </button>

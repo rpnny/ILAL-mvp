@@ -62,6 +62,7 @@ contract RegistryTest is Test {
         assertEq(info.attester, coinbaseAttester);
         assertEq(info.verifier, coinbaseVerifier);
         assertTrue(info.active);
+        assertTrue(registry.isVerifierActive(coinbaseVerifier));
     }
 
     function test_RegisterIssuer_Event() public {
@@ -102,6 +103,8 @@ contract RegistryTest is Test {
 
         IRegistry.IssuerInfo memory info = registry.getIssuerInfo(COINBASE_ID);
         assertEq(info.verifier, newVerifier);
+        assertFalse(registry.isVerifierActive(coinbaseVerifier));
+        assertTrue(registry.isVerifierActive(newVerifier));
     }
 
     function test_RevokeIssuer() public {
@@ -112,6 +115,7 @@ contract RegistryTest is Test {
 
         IRegistry.IssuerInfo memory info = registry.getIssuerInfo(COINBASE_ID);
         assertFalse(info.active);
+        assertFalse(registry.isVerifierActive(coinbaseVerifier));
     }
 
     function test_IsIssuerActive() public {
@@ -119,6 +123,24 @@ contract RegistryTest is Test {
         registry.registerIssuer(COINBASE_ID, coinbaseAttester, coinbaseVerifier);
 
         assertTrue(registry.isIssuerActive(coinbaseAttester));
+    }
+
+    function test_RevertWhen_RegisterIssuer_VerifierAlreadyAssigned() public {
+        vm.startPrank(owner);
+        registry.registerIssuer(COINBASE_ID, coinbaseAttester, coinbaseVerifier);
+        vm.expectRevert(Registry.VerifierAlreadyAssigned.selector);
+        registry.registerIssuer(keccak256("SecondIssuer"), makeAddr("secondAttester"), coinbaseVerifier);
+        vm.stopPrank();
+    }
+
+    function test_RevertWhen_UpdateIssuer_VerifierAlreadyAssigned() public {
+        address secondVerifier = makeAddr("secondVerifier");
+        vm.startPrank(owner);
+        registry.registerIssuer(COINBASE_ID, coinbaseAttester, coinbaseVerifier);
+        registry.registerIssuer(keccak256("SecondIssuer"), makeAddr("secondAttester"), secondVerifier);
+        vm.expectRevert(Registry.VerifierAlreadyAssigned.selector);
+        registry.updateIssuer(COINBASE_ID, secondVerifier);
+        vm.stopPrank();
     }
 
     // ============ 路由器管理测试 ============

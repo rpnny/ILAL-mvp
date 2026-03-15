@@ -201,6 +201,12 @@ class BlockchainService {
           `Run the GrantVerifierRole foundry script with relay address: ${this.account.address}`
         );
       }
+      if (msg.includes('InactiveVerifier')) {
+        throw new Error(
+          'startSession reverted: relay wallet is not an active verifier in Registry. ' +
+          'Ensure the issuer is still active and its verifier address matches the relay wallet.'
+        );
+      }
       logger.error('Start session failed', { error: msg });
       throw new Error(`Start session failed: ${msg}`);
     }

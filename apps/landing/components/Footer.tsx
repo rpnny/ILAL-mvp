@@ -10,7 +10,7 @@ export default function Footer() {
                     <div className="col-span-1 md:col-span-1">
                         <Link href="/" className="flex items-center space-x-3 mb-4 group">
                             <div className="w-6 h-6 bg-gradient-to-br from-[#00F0FF] to-[#A855F7] rounded flex items-center justify-center opacity-80 group-hover:opacity-100 transition-opacity">
-                                <span className="font-heading font-bold text-white text-[11px] tracking-widest">N</span>
+                                <span className="font-heading font-bold text-white text-[11px] tracking-widest">I</span>
                             </div>
                             <span className="font-heading text-lg font-bold tracking-widest text-white">ILAL</span>
                         </Link>
@@ -34,8 +34,8 @@ export default function Footer() {
                         <h4 className="font-semibold text-white mb-4">Ecosystem</h4>
                         <ul className="space-y-3 text-gray-400">
                             <li><Link href="/about" className="hover:text-primary transition-colors">About Us</Link></li>
-                            <li><Link href="/blog" className="hover:text-primary transition-colors">Blog</Link></li>
-                            <li><a href="#" className="hover:text-primary transition-colors flex items-center">Media Kit</a></li>
+                            <li><Link href="/roadmap" className="hover:text-primary transition-colors">Roadmap</Link></li>
+                            <li><a href="https://github.com/rpnny/ILAL-mvp" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors flex items-center">GitHub</a></li>
                         </ul>
                     </div>
 
@@ -56,8 +56,8 @@ export default function Footer() {
                 <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between text-xs text-gray-600">
                     <p>© 2026 ILAL Protocol. All rights reserved.</p>
                     <div className="flex space-x-4 mt-4 md:mt-0">
-                        <Link href="/privacy" className="hover:text-gray-400 transition-colors">Privacy Policy</Link>
-                        <Link href="/terms" className="hover:text-gray-400 transition-colors">Terms of Service</Link>
+                        <a href="mailto:2867755637@qq.com" className="hover:text-gray-400 transition-colors">Contact</a>
+                        <a href="https://github.com/rpnny/ILAL-mvp" target="_blank" rel="noopener noreferrer" className="hover:text-gray-400 transition-colors">Apache-2.0</a>
                     </div>
                 </div>
             </div>

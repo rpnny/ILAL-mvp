@@ -3,7 +3,7 @@
  * 提供流动性管理功能
  */
 
-import type { Address, PublicClient, WalletClient } from 'viem';
+import { type Address, type PublicClient, type WalletClient, decodeEventLog } from 'viem';
 import type { LiquidityParams, RemoveLiquidityParams, LiquidityResult, LiquidityPosition } from '../types';
 import { positionManagerABI, ERC20_ABI } from '../constants/abis';
 import { validateLiquidityParams } from '../utils/validation';
@@ -59,7 +59,7 @@ export class LiquidityModule {
       throw new Error('Computed liquidity is zero; increase token amounts or narrow price range');
     }
 
-    // 5. hookData = 0x (Mode 2: EOA 直接调用)
+    // 5. hookData = 0x → v2 PositionManager auto-injects abi.encode(sender) (Mode 2)
     const hookData = DIRECT_HOOK_DATA;
 
     // 6. 执行添加流动性 — 合约签名: mint(poolKey, tickLower, tickUpper, liquidity, hookData)
@@ -68,7 +68,7 @@ export class LiquidityModule {
         address: this.positionManagerAddress,
         abi: positionManagerABI,
         functionName: 'mint',
-        chain: undefined,
+        chain: this.walletClient.chain ?? undefined,
         args: [
           params.poolKey,
           params.tickLower,
@@ -76,7 +76,7 @@ export class LiquidityModule {
           liquidity,
           hookData,
         ],
-        account: user,
+        account: this.walletClient.account ?? user,
       });
 
       // 7. 等待交易确认
@@ -88,15 +88,16 @@ export class LiquidityModule {
       for (const log of receipt.logs) {
         try {
           if (log.address.toLowerCase() === this.positionManagerAddress.toLowerCase()) {
-            const decoded = (this.publicClient as any).decodeEventLog?.({
+            const decoded = decodeEventLog({
               abi: positionManagerABI,
               eventName: 'PositionMinted',
               data: log.data,
               topics: log.topics,
             });
             if (decoded?.args) {
-              tokenId = decoded.args.tokenId ?? 0n;
-              mintedLiquidity = decoded.args.liquidity ?? liquidity;
+              const dArgs = decoded.args as any;
+              tokenId = dArgs.tokenId ?? 0n;
+              mintedLiquidity = dArgs.liquidity ?? liquidity;
               break;
             }
           }
@@ -133,13 +134,13 @@ export class LiquidityModule {
         address: this.positionManagerAddress,
         abi: positionManagerABI,
         functionName: 'decreaseLiquidity',
-        chain: undefined,
+        chain: this.walletClient.chain ?? undefined,
         args: [
           params.tokenId,
           params.liquidity,
           hookData,
         ],
-        account: user,
+        account: this.walletClient.account ?? user,
       });
 
       const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
@@ -148,14 +149,15 @@ export class LiquidityModule {
       for (const log of receipt.logs) {
         try {
           if (log.address.toLowerCase() === this.positionManagerAddress.toLowerCase()) {
-            const decoded = (this.publicClient as any).decodeEventLog?.({
+            const decoded = decodeEventLog({
               abi: positionManagerABI,
               eventName: 'LiquidityDecreased',
               data: log.data,
               topics: log.topics,
             });
             if (decoded?.args) {
-              removedLiquidity = decoded.args.liquidityDelta ?? params.liquidity;
+              const dArgs = decoded.args as any;
+              removedLiquidity = dArgs.liquidityDelta ?? params.liquidity;
               break;
             }
           }
@@ -282,9 +284,9 @@ export class LiquidityModule {
         address: token,
         abi: ERC20_ABI,
         functionName: 'approve',
-        chain: undefined,
+        chain: this.walletClient.chain ?? undefined,
         args: [this.positionManagerAddress, amount],
-        account: user,
+        account: this.walletClient.account ?? user,
       });
 
       await this.publicClient.waitForTransactionReceipt({ hash });

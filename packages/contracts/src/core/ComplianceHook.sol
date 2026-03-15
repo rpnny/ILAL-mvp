@@ -17,8 +17,10 @@ import {EIP712Verifier} from "../libraries/EIP712Verifier.sol";
  * @notice Uniswap v4 compliance hook — identity verification and access control
  * @dev Only callable by the PoolManager (prevents nonce griefing).
  *      hookData modes:
- *        1. Full EIP-712 signature (hookData >= 148 bytes)
- *        2. EOA direct call (hookData empty, sender = user)
+ *        Mode 1: Full EIP-712 signature (hookData >= 148 bytes)
+ *        Mode 2: Router-mediated identity (hookData == 32 bytes, abi.encode(userAddress))
+ *                Approved router encodes msg.sender; hook decodes and checks user session.
+ *        Mode 3: Direct call (hookData empty, sender = user)
  */
 contract ComplianceHook is IComplianceHook, IHooks, EIP712Verifier {
     // ============ State ============
@@ -199,8 +201,9 @@ contract ComplianceHook is IComplianceHook, IHooks, EIP712Verifier {
 
     /**
      * @notice Resolve user from hookData for swap operations.
-     * @dev Mode 1: EIP-712 SwapPermit signature (hookData >= 148 bytes)
-     *      Mode 2: EOA direct call (hookData empty — sender IS the user)
+     * @dev Mode 1 (hookData >= 148): EIP-712 SwapPermit — cryptographic user proof
+     *      Mode 2 (hookData == 32):  Router-mediated identity — trusted router encodes the user
+     *      Mode 3 (hookData == 0):   Direct call — sender IS the user (e.g. direct PM interaction)
      */
     function _resolveUser(address sender, bytes calldata hookData)
         internal
@@ -213,6 +216,10 @@ contract ComplianceHook is IComplianceHook, IHooks, EIP712Verifier {
             return permit.user;
         }
 
+        if (hookData.length == 32) {
+            return abi.decode(hookData, (address));
+        }
+
         if (hookData.length == 0) {
             return sender;
         }
@@ -222,9 +229,9 @@ contract ComplianceHook is IComplianceHook, IHooks, EIP712Verifier {
 
     /**
      * @notice Resolve user from hookData for liquidity operations.
-     * @dev Uses LiquidityPermit type (not SwapPermit) for proper permission separation.
-     *      Mode 1: EIP-712 LiquidityPermit signature
-     *      Mode 2: EOA direct call
+     * @dev Mode 1 (hookData >= 148): EIP-712 LiquidityPermit — cryptographic user proof
+     *      Mode 2 (hookData == 32):  Router-mediated identity — trusted router encodes the user
+     *      Mode 3 (hookData == 0):   Direct call — sender IS the user
      */
     function _resolveLiquidityUser(address sender, bytes calldata hookData, bool isAdd)
         internal
@@ -235,6 +242,10 @@ contract ComplianceHook is IComplianceHook, IHooks, EIP712Verifier {
             verifyLiquidityPermit(permit.user, permit.deadline, permit.nonce, isAdd, permit.signature);
             emit UserVerified(permit.user);
             return permit.user;
+        }
+
+        if (hookData.length == 32) {
+            return abi.decode(hookData, (address));
         }
 
         if (hookData.length == 0) {

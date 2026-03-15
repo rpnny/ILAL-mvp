@@ -70,6 +70,13 @@ contract VerifiedPoolsPositionManager is IUnlockCallback, ReentrancyGuard {
         bytes hookData;
     }
 
+    struct PermitData {
+        address user;
+        uint256 deadline;
+        uint256 nonce;
+        bytes signature;
+    }
+
     // ============ 事件 ============
 
     event PositionMinted(
@@ -105,6 +112,8 @@ contract VerifiedPoolsPositionManager is IUnlockCallback, ReentrancyGuard {
     error InvalidPosition();
     error UnauthorizedCallback();
     error InsufficientLiquidity();
+    error InvalidHookData();
+    error PermitCallerMismatch(address permitUser, address caller);
 
     // ============ 构造函数 ============
 
@@ -147,6 +156,7 @@ contract VerifiedPoolsPositionManager is IUnlockCallback, ReentrancyGuard {
         uint128 liquidity,
         bytes calldata hookData
     ) external payable onlyVerified nonReentrant returns (uint256 tokenId) {
+        _requirePermitCallerMatch(hookData, msg.sender);
         tokenId = nextTokenId++;
 
         // 存储头寸信息
@@ -201,6 +211,7 @@ contract VerifiedPoolsPositionManager is IUnlockCallback, ReentrancyGuard {
         uint128 liquidityDelta,
         bytes calldata hookData
     ) external payable onlyVerified nonReentrant {
+        _requirePermitCallerMatch(hookData, msg.sender);
         Position storage position = positions[tokenId];
 
         if (position.owner != msg.sender) {
@@ -239,6 +250,7 @@ contract VerifiedPoolsPositionManager is IUnlockCallback, ReentrancyGuard {
         uint128 liquidityDelta,
         bytes calldata hookData
     ) external nonReentrant {
+        _requirePermitCallerMatch(hookData, msg.sender);
         Position storage position = positions[tokenId];
 
         if (position.owner != msg.sender) {
@@ -302,19 +314,29 @@ contract VerifiedPoolsPositionManager is IUnlockCallback, ReentrancyGuard {
     function unlockCallback(bytes calldata data) external onlyPoolManager returns (bytes memory) {
         CallbackData memory callbackData = abi.decode(data, (CallbackData));
 
-        // 构建 ModifyLiquidityParams
         IPoolManager.ModifyLiquidityParams memory params = IPoolManager.ModifyLiquidityParams({
             tickLower: callbackData.tickLower,
             tickUpper: callbackData.tickUpper,
             liquidityDelta: callbackData.liquidityDelta,
-            salt: bytes32(callbackData.tokenId) // 使用 tokenId 作为 salt 确保唯一性
+            salt: bytes32(callbackData.tokenId)
         });
 
-        // 调用 PoolManager.modifyLiquidity
+        // Mode 2 (empty): encode the real user's address for ComplianceHook identity.
+        // Mode 1 (>= 148 bytes): EIP-712 permit — pass through for Hook verification.
+        // Any other length (e.g. 32 bytes) is rejected to prevent identity spoofing.
+        bytes memory resolvedHookData;
+        if (callbackData.hookData.length == 0) {
+            resolvedHookData = abi.encode(callbackData.sender);
+        } else if (callbackData.hookData.length >= 148) {
+            resolvedHookData = callbackData.hookData;
+        } else {
+            revert InvalidHookData();
+        }
+
         (BalanceDelta callerDelta, ) = poolManager.modifyLiquidity(
             callbackData.poolKey,
             params,
-            callbackData.hookData
+            resolvedHookData
         );
 
         // 处理代币结算
@@ -360,6 +382,16 @@ contract VerifiedPoolsPositionManager is IUnlockCallback, ReentrancyGuard {
             poolManager.sync(currency);
             IERC20(Currency.unwrap(currency)).safeTransferFrom(from, address(poolManager), amount);
             poolManager.settle();
+        }
+    }
+
+    function _requirePermitCallerMatch(bytes calldata hookData, address caller) internal pure {
+        if (hookData.length >= 148) {
+            PermitData memory permit = abi.decode(hookData, (PermitData));
+            address permitUser = permit.user;
+            if (permitUser != caller) {
+                revert PermitCallerMismatch(permitUser, caller);
+            }
         }
     }
 

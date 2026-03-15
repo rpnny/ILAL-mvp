@@ -91,6 +91,20 @@ model UsageRecord {
   apiKey ApiKey @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
 }
 
+// Institutions table — onboarded institutional clients
+model Institution {
+  id             String   @id @default(cuid())
+  name           String
+  walletAddress  String   @unique
+  countryCode    Int      @default(840)
+  kycStatus      Int      @default(0)    // 0=pending, 1=approved
+  merkleIndex    Int?
+  attestation    String?  // JSON-encoded IssuerAttestation
+  approvedAt     String?  // ISO string
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
 // Subscriptions table
 model Subscription {
   id                   String   @id @default(cuid())

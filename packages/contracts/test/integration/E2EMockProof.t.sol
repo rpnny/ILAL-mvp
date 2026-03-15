@@ -68,11 +68,10 @@ contract E2EMockProofTest is Test {
         // 5. 配置系统
         vm.startPrank(admin);
         
-        // 注册 Issuer
+        // 注册 Issuer（verifier 地址必须与 MockVerifier 合约一致）
         bytes32 issuerId = keccak256("TestIssuer");
         address testAttester = makeAddr("attester");
-        address testVerifier = makeAddr("testVerifier");
-        registry.registerIssuer(issuerId, testAttester, testVerifier);
+        registry.registerIssuer(issuerId, testAttester, address(verifier));
         
         // 授予 Verifier 角色
         bytes32 verifierRole = sessionManager.VERIFIER_ROLE();

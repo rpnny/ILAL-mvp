@@ -42,6 +42,7 @@ describe('SwapModule', () => {
         transactionHash: MOCK_TX_HASH,
         gasUsed: 200000n,
         status: 'success',
+        logs: [],
       };
 
       mockWalletClient.writeContract.mockResolvedValue(MOCK_TX_HASH);
@@ -73,6 +74,7 @@ describe('SwapModule', () => {
       mockPublicClient.waitForTransactionReceipt.mockResolvedValue({
         transactionHash: MOCK_TX_HASH,
         gasUsed: 200000n,
+        logs: [],
       });
       mockPublicClient.readContract.mockResolvedValue(parseUnits('1000', 6));
 

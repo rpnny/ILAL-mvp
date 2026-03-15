@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Home, Key, BarChart3, Settings, FileText, ArrowLeft, Play, ScrollText, LogOut } from 'lucide-react';
+import { Home, Key, BarChart3, Settings, FileText, ArrowLeft, Play, ScrollText, LogOut, Flame } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -11,6 +11,7 @@ const navigation = [
   { name: 'Overview', href: '/dashboard', icon: Home, exact: true },
   { name: 'API Keys', href: '/dashboard/api-keys', icon: Key },
   { name: 'Swap', href: '/dashboard/swap', icon: BarChart3 },
+  { name: 'Live Exercise', href: '/dashboard/live-exercise', icon: Flame },
   { name: 'Usage', href: '/dashboard/usage', icon: BarChart3 },
   { name: 'Playground', href: '/dashboard/playground', icon: Play },
   { name: 'Activity Logs', href: '/dashboard/logs', icon: ScrollText },

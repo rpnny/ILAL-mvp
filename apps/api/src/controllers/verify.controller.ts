@@ -9,6 +9,8 @@ import { blockchainService } from '../services/blockchain.service.js';
 import { prisma } from '../config/database.js';
 import { logger } from '../config/logger.js';
 import { EXPECTED_MERKLE_ROOT, EXPECTED_ISSUER_AX, EXPECTED_ISSUER_AY, getValidMerkleRoots } from '../config/constants.js';
+import * as merkleService from '../services/merkle.service.js';
+import * as issuerService from '../services/issuer.service.js';
 
 const MAX_PROOF_AGE_SECONDS = 3600;
 const MAX_FUTURE_DRIFT_SECONDS = 300;
@@ -33,10 +35,21 @@ function computeProofHash(proof: string, publicInputs: string[]): string {
  */
 export async function verifyAndActivate(req: Request, res: Response): Promise<void> {
   const startTime = Date.now();
+  let reservedProofHash: string | null = null;
 
   try {
     const body = verifySchema.parse(req.body);
     const userAddress = body.userAddress as Address;
+    const userId = req.apiKey?.userId ?? req.user?.userId;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        error: 'Unauthorized',
+        message: 'Authenticated user context is required',
+      });
+      return;
+    }
 
     logger.info('Verify request received', { userAddress });
 
@@ -87,7 +100,11 @@ export async function verifyAndActivate(req: Request, res: Response): Promise<vo
     }
 
     // Security Check 2: Merkle root (supports multiple roots during tree rotation)
-    const validRoots = getValidMerkleRoots();
+    const dynamicRoots = {
+      current: merkleService.getRoot(),
+      previous: merkleService.getPreviousRoot(),
+    };
+    const validRoots = getValidMerkleRoots(dynamicRoots);
     if (validRoots.length === 0) {
       logger.error('No valid Merkle roots configured (EXPECTED_MERKLE_ROOT)');
       res.status(500).json({ success: false, error: 'Server misconfiguration' });
@@ -107,17 +124,33 @@ export async function verifyAndActivate(req: Request, res: Response): Promise<vo
     }
 
     // Security Check 3: Issuer public key (Ax, Ay)
-    if (!EXPECTED_ISSUER_AX || !EXPECTED_ISSUER_AY) {
-      logger.error('EXPECTED_ISSUER_AX/AY not configured');
+    // Accept keys from env vars OR from the running IssuerService
+    let validAx: bigint | null = EXPECTED_ISSUER_AX ? BigInt(EXPECTED_ISSUER_AX) : null;
+    let validAy: bigint | null = EXPECTED_ISSUER_AY ? BigInt(EXPECTED_ISSUER_AY) : null;
+    try {
+      const dynKey = issuerService.getIssuerPublicKey();
+      if (!validAx) validAx = BigInt(dynKey.issuerAx);
+      if (!validAy) validAy = BigInt(dynKey.issuerAy);
+      // Also accept dynamic key even when env vars are set
+      if (inputs[2] === BigInt(dynKey.issuerAx) && inputs[3] === BigInt(dynKey.issuerAy)) {
+        // Dynamic issuer key matches — skip static check
+        validAx = BigInt(dynKey.issuerAx);
+        validAy = BigInt(dynKey.issuerAy);
+      }
+    } catch {
+      // IssuerService not initialized — fall back to env vars only
+    }
+    if (!validAx || !validAy) {
+      logger.error('No issuer public key configured');
       res.status(500).json({ success: false, error: 'Server misconfiguration' });
       return;
     }
-    if (inputs[2] !== BigInt(EXPECTED_ISSUER_AX)) {
+    if (inputs[2] !== validAx) {
       logger.warn('ZK Proof Forgery Attempt: Issuer Ax mismatch');
       res.status(403).json({ success: false, error: 'Forbidden', message: 'Invalid Issuer public key in proof' });
       return;
     }
-    if (inputs[3] !== BigInt(EXPECTED_ISSUER_AY)) {
+    if (inputs[3] !== validAy) {
       logger.warn('ZK Proof Forgery Attempt: Issuer Ay mismatch');
       res.status(403).json({ success: false, error: 'Forbidden', message: 'Invalid Issuer public key in proof' });
       return;
@@ -139,15 +172,28 @@ export async function verifyAndActivate(req: Request, res: Response): Promise<vo
 
     // Security Check 5: Proof replay prevention
     const proofHash = computeProofHash(body.proof, body.publicInputs);
-    const existingProof = await prisma.proofRecord.findUnique({ where: { proofHash } });
-    if (existingProof) {
-      logger.warn('ZK Proof replay attempt', { userAddress, proofHash });
-      res.status(403).json({
-        success: false,
-        error: 'Forbidden',
-        message: 'This proof has already been used. Generate a new proof with a fresh timestamp.',
+    try {
+      await prisma.proofRecord.create({
+        data: {
+          userId,
+          proofHash,
+          userAddress,
+          merkleRoot: inputs[1].toString(),
+          timestamp: proofTimestamp,
+        },
       });
-      return;
+      reservedProofHash = proofHash;
+    } catch (error: any) {
+      if (error?.code === 'P2002') {
+        logger.warn('ZK Proof replay attempt', { userAddress, proofHash });
+        res.status(403).json({
+          success: false,
+          error: 'Forbidden',
+          message: 'This proof has already been used. Generate a new proof with a fresh timestamp.',
+        });
+        return;
+      }
+      throw error;
     }
 
     // 3. On-chain proof verification
@@ -155,12 +201,18 @@ export async function verifyAndActivate(req: Request, res: Response): Promise<vo
     try {
       isValid = await blockchainService.verifyProof(proofHex, inputs);
     } catch (err: any) {
+      if (reservedProofHash) {
+        await prisma.proofRecord.delete({ where: { proofHash: reservedProofHash } }).catch(() => undefined);
+      }
       logger.error('Proof verification failed', { error: err.message });
       res.status(400).json({ success: false, error: 'Proof verification failed', message: err.message });
       return;
     }
 
     if (!isValid) {
+      if (reservedProofHash) {
+        await prisma.proofRecord.delete({ where: { proofHash: reservedProofHash } }).catch(() => undefined);
+      }
       logger.warn('Proof rejected by verifier', { userAddress });
       res.status(400).json({ success: false, error: 'Invalid proof', message: 'ZK Proof verification failed' });
       return;
@@ -173,27 +225,17 @@ export async function verifyAndActivate(req: Request, res: Response): Promise<vo
       const result = await blockchainService.startSession(userAddress);
       const responseTime = Date.now() - startTime;
 
-      // 5. Record proof usage + update user verification state
-      const userId = req.apiKey?.userId ?? req.user?.userId;
-      if (userId) {
-        await Promise.all([
-          prisma.proofRecord.create({
-            data: {
-              userId,
-              proofHash,
-              userAddress,
-              merkleRoot: inputs[1].toString(),
-              timestamp: proofTimestamp,
-            },
-          }),
-          prisma.user.update({
-            where: { id: userId },
-            data: {
-              lastVerifiedAt: new Date().toISOString(),
-              renewalCount: 0,
-            },
-          }),
-        ]);
+      // 5. Update user verification state after the proof has been durably reserved.
+      try {
+        await prisma.user.update({
+          where: { id: userId },
+          data: {
+            lastVerifiedAt: new Date().toISOString(),
+            renewalCount: 0,
+          },
+        });
+      } catch (persistErr: any) {
+        logger.warn('Verification user-state update skipped', { error: persistErr.message, userId });
       }
 
       logger.info('Session activated successfully', {
@@ -211,6 +253,9 @@ export async function verifyAndActivate(req: Request, res: Response): Promise<vo
         responseTime,
       });
     } catch (err: any) {
+      if (reservedProofHash) {
+        await prisma.proofRecord.delete({ where: { proofHash: reservedProofHash } }).catch(() => undefined);
+      }
       logger.error('Session activation failed', { error: err.message });
       res.status(500).json({ success: false, error: 'Session activation failed', message: err.message });
     }
@@ -227,6 +272,107 @@ export async function verifyAndActivate(req: Request, res: Response): Promise<vo
 
     logger.error('Verify endpoint error', { error: error.message });
     res.status(500).json({ success: false, error: 'Internal Server Error', message: 'Verification failed' });
+  }
+}
+
+/**
+ * Renew an active compliance session with bounded extension rules.
+ * POST /api/v1/verify/renew
+ */
+export async function renewSession(req: Request, res: Response): Promise<void> {
+  const REVERIFY_WINDOW_SECONDS = 7 * 24 * 3600; // 7 days
+  const MAX_RENEWALS_PER_VERIFY = 6; // max 6 renewals per ZK proof (= 7 days total)
+
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+    if (!user?.walletAddress) {
+      res.status(400).json({
+        error: 'No wallet address linked to your account. Update your profile first.',
+      });
+      return;
+    }
+
+    if (!user.lastVerifiedAt) {
+      res.status(403).json({
+        error: 'No prior ZK verification found. Submit a proof via POST /api/v1/verify first.',
+      });
+      return;
+    }
+
+    const lastVerified = new Date(user.lastVerifiedAt).getTime() / 1000;
+    const now = Math.floor(Date.now() / 1000);
+
+    if (now - lastVerified > REVERIFY_WINDOW_SECONDS) {
+      res.status(403).json({
+        error: 'ZK verification expired. Please re-verify with a new proof via POST /api/v1/verify.',
+        lastVerifiedAt: user.lastVerifiedAt,
+        maxWindowDays: 7,
+      });
+      return;
+    }
+
+    if (user.renewalCount >= MAX_RENEWALS_PER_VERIFY) {
+      res.status(403).json({
+        error: 'Maximum renewals reached. Please re-verify with a new ZK proof via POST /api/v1/verify.',
+        renewalCount: user.renewalCount,
+        maxRenewals: MAX_RENEWALS_PER_VERIFY,
+      });
+      return;
+    }
+
+    const walletAddress = user.walletAddress as Address;
+    const [isActive, remainingSeconds] = await Promise.all([
+      blockchainService.isSessionActive(walletAddress),
+      blockchainService.getRemainingTime(walletAddress),
+    ]);
+
+    if (!isActive) {
+      res.status(403).json({
+        error: 'Session expired. Please re-verify with a new ZK proof via POST /api/v1/verify.',
+      });
+      return;
+    }
+
+    if (remainingSeconds > 12 * 3600) {
+      res.json({
+        success: true,
+        message: 'Session is still healthy — renewal not needed yet.',
+        remainingSeconds,
+        expiresAt: now + remainingSeconds,
+      });
+      return;
+    }
+
+    const result = await blockchainService.startSession(walletAddress);
+
+    await prisma.user.update({
+      where: { id: req.user.userId },
+      data: { renewalCount: { increment: 1 } },
+    });
+
+    logger.info('Session renewed via dashboard', {
+      userId: req.user.userId,
+      walletAddress,
+      txHash: result.txHash,
+      renewalCount: user.renewalCount + 1,
+    });
+
+    res.json({
+      success: true,
+      message: 'Session renewed successfully.',
+      txHash: result.txHash,
+      sessionExpiry: result.sessionExpiry.toString(),
+      remainingSeconds: 24 * 3600,
+      renewalsRemaining: MAX_RENEWALS_PER_VERIFY - user.renewalCount - 1,
+    });
+  } catch (err: any) {
+    logger.error('Session renewal failed', { error: err.message });
+    res.status(500).json({ error: 'Session renewal failed', message: err.message });
   }
 }
 

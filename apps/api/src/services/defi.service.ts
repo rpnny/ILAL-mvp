@@ -62,9 +62,13 @@ const positionManagerABI = [
 ] as const;
 
 /**
- * Empty hookData for Mode 2 (EOA direct call).
- * The ComplianceHook resolves sender as the user when hookData is empty.
- * Mode 3 (address-only forwarding) was removed to prevent impersonation.
+ * Empty hookData — the v2 SimpleSwapRouter auto-injects abi.encode(msg.sender)
+ * when it receives 0x, converting it to Mode 2 (router-mediated identity).
+ *
+ * ComplianceHook v2 three-mode architecture:
+ *   Mode 1 (>= 148 bytes): EIP-712 permit — cryptographic user proof
+ *   Mode 2 (== 32 bytes):  Router-mediated identity — router encodes msg.sender
+ *   Mode 3 (== 0 bytes):   Direct call — sender IS the user (no router)
  */
 function encodeEmptyHookData(): Hex {
     return '0x';
@@ -175,8 +179,8 @@ class DeFiService {
         const poolKey = {
             currency0: params.token0,
             currency1: params.token1,
-            fee: 3000,
-            tickSpacing: 60,
+            fee: 500,
+            tickSpacing: 10,
             hooks: CONTRACTS.complianceHook,
         };
 

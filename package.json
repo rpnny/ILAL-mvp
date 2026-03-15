@@ -11,14 +11,22 @@
     "clean": "turbo run clean",
     "dev:landing": "pnpm --filter @ilal/landing dev",
     "dev:api": "pnpm --filter @ilal/api dev",
-    "build:sdk": "pnpm --filter @ilal/sdk build"
+    "build:sdk": "pnpm --filter @ilal/sdk build",
+    "check": "bash scripts/check.sh",
+    "check:local": "bash scripts/check.sh local",
+    "check:testnet": "bash scripts/check.sh testnet"
   },
   "devDependencies": {
+    "tsx": "^4.21.0",
     "turbo": "^1.13.0"
   },
   "packageManager": "pnpm@8.15.0",
   "engines": {
     "node": ">=18.0.0",
     "pnpm": ">=8.0.0"
+  },
+  "dependencies": {
+    "circomlibjs": "^0.1.7",
+    "snarkjs": "^0.7.6"
   }
 }

@@ -47,6 +47,26 @@ export const dynamicRateLimiter = rateLimit({
 const isDev = process.env.NODE_ENV === 'development' && process.env.RATE_LIMIT_DEV_OVERRIDE === 'true';
 
 /**
+ * Pre-auth rate limiter for expensive API-key protected endpoints.
+ * Runs before bcrypt/API-key verification so unauthenticated floods are
+ * throttled cheaply by IP instead of consuming CPU first.
+ */
+export const preAuthVerifyRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: isDev ? 60 : 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req: Request) => req.ip || 'unknown',
+  handler: (_req: Request, res: Response) => {
+    res.status(429).json({
+      error: 'Too Many Requests',
+      message: 'Too many verification attempts. Please try again later.',
+      retryAfter: res.getHeader('Retry-After'),
+    });
+  },
+});
+
+/**
  * Fixed rate limiter for specific endpoints.
  * Dev mode relaxation requires explicit RATE_LIMIT_DEV_OVERRIDE=true.
  */

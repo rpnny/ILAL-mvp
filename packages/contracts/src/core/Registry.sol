@@ -19,6 +19,12 @@ contract Registry is IRegistry, UUPSUpgradeable, OwnableUpgradeable {
     /// @notice Attester 地址到 issuerId 的反向映射
     mapping(address => bytes32) private _attesterToIssuer;
 
+    /// @notice Verifier 地址到 issuerId 的反向映射
+    mapping(address => bytes32) private _verifierToIssuer;
+
+    /// @notice 标记 verifier 是否已被某 issuer 占用
+    mapping(address => bool) private _verifierAssigned;
+
     /// @notice 受信路由器白名单
     mapping(address => bool) private _routerWhitelist;
 
@@ -41,6 +47,7 @@ contract Registry is IRegistry, UUPSUpgradeable, OwnableUpgradeable {
     error IssuerNotActive();
     error InvalidTTL();
     error ZeroAddress();
+    error VerifierAlreadyAssigned();
 
     // ============ 初始化 ============
 
@@ -72,6 +79,7 @@ contract Registry is IRegistry, UUPSUpgradeable, OwnableUpgradeable {
     ) external override onlyOwner {
         if (attester == address(0) || verifier == address(0)) revert ZeroAddress();
         if (_issuers[issuerId].attester != address(0)) revert IssuerAlreadyExists();
+        if (_verifierAssigned[verifier]) revert VerifierAlreadyAssigned();
 
         _issuers[issuerId] = IssuerInfo({
             attester: attester,
@@ -80,6 +88,8 @@ contract Registry is IRegistry, UUPSUpgradeable, OwnableUpgradeable {
         });
 
         _attesterToIssuer[attester] = issuerId;
+        _verifierToIssuer[verifier] = issuerId;
+        _verifierAssigned[verifier] = true;
 
         emit IssuerRegistered(issuerId, attester, verifier);
     }
@@ -91,8 +101,14 @@ contract Registry is IRegistry, UUPSUpgradeable, OwnableUpgradeable {
     ) external override onlyOwner {
         if (newVerifier == address(0)) revert ZeroAddress();
         if (_issuers[issuerId].attester == address(0)) revert InvalidIssuer();
+        address oldVerifier = _issuers[issuerId].verifier;
+        if (newVerifier != oldVerifier && _verifierAssigned[newVerifier]) revert VerifierAlreadyAssigned();
 
+        delete _verifierToIssuer[oldVerifier];
+        _verifierAssigned[oldVerifier] = false;
         _issuers[issuerId].verifier = newVerifier;
+        _verifierToIssuer[newVerifier] = issuerId;
+        _verifierAssigned[newVerifier] = true;
 
         emit IssuerUpdated(issuerId, newVerifier);
     }
@@ -102,8 +118,11 @@ contract Registry is IRegistry, UUPSUpgradeable, OwnableUpgradeable {
         if (_issuers[issuerId].attester == address(0)) revert InvalidIssuer();
 
         address attester = _issuers[issuerId].attester;
+        address verifier = _issuers[issuerId].verifier;
         _issuers[issuerId].active = false;
         delete _attesterToIssuer[attester];
+        delete _verifierToIssuer[verifier];
+        _verifierAssigned[verifier] = false;
 
         emit IssuerRevoked(issuerId);
     }
@@ -116,6 +135,15 @@ contract Registry is IRegistry, UUPSUpgradeable, OwnableUpgradeable {
     /// @inheritdoc IRegistry
     function isIssuerActive(address attester) external view override returns (bool) {
         bytes32 issuerId = _attesterToIssuer[attester];
+        return _issuers[issuerId].active;
+    }
+
+    /// @inheritdoc IRegistry
+    function isVerifierActive(address verifier) external view override returns (bool) {
+        if (!_verifierAssigned[verifier]) {
+            return false;
+        }
+        bytes32 issuerId = _verifierToIssuer[verifier];
         return _issuers[issuerId].active;
     }
 

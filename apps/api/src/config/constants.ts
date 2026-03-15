@@ -31,12 +31,12 @@ export const CHAIN_ID = Number(process.env.CHAIN_ID) || 84532;
 export const VERIFIER_PRIVATE_KEY = process.env.VERIFIER_PRIVATE_KEY as Hex;
 
 export const CONTRACTS = {
-  sessionManager: (process.env.SESSION_MANAGER_ADDRESS || '0x4CB61d41E8D4ceCFb8C477ed069adFF309fB6d0e') as Address,
-  verifier: (process.env.VERIFIER_ADDRESS || '0x92eF7F6440466eb2138F7d179Cf2031902eF94be') as Address,
-  simpleSwapRouter: (process.env.SIMPLE_SWAP_ROUTER_ADDRESS || '0x9450fAfdE8aB1E68E29cB6F3faCaEC0CF2221C73') as Address,
+  sessionManager: (process.env.SESSION_MANAGER_ADDRESS || '0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2') as Address,
+  verifier: (process.env.VERIFIER_ADDRESS || '0x8e093aC51921fe2be9bd0910092a01200AAd6560') as Address,
+  simpleSwapRouter: (process.env.SIMPLE_SWAP_ROUTER_ADDRESS || '0xd46D84Dc2D098c767451675C9BcB85bf3f8a2891') as Address,
   poolManager: (process.env.POOL_MANAGER_ADDRESS || '0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408') as Address,
-  positionManager: (process.env.POSITION_MANAGER_ADDRESS || '0x664858fa4d3938788C7b7fE4f8d8f0864d087eA6') as Address,
-  complianceHook: (process.env.COMPLIANCE_HOOK_ADDRESS || '0xE1AF9f1D1ddF819f729ec08A612a2212D1058a80') as Address,
+  positionManager: (process.env.POSITION_MANAGER_ADDRESS || '0x692548a6E1797d2762b9d04f29112C172E5Cea32') as Address,
+  complianceHook: (process.env.COMPLIANCE_HOOK_ADDRESS || '0xe633220f15932428FcA60A1A2C2C48797A180A80') as Address,
 };
 
 // ============ ZK Verification Config ============
@@ -50,13 +50,18 @@ export const EXPECTED_ISSUER_AY = process.env.EXPECTED_ISSUER_AY;
 
 /**
  * Returns the set of currently valid Merkle roots.
+ * Combines static env-var roots with dynamic roots from the MerkleService.
  * During a tree rotation, both current and previous roots are accepted.
  */
-export function getValidMerkleRoots(): bigint[] {
-  const roots: bigint[] = [];
-  if (EXPECTED_MERKLE_ROOT) roots.push(BigInt(EXPECTED_MERKLE_ROOT));
-  if (EXPECTED_MERKLE_ROOT_PREV) roots.push(BigInt(EXPECTED_MERKLE_ROOT_PREV));
-  return roots;
+export function getValidMerkleRoots(dynamicRoots?: { current: bigint; previous: bigint | null }): bigint[] {
+  const set = new Set<bigint>();
+  if (EXPECTED_MERKLE_ROOT) set.add(BigInt(EXPECTED_MERKLE_ROOT));
+  if (EXPECTED_MERKLE_ROOT_PREV) set.add(BigInt(EXPECTED_MERKLE_ROOT_PREV));
+  if (dynamicRoots) {
+    if (dynamicRoots.current !== 0n) set.add(dynamicRoots.current);
+    if (dynamicRoots.previous && dynamicRoots.previous !== 0n) set.add(dynamicRoots.previous);
+  }
+  return Array.from(set);
 }
 
 // ============ Rate Limit Config ============

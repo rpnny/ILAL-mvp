@@ -29,9 +29,18 @@ contract SimpleSwapRouter is IUnlockCallback, ReentrancyGuard {
         uint128 minAmountOut; // 0 = no slippage check
     }
 
+    struct PermitData {
+        address user;
+        uint256 deadline;
+        uint256 nonce;
+        bytes signature;
+    }
+
     // 错误
     error UnauthorizedCallback();
     error InsufficientOutput();
+    error InvalidHookData();
+    error PermitCallerMismatch(address permitUser, address caller);
 
     // 事件
     event SwapExecuted(
@@ -62,12 +71,34 @@ contract SimpleSwapRouter is IUnlockCallback, ReentrancyGuard {
     ) external payable nonReentrant returns (BalanceDelta delta) {
         uint256 ethBefore = address(this).balance - msg.value;
 
-        // 准备回调数据
+        // Mode 1 permits must be consumed by the same user who signed them.
+        // Without this binding, an unverified caller could borrow another user's
+        // compliance identity while still settling the swap with their own funds.
+        if (hookData.length >= 148) {
+            PermitData memory permit = abi.decode(hookData, (PermitData));
+            address permitUser = permit.user;
+            if (permitUser != msg.sender) {
+                revert PermitCallerMismatch(permitUser, msg.sender);
+            }
+        }
+
+        // Mode 2 (empty): Router encodes msg.sender for ComplianceHook identity.
+        // Mode 1 (>= 148 bytes): EIP-712 permit — pass through for Hook verification.
+        // Any other length (e.g. 32 bytes) is rejected to prevent identity spoofing.
+        bytes memory resolvedHookData;
+        if (hookData.length == 0) {
+            resolvedHookData = abi.encode(msg.sender);
+        } else if (hookData.length >= 148) {
+            resolvedHookData = hookData;
+        } else {
+            revert InvalidHookData();
+        }
+
         SwapCallbackData memory data = SwapCallbackData({
             sender: msg.sender,
             poolKey: key,
             params: params,
-            hookData: hookData,
+            hookData: resolvedHookData,
             minAmountOut: minAmountOut
         });
 

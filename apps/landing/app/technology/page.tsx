@@ -195,22 +195,22 @@ await client.swap.execute({
                     <thead className="border-b border-white/10 bg-black/40">
                       <tr>
                         <th className="text-left p-4 font-semibold text-gray-300">Operation</th>
-                        <th className="text-right p-4 font-semibold text-gray-300">First Tx</th>
-                        <th className="text-right p-4 font-semibold text-gray-300">Subsequent</th>
+                        <th className="text-right p-4 font-semibold text-gray-300">Gas Used</th>
+                        <th className="text-right p-4 font-semibold text-gray-300">USD (Base)</th>
                         <th className="text-center p-4 font-semibold text-gray-300">Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
                       {[
-                        { op: "Swap", first: "54,000", sub: "8,000" },
-                        { op: "Add Liquidity", first: "52,000", sub: "10,000" },
-                        { op: "Session Check", first: "5,000", sub: "5,000" },
-                        { op: "ZK Verification", first: "350,000", sub: "N/A" },
+                        { op: "Swap — API Mode (EOA)", gas: "153,000", usd: "~$0.0009" },
+                        { op: "Swap — SDK EIP-712", gas: "171,000", usd: "~$0.001" },
+                        { op: "Add Liquidity", gas: "318,000", usd: "~$0.002" },
+                        { op: "ZK Session Activation", gas: "684,000", usd: "~$0.004 (once/24h)" },
                       ].map((row, i) => (
                         <tr key={i} className="hover:bg-white/5 transition-colors">
                           <td className="p-4 font-medium">{row.op}</td>
-                          <td className="p-4 text-right font-mono text-gray-400">{row.first} gas</td>
-                          <td className="p-4 text-right font-mono text-primary">{row.sub} gas</td>
+                          <td className="p-4 text-right font-mono text-gray-400">{row.gas}</td>
+                          <td className="p-4 text-right font-mono text-primary">{row.usd}</td>
                           <td className="p-4 text-center">
                             <span className="text-primary">✓</span>
                           </td>
@@ -236,10 +236,10 @@ await client.swap.execute({
                   <h3 className="font-semibold mb-4 text-lg">Comprehensive Testing</h3>
                   <div className="space-y-4">
                     {[
-                      { label: "Total Tests", value: "127", status: "pass" },
-                      { label: "Pass Rate", value: "97.6%", status: "pass" },
+                      { label: "Total Tests", value: "216", status: "pass" },
+                      { label: "Pass Rate", value: "100%", status: "pass" },
                       { label: "Code Coverage", value: "99%", status: "pass" },
-                      { label: "Security Tests", value: "15/15", status: "pass" },
+                      { label: "Attack Vectors Tested", value: "52+", status: "pass" },
                     ].map((item, i) => (
                       <div key={i} className="flex items-center justify-between border-b border-white/5 pb-2 last:border-0">
                         <span className="text-sm text-gray-400">{item.label}</span>

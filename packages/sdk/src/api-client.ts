@@ -30,6 +30,50 @@ export interface SessionStatusResponse {
   expiresAt: string | null;
 }
 
+export interface OnboardingRegisterResponse {
+  success: boolean;
+  institutionId?: string;
+  status?: string;
+  walletAddress?: string;
+  merkleRoot?: string;
+  leafIndex?: number;
+  message?: string;
+  error?: string;
+}
+
+export interface OnboardingStatusResponse {
+  success: boolean;
+  status: string;
+  institutionId?: string;
+  name?: string;
+  walletAddress?: string;
+  countryCode?: number;
+  merkleIndex?: number;
+  approvedAt?: string;
+  createdAt?: string;
+}
+
+export interface IssuerAttestationData {
+  sigR8x: string;
+  sigR8y: string;
+  sigS: string;
+  issuerAx: string;
+  issuerAy: string;
+  kycStatus: string;
+  countryCode: string;
+  timestamp: string;
+  merkleRoot: string;
+  merkleProof: string[];
+  merkleIndex: string;
+}
+
+export interface OnboardingAttestationResponse {
+  success: boolean;
+  attestation?: IssuerAttestationData;
+  error?: string;
+  message?: string;
+}
+
 /**
  * API 客户端 - 与 ILAL API 服务通信
  */
@@ -120,5 +164,41 @@ export class ApiClient {
         'Authorization': `Bearer ${jwtToken}`,
       },
     });
+  }
+
+  // ============ Onboarding ============
+
+  /**
+   * Register a new institution (mock KYC auto-approve in POC)
+   */
+  async onboardingRegister(params: {
+    name: string;
+    walletAddress: string;
+    countryCode?: number;
+  }): Promise<OnboardingRegisterResponse> {
+    return await this.request<OnboardingRegisterResponse>('/api/v1/onboarding/register', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
+  /**
+   * Check onboarding status for a wallet address
+   */
+  async onboardingStatus(walletAddress: string): Promise<OnboardingStatusResponse> {
+    return await this.request<OnboardingStatusResponse>(
+      `/api/v1/onboarding/status/${walletAddress}`,
+      { method: 'GET' },
+    );
+  }
+
+  /**
+   * Get a fresh IssuerAttestation for proof generation
+   */
+  async onboardingAttestation(walletAddress: string): Promise<OnboardingAttestationResponse> {
+    return await this.request<OnboardingAttestationResponse>(
+      `/api/v1/onboarding/attestation/${walletAddress}`,
+      { method: 'GET' },
+    );
   }
 }

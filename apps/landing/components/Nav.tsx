@@ -12,7 +12,7 @@ export default function Nav() {
     { href: "/technology", label: "Technology" },
     { href: "/integrations", label: "Integrations" },
     { href: "/docs", label: "Docs" },
-    { href: "/blog", label: "Blog" },
+    { href: "/roadmap", label: "Roadmap" },
   ];
 
   return (
@@ -21,7 +21,7 @@ export default function Nav() {
         {/* Left: Logo */}
         <Link href="/" className="flex items-center space-x-3 group">
           <div className="w-8 h-8 bg-gradient-to-br from-[#00F0FF] to-[#A855F7] rounded-md flex items-center justify-center group-hover:scale-105 transition-all shadow-[0_0_15px_rgba(0,240,255,0.3)]">
-            <span className="font-heading font-bold text-white text-[15px] tracking-wide">N</span>
+            <span className="font-heading font-bold text-white text-[15px] tracking-wide">I</span>
           </div>
           <span className="font-heading text-xl font-bold tracking-widest text-white">ILAL</span>
         </Link>

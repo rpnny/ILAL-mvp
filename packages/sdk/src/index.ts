@@ -10,7 +10,15 @@ export { ILALClient } from './client';
 // API Mode 客户端（使用 API Key）
 export { ILALApiClient } from './api-mode-client';
 export type { ILALApiClientConfig } from './api-mode-client';
-export type { ApiClientConfig, VerifyResponse, SessionStatusResponse } from './api-client';
+export type {
+  ApiClientConfig,
+  VerifyResponse,
+  SessionStatusResponse,
+  OnboardingRegisterResponse,
+  OnboardingStatusResponse,
+  OnboardingAttestationResponse,
+  IssuerAttestationData,
+} from './api-client';
 
 // ============ 模块 ============
 export { SessionModule } from './modules/session';

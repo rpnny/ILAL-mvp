@@ -54,6 +54,8 @@ interface IRegistry {
 
     function isIssuerActive(address attester) external view returns (bool);
 
+    function isVerifierActive(address verifier) external view returns (bool);
+
     function getIssuerInfo(bytes32 issuerId) external view returns (IssuerInfo memory);
 
     // ============ 路由器管理 ============

@@ -12,21 +12,38 @@ datasource db {
 
 // 用户表
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  passwordHash  String
-  name          String?
-  walletAddress String?  @unique
-  plan          Plan     @default(FREE)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id             String   @id @default(cuid())
+  email          String   @unique
+  passwordHash   String
+  name           String?
+  walletAddress  String?  @unique
+  plan           Plan     @default(FREE)
+  lastVerifiedAt String?
+  renewalCount   Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
   
   apiKeys       ApiKey[]
   usageRecords  UsageRecord[]
   subscriptions Subscription[]
+  proofRecords  ProofRecord[]
 
   @@index([email])
   @@index([walletAddress])
+}
+
+model ProofRecord {
+  id          String   @id @default(cuid())
+  userId      String
+  proofHash   String   @unique
+  userAddress String
+  merkleRoot  String
+  timestamp   Int
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 
 // API Key 表
@@ -67,6 +84,22 @@ model UsageRecord {
 
   @@index([userId, timestamp])
   @@index([apiKeyId, timestamp])
+}
+
+// Institutions table
+model Institution {
+  id             String   @id @default(cuid())
+  name           String
+  walletAddress  String   @unique
+  countryCode    Int      @default(840)
+  kycStatus      Int      @default(0)
+  merkleIndex    Int?
+  attestation    String?
+  approvedAt     DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([walletAddress])
 }
 
 // 订阅表

@@ -8,11 +8,10 @@ import { MOCK_USER_ADDRESS, MOCK_TOKEN_ADDRESSES } from '../mockData/contracts';
 
 describe('编码工具函数', () => {
   describe('encodeWhitelistHookData', () => {
-    it('应该正确编码用户地址', () => {
+    it('Mode 3 已废弃，应返回空 hookData (Mode 2 直接调用)', () => {
       const encoded = encodeWhitelistHookData(MOCK_USER_ADDRESS);
 
-      expect(encoded).toBe(MOCK_USER_ADDRESS);
-      expect(encoded.length).toBe(42); // '0x' + 40 chars
+      expect(encoded).toBe('0x');
     });
   });
 

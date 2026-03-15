@@ -13,9 +13,14 @@ import apikeyRoutes from './routes/apikey.routes.js';
 import verifyRoutes from './routes/verify.routes.js';
 import billingRoutes from './routes/billing.routes.js';
 import stripeRoutes from './routes/stripe.routes.js';
+import onboardingRoutes from './routes/onboarding.routes.js';
 
 // Import controllers
 import * as verifyController from './controllers/verify.controller.js';
+
+// Import services for initialization
+import * as issuerService from './services/issuer.service.js';
+import * as merkleService from './services/merkle.service.js';
 
 export async function createServer(): Promise<express.Application> {
   const app = express();
@@ -97,9 +102,23 @@ export async function createServer(): Promise<express.Application> {
   // Stripe routes (create-session, etc. — webhook is handled above)
   app.use('/api/v1/stripe', stripeRoutes);
 
+  // Onboarding routes (institution self-service)
+  app.use('/api/v1/onboarding', onboardingRoutes);
+
   // DeFi routes (Infrastructure)
   const { default: defiRoutes } = await import('./routes/defi.routes.js');
   app.use('/api/v1/defi', defiRoutes);
+
+  // Initialize Issuer + Merkle services (non-blocking; errors are logged)
+  try {
+    await issuerService.initialize();
+    await merkleService.initialize();
+    logger.info('Onboarding services ready (Issuer + Merkle tree)');
+  } catch (err: any) {
+    logger.warn('Onboarding services failed to initialize — onboarding endpoints will be unavailable', {
+      error: err.message,
+    });
+  }
 
   // Root path
   app.get('/', (req: Request, res: Response) => {
