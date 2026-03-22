@@ -3,7 +3,7 @@
 > Official TypeScript SDK for ILAL Protocol - Compliant DeFi Infrastructure
 
 [![npm version](https://img.shields.io/npm/v/@ilal/sdk.svg)](https://www.npmjs.com/package/@ilal/sdk)
-[![License](https://img.shields.io/npm/l/@ilal/sdk.svg)](https://github.com/your-org/ilal/blob/main/LICENSE)
+[![License](https://img.shields.io/npm/l/@ilal/sdk.svg)](https://github.com/rpnny/ILAL-mvp/blob/main/LICENSE)
 
 ## Features
 
@@ -34,7 +34,7 @@ If `@ilal/sdk` is not yet published to npm, you can install it from a local path
 
 1. **Clone the repo** (if needed):
    ```bash
-   git clone https://github.com/your-org/ilal.git
+   git clone https://github.com/rpnny/ILAL-mvp.git
    cd ilal
    ```
 
@@ -156,8 +156,8 @@ console.log('Liquidity added, Token ID:', result.tokenId);
 const client = new ILALClient({
   // ... base config
   zkConfig: {
-    wasmUrl: 'https://cdn.ilal.xyz/circuits/compliance.wasm',
-    zkeyUrl: 'https://cdn.ilal.xyz/circuits/compliance_final.zkey',
+    wasmUrl: 'https://cdn.ilal.tech/circuits/compliance.wasm',
+    zkeyUrl: 'https://cdn.ilal.tech/circuits/compliance_final.zkey',
   },
 });
 
@@ -287,8 +287,8 @@ The SDK does not bundle WASM files (too large, 50-100MB). Instead, you specify t
 const client = new ILALClient({
   // ... other config
   zkConfig: {
-    wasmUrl: 'https://cdn.ilal.xyz/circuits/compliance.wasm',
-    zkeyUrl: 'https://cdn.ilal.xyz/circuits/compliance_final.zkey',
+    wasmUrl: 'https://cdn.ilal.tech/circuits/compliance.wasm',
+    zkeyUrl: 'https://cdn.ilal.tech/circuits/compliance_final.zkey',
   },
 });
 ```
@@ -424,14 +424,14 @@ Apache-2.0
 
 - [Documentation](../docs/) - Full technical documentation
 - [Examples](./examples/) - Code examples
-- [GitHub](https://github.com/your-org/ilal) - Source code
+- [GitHub](https://github.com/rpnny/ILAL-mvp) - Source code
 - [Discord](https://discord.gg/ilal) - Community support
 
 ## Support
 
 Having issues?
 - Check the [example code](./examples/)
-- Submit an [Issue](https://github.com/your-org/ilal/issues)
+- Submit an [Issue](https://github.com/rpnny/ILAL-mvp/issues)
 - Join the [Discord](https://discord.gg/ilal) community
 
 ---

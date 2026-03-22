@@ -60,7 +60,7 @@ if [ "$MODE" = "all" ] || [ "$MODE" = "local" ]; then
   echo ""
 
   # Step 1: Forge test
-  echo -n "  [1/3] Forge 合约测试 ... "
+  echo -n "  [1/5] Forge 合约测试 ... "
   if (cd packages/contracts && forge test --no-match-path "test/{hell,integration/ForkSwapTest}*" -q) > /tmp/ilal-forge.log 2>&1; then
     echo -e "${GREEN}PASS${NC}"
     record "PASS" "Forge 合约测试"
@@ -69,8 +69,22 @@ if [ "$MODE" = "all" ] || [ "$MODE" = "local" ]; then
     record "FAIL" "Forge 合约测试" "$(tail -n 1 /tmp/ilal-forge.log)"
   fi
 
-  # Step 2: API unit tests
-  echo -n "  [2/3] API 单元测试 ... "
+  # Step 2: Forge coverage (non-blocking)
+  echo -n "  [2/5] Forge 覆盖率 ... "
+  if (cd packages/contracts && forge coverage --no-match-path "test/{hell,integration/ForkSwapTest}*" --report summary 2>&1 | tail -n 20) > /tmp/ilal-coverage.log 2>&1; then
+    echo -e "${GREEN}PASS${NC}"
+    record "PASS" "Forge 覆盖率"
+    echo ""
+    echo -e "  ${CYAN}覆盖率摘要:${NC}"
+    tail -n 12 /tmp/ilal-coverage.log | head -n 10 | while IFS= read -r line; do echo "    $line"; done
+    echo ""
+  else
+    echo -e "${YELLOW}SKIP${NC}"
+    record "SKIP" "Forge 覆盖率" "coverage 命令失败 (不影响测试)"
+  fi
+
+  # Step 3: API unit tests
+  echo -n "  [3/5] API 单元测试 ... "
   if pnpm --filter @ilal/api test 2>&1 | tail -n 5 > /tmp/ilal-api.log 2>&1; then
     echo -e "${GREEN}PASS${NC}"
     record "PASS" "API 单元测试"
@@ -79,14 +93,24 @@ if [ "$MODE" = "all" ] || [ "$MODE" = "local" ]; then
     record "FAIL" "API 单元测试" "$(tail -n 1 /tmp/ilal-api.log)"
   fi
 
-  # Step 3: SDK unit tests
-  echo -n "  [3/3] SDK 单元测试 ... "
+  # Step 4: SDK unit tests
+  echo -n "  [4/5] SDK 单元测试 ... "
   if pnpm --filter @ilal/sdk test -- --run 2>&1 | tail -n 5 > /tmp/ilal-sdk.log 2>&1; then
     echo -e "${GREEN}PASS${NC}"
     record "PASS" "SDK 单元测试"
   else
     echo -e "${RED}FAIL${NC}"
     record "FAIL" "SDK 单元测试" "$(tail -n 1 /tmp/ilal-sdk.log)"
+  fi
+
+  # Step 5: Landing tests
+  echo -n "  [5/5] Landing 组件测试 ... "
+  if pnpm --filter ilal-landing test -- --run 2>&1 | tail -n 5 > /tmp/ilal-landing.log 2>&1; then
+    echo -e "${GREEN}PASS${NC}"
+    record "PASS" "Landing 组件测试"
+  else
+    echo -e "${RED}FAIL${NC}"
+    record "FAIL" "Landing 组件测试" "$(tail -n 1 /tmp/ilal-landing.log)"
   fi
 
   echo ""

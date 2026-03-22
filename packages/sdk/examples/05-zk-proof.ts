@@ -52,8 +52,8 @@ function browserExample() {
     provider: window.ethereum,
     chainId: 84532,
     zkConfig: {
-      wasmUrl: 'https://cdn.ilal.xyz/circuits/compliance.wasm',
-      zkeyUrl: 'https://cdn.ilal.xyz/circuits/compliance_final.zkey',
+      wasmUrl: 'https://cdn.ilal.tech/circuits/compliance.wasm',
+      zkeyUrl: 'https://cdn.ilal.tech/circuits/compliance_final.zkey',
     },
   });
 

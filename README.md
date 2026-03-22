@@ -2,8 +2,9 @@
 
 > ZK-powered compliance infrastructure for Uniswap v4. Verify once, trade forever.
 
-[![Tests](https://img.shields.io/badge/Foundry_Tests-136%2F136-brightgreen)](packages/contracts)
-[![Base Sepolia](https://img.shields.io/badge/Live-Base_Sepolia-blue)](https://sepolia.basescan.org/address/0xE1AF9f1D1ddF819f729ec08A612a2212D1058a80)
+[![Tests](https://img.shields.io/badge/Tests-350%2B_passing-brightgreen)](#test-coverage)
+[![E2E](https://img.shields.io/badge/E2E-15%2F15_Base_Sepolia-brightgreen)](https://sepolia.basescan.org/address/0xe633220f15932428FcA60A1A2C2C48797A180A80)
+[![CI](https://img.shields.io/badge/CI-GitHub_Actions-blue)](.github/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 ---
@@ -18,9 +19,10 @@ ILAL is a Uniswap v4 Hook that enforces KYC/AML compliance at the protocol level
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| **Foundry Tests** | 136/136 (100%) | Unit, integration, fork, invariant, fuzz |
+| **Total Tests** | 350+ passing | Solidity + API + Frontend + E2E |
+| **Base Sepolia E2E** | 15/15 (100%) | Full flow: register → ZK proof → on-chain swap |
+| **ZK Proof Generation** | ~15 s | PLONK fullProve (WASM, 19,763 constraints) |
 | **Off-chain ZK Verification** | 8.2 ms median | snarkjs PLONK verify |
-| **ZK Proof Generation** | ~14.8 s | PLONK fullProve (WASM) |
 | **Per-swap Compliance Overhead** | ~15,000 gas (~$0.0003) | Session-cached SLOAD |
 | **On-chain PLONK Verification** | 683,986 gas (~$0.016) | One-time per session |
 | **Hook Address Bitmask** | Verified (0x0A80) | beforeSwap + beforeAddLiquidity + beforeRemoveLiquidity |
@@ -61,13 +63,13 @@ Institutional Client
 
 | Contract | Address | Explorer |
 |----------|---------|----------|
-| **ComplianceHook** | `0xE1AF9f1D1ddF819f729ec08A612a2212D1058a80` | [View](https://sepolia.basescan.org/address/0xE1AF9f1D1ddF819f729ec08A612a2212D1058a80) |
+| **ComplianceHook** | `0xe633220f15932428FcA60A1A2C2C48797A180A80` | [View](https://sepolia.basescan.org/address/0xe633220f15932428FcA60A1A2C2C48797A180A80) |
 | **SessionManager** (UUPS) | `0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2` | [View](https://sepolia.basescan.org/address/0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2) |
 | **Registry** (UUPS) | `0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD` | [View](https://sepolia.basescan.org/address/0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD) |
-| **SimpleSwapRouter** | `0x9450fAfdE8aB1E68E29cB6F3faCaEC0CF2221C73` | [View](https://sepolia.basescan.org/address/0x9450fAfdE8aB1E68E29cB6F3faCaEC0CF2221C73) |
-| **PositionManager** | `0x664858fa4d3938788C7b7fE4f8d8f0864d087eA6` | [View](https://sepolia.basescan.org/address/0x664858fa4d3938788C7b7fE4f8d8f0864d087eA6) |
-| **PlonkVerifier** | `0x2645C48A7DB734C9179A195C51Ea5F022B86261f` | [View](https://sepolia.basescan.org/address/0x2645C48A7DB734C9179A195C51Ea5F022B86261f) |
-| **PlonkVerifierAdapter** | `0x0cDcD82E5efba9De4aCc255402968397F323AFBB` | [View](https://sepolia.basescan.org/address/0x0cDcD82E5efba9De4aCc255402968397F323AFBB) |
+| **SimpleSwapRouter** | `0xd46D84Dc2D098c767451675C9BcB85bf3f8a2891` | [View](https://sepolia.basescan.org/address/0xd46D84Dc2D098c767451675C9BcB85bf3f8a2891) |
+| **PositionManager** | `0x692548a6E1797d2762b9d04f29112C172E5Cea32` | [View](https://sepolia.basescan.org/address/0x692548a6E1797d2762b9d04f29112C172E5Cea32) |
+| **PlonkVerifier** (v2) | `0xa1FaF1d0858533820B48db578AaE8C31c9c1a37A` | [View](https://sepolia.basescan.org/address/0xa1FaF1d0858533820B48db578AaE8C31c9c1a37A) |
+| **PlonkVerifierAdapter** (v2) | `0x8e093aC51921fe2be9bd0910092a01200AAd6560` | [View](https://sepolia.basescan.org/address/0x8e093aC51921fe2be9bd0910092a01200AAd6560) |
 
 **External:** Uniswap v4 PoolManager at `0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408`
 
@@ -83,8 +85,9 @@ ilal/
 │   ├── contracts/        # Solidity — ComplianceHook, SessionManager, Registry (Foundry)
 │   ├── sdk/              # TypeScript SDK for programmatic integration
 │   └── circuits/         # Circom ZK circuits (EdDSA-Poseidon + Merkle)
-├── scripts/              # System tests and deployment scripts
-└── deployments/          # On-chain deployment records
+├── scripts/              # System tests, E2E scripts, deployment tools
+├── .github/workflows/    # CI pipeline (contracts, API, SDK, landing)
+└── docs/                 # Guides, API reference, architecture docs
 ```
 
 ## Quick Start
@@ -98,17 +101,24 @@ ilal/
 # Install
 pnpm install
 
-# Run all 136 Foundry tests
+# Run all Foundry tests (219 tests)
 cd packages/contracts && forge test -v
 
-# Run fork tests against live Base Sepolia contracts
-forge test --match-contract ForkSwapTest -vv
+# API unit tests (102 tests)
+pnpm --filter @ilal/api test
 
-# ZK proof benchmark
-cd packages/circuits && node scripts/benchmark-zk.js
+# Frontend component tests (20 tests)
+pnpm --filter @ilal/landing test
 
-# API
-cd apps/api && npx prisma db push && npm run dev
+# ZK circuit compile + setup
+cd packages/circuits && bash scripts/compile.sh && bash scripts/setup.sh
+
+# Full E2E on Base Sepolia (requires API running + .env configured)
+pnpm --filter @ilal/api dev &
+npx tsx scripts/institutional-e2e.ts
+
+# Local validation script (runs all local tests)
+bash scripts/check.sh
 ```
 
 ## Security Model
@@ -126,31 +136,79 @@ cd apps/api && npx prisma db push && npm run dev
 
 ## Test Coverage
 
-```
-136 tests, 0 failures
+**350+ tests across 4 layers, CI via GitHub Actions.**
 
-  Unit Tests:
+### Solidity (219 tests — Foundry)
+
+```
+  Unit Tests (68):
     ComplianceHook ........... 14 tests (router whitelist, hookData validation, events)
-    SessionManager ........... 15 tests (start/end/batch, expiry, upgrades)
-    Registry ................. 21 tests (issuer CRUD, router ACL, emergency, upgrades)
+    SessionManager ........... 16 tests (start/end/batch, expiry, upgrades)
+    Registry ................. 23 tests (issuer CRUD, router ACL, emergency, upgrades)
     EIP712Verifier ........... 9 tests  (permits, replay, nonce, gas)
     PositionManager .......... 6 tests  (mint, burn, increase/decrease, transfer block)
 
-  Integration Tests:
+  Integration Tests (50):
+    SwapRouterTest ........... 18 tests (EIP-712, session reactivation, cross-user)
     ForkSwapTest ............. 8 tests  (live Base Sepolia swap, slippage, pause)
-    ForkTest ................. 7 tests  (contract linkage verification)
     FullFlow ................. 8 tests  (multi-user, session expiry, router auth)
-    SwapRouterTest ........... 16 tests (EIP-712, session reactivation, cross-user)
-    E2E ...................... 3 tests  (complete user journey, emergency, blocked user)
-    E2EMockProof ............. 6 tests  (full verification flow, gas estimation)
+    ForkTest ................. 7 tests  (contract linkage verification)
     PlonkIntegration ......... 7 tests  (adapter, gas, interface)
+    E2EMockProof ............. 6 tests  (full verification flow, gas estimation)
+    E2E ...................... 3 tests  (complete user journey, emergency, blocked user)
     RealPlonkProof ........... 3 tests  (actual PLONK proof on-chain verification)
 
-  Fuzz / Invariant:
-    ComplianceInvariant ...... 5 invariants × 256 runs (nonce monotonic, session expiry, emergency)
+  Simulation / Adversarial (81):
+    WarTheater ............... 45 tests (multi-actor battle simulation)
+    AttackVectors ............ 28 tests (MEV, front-running, reentrancy)
+    BattleInvariant .......... 8 tests  (invariant fuzzing under adversarial conditions)
 
-  Adversarial (Hell Mode):
-    HellMode ................. 8 tests  (fake sig, replay, unauthorized, upgrade, gas, NFT block)
+  Fuzz / Invariant (5):
+    ComplianceInvariant ...... 5 invariants × 256 runs
+
+  Hell Mode (15):
+    HellMode ................. 8 tests  (fake sig, replay, unauthorized, upgrade, gas)
+    ForkTest ................. 7 tests  (on-chain deployment verification)
+```
+
+### API (102 tests — Vitest)
+
+```
+  auth.controller ........... 14 tests (register, login, refresh, edge cases)
+  auth.middleware ............ 5 tests  (JWT validation, expiry, missing tokens)
+  apikey.controller ......... 12 tests (create, list, revoke, permissions)
+  apikey.middleware .......... 8 tests  (key validation, rate limits, disabled keys)
+  billing.controller ........ 8 tests  (plan management, usage queries)
+  billing.service ........... 11 tests (plan upgrades, quota calculation)
+  defi.controller ........... 9 tests  (swap/liquidity TX building)
+  defi.service .............. 7 tests  (token sorting, slippage, ticks)
+  onboarding.controller ..... 8 tests  (institution registration, attestation)
+  verify.controller ......... 13 tests (ZK proof, session, anti-replay)
+  usage.middleware ........... 7 tests  (usage tracking, quota enforcement)
+```
+
+### Frontend (20 tests — Vitest + React Testing Library)
+
+```
+  SwapWidget ................ 9 tests  (render, input, token selection, swap flow)
+  SessionStatusCard ......... 6 tests  (active/expired/no session states)
+  UserMenu .................. 5 tests  (authenticated/guest, plan display)
+```
+
+### E2E — Base Sepolia (15 tests — Live Testnet)
+
+```
+  Phase 1: API Health Check .................. ✅
+  Phase 2: Register + Login + API Key ........ ✅ (2 tests)
+  Phase 3: Institution Onboarding ............ ✅ (2 tests)
+  Phase 4: Attestation → ZK Proof → Session .. ✅ (3 tests, 15s proof gen)
+  Phase 5: Build Swap/Liquidity TX ........... ✅ (2 tests)
+  Phase 6: On-chain Swap (EIP-712) ........... ✅ (2 TXs, real mUSD/mTBILL)
+  Phase 7: Balance Verification + Cleanup .... ✅ (3 tests)
+
+  On-chain TXs:
+    Trade 1: https://sepolia.basescan.org/tx/0xa78f45ea060616c00451cee734b4a33d917e15002cde4b2469f9bbcb4cac74cd
+    Trade 2: https://sepolia.basescan.org/tx/0xf2e363d1e6b6979af46b56f42e0bee60c832f6024dbc10a3f544846d25a90a18
 ```
 
 ## API Usage

@@ -88,7 +88,7 @@ tsx test-e2e.ts
 或指定不同的 API URL：
 
 ```bash
-API_BASE_URL=https://api.ilal.xyz tsx test-e2e.ts
+API_BASE_URL=https://api.ilal.tech tsx test-e2e.ts
 ```
 
 ## 测试内容
@@ -346,4 +346,4 @@ jobs:
 - 📖 查看 API 文档: `docs/API.md`
 - 🏗️ 了解架构: `../../SAAS_ARCHITECTURE.md`
 - 💬 加入 Discord: https://discord.gg/ilal
-- 📧 发送邮件: support@ilal.xyz
+- 📧 发送邮件: support@ilal.tech

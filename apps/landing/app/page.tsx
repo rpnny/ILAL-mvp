@@ -31,7 +31,7 @@ export default function Home() {
               {/* Badge */}
               <div className="inline-flex items-center space-x-2 glass-border rounded-full px-4 py-1.5 mb-8 bg-glass-bg">
                 <div className="w-2 h-2 bg-primary rounded-full animate-pulse blur-[1px]" />
-                <span className="text-xs text-gray-300 font-medium tracking-wide">ILAL v1.0 • Live on Base Sepolia</span>
+                <span className="text-xs text-gray-300 font-medium tracking-wide">ILAL v2 • Live on Base Sepolia</span>
               </div>
 
               {/* Headlines */}

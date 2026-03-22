@@ -9,8 +9,8 @@ const errorCodes = [
                 code: 'AUTH_001',
                 status: 401,
                 title: 'Missing API Key',
-                description: 'The Authorization header is missing from the request',
-                solution: 'Add Authorization: Bearer YOUR_API_KEY to the request headers',
+                description: 'The X-API-Key header is missing from the request',
+                solution: 'Add X-API-Key: YOUR_API_KEY to the request headers',
             },
             {
                 code: 'AUTH_002',

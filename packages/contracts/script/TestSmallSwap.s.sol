@@ -23,7 +23,7 @@ contract TestSmallSwap is Script {
     address constant SIMPLE_SWAP_ROUTER = 0x851A12a1A0A5670F4D8A74aD0f3534825EC5e7c2;
     address constant WETH = 0x4200000000000000000000000000000000000006;
     address constant USDC = 0x036CbD53842c5426634e7929541eC2318f3dCF7e;
-    address constant HOOK = 0xDeDcFDF10b03AB45eEbefD2D91EDE66D9E5c8a80;
+    address constant HOOK = 0xe633220f15932428FcA60A1A2C2C48797A180A80;
 
     function run() external {
         uint256 pk = vm.envUint("PRIVATE_KEY");

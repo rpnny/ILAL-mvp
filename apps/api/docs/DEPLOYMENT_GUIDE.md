@@ -532,7 +532,7 @@ http {
 
 ```bash
 # 克隆仓库
-git clone https://github.com/your-org/ilal.git
+git clone https://github.com/rpnny/ILAL-mvp.git
 cd ilal/apps/api
 
 # 或者使用 rsync 上传

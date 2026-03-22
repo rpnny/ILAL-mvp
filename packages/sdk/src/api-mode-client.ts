@@ -26,7 +26,7 @@ export interface ILALApiClientConfig {
  * 
  * const client = new ILALApiClient({
  *   apiKey: 'ilal_live_xxxxx',
- *   apiBaseUrl: 'https://api.ilal.xyz',
+ *   apiBaseUrl: 'https://api.ilal.tech',
  *   chainId: 8453,
  * });
  * 

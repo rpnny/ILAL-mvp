@@ -27,8 +27,8 @@ const walletClient = createWalletClient({
 // 合约地址
 const CONTRACTS = {
   poolManager: '0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408',
-  simpleSwapRouter: '0x96ad5eAE7e5797e628F9d3FD21995dB19aE17d58',
-  complianceHook: '0xDeDcFDF10b03AB45eEbefD2D91EDE66D9E5c8a80',
+  simpleSwapRouter: '0xd46D84Dc2D098c767451675C9BcB85bf3f8a2891',
+  complianceHook: '0xe633220f15932428FcA60A1A2C2C48797A180A80',
   sessionManager: '0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2',
   registry: '0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD',
   usdc: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',

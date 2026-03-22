@@ -21,7 +21,7 @@ contract DeployHookViaCREATE2 is Script {
     bytes32 constant MINED_SALT = 0x00000000000000000000000000000000000000000000000000000000000014e1;
     
     // 预期地址 (v2 - 完整 IHooks 接口)
-    address constant EXPECTED_ADDRESS = 0xDeDcFDF10b03AB45eEbefD2D91EDE66D9E5c8a80;
+    address constant EXPECTED_ADDRESS = 0xe633220f15932428FcA60A1A2C2C48797A180A80;
     
     // Hook 权限位
     uint160 constant REQUIRED_MASK = 0x0A80;

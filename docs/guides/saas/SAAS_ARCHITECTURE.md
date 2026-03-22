@@ -49,10 +49,10 @@ ILAL has been refactored from a demo DApp into a full **SaaS infrastructure**, d
 │  ┌──────────────────────────────────────────────────────┐  │
 │  │            Smart Contracts (Solidity)                  │  │
 │  │  • SessionManager (0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2)  │
-│  │  • ComplianceHook (0xE1AF9f1D1ddF819f729ec08A612a2212D1058a80)  │
+│  │  • ComplianceHook (0xe633220f15932428FcA60A1A2C2C48797A180A80)  │
 │  │  • Registry (0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD)  │
-│  │  • SimpleSwapRouter (0x9450fAfdE8aB1E68E29cB6F3faCaEC0CF2221C73)  │
-│  │  • PositionManager (0x664858fa4d3938788C7b7fE4f8d8f0864d087eA6)  │
+│  │  • SimpleSwapRouter (0xd46D84Dc2D098c767451675C9BcB85bf3f8a2891)  │
+│  │  • PositionManager (0x692548a6E1797d2762b9d04f29112C172E5Cea32)  │
 │  │  • PlonkVerifier  • Uniswap V4 Pools                 │  │
 │  └──────────────────────────────────────────────────────┘  │
 │  ┌──────────────────────────────────────────────────────┐  │
@@ -95,7 +95,7 @@ import { ILALApiClient } from '@ilal/sdk';
 // Use API Key to access API service
 const client = new ILALApiClient({
   apiKey: 'ilal_live_xxxxx',
-  apiBaseUrl: 'https://api.ilal.xyz',
+  apiBaseUrl: 'https://api.ilal.tech',
   chainId: 8453,
 });
 
@@ -294,7 +294,7 @@ If you previously used `apps/web-demo`:
 
 1. **Register an account**
    ```bash
-   curl -X POST https://api.ilal.xyz/api/v1/auth/register \
+   curl -X POST https://api.ilal.tech/api/v1/auth/register \
      -H "Content-Type: application/json" \
      -d '{"email":"you@example.com","password":"Secure123!"}'
    ```
@@ -310,7 +310,7 @@ If you previously used `apps/web-demo`:
    // New approach
    const client = new ILALApiClient({
      apiKey: 'ilal_live_xxxxx',
-     apiBaseUrl: 'https://api.ilal.xyz',
+     apiBaseUrl: 'https://api.ilal.tech',
      chainId: 8453,
    });
    ```
@@ -408,8 +408,8 @@ curl -X POST http://localhost:3001/api/v1/auth/register \
 
 ## Contact and Support
 
-- **Documentation**: https://docs.ilal.xyz
-- **API Docs**: https://api.ilal.xyz/docs
+- **Documentation**: https://docs.ilal.tech
+- **API Docs**: https://api.ilal.tech/docs
 - **GitHub**: https://github.com/ilal-xyz/ilal
 - **Discord**: https://discord.gg/ilal
 - **Email**: 2867755637@qq.com

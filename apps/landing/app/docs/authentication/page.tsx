@@ -29,7 +29,7 @@ export default function AuthenticationPage() {
           <h2 className="font-heading text-2xl font-bold mb-4">Example</h2>
           <pre className="bg-[#1A1A1A] border border-white/10 rounded-lg p-4 overflow-x-auto text-sm">
             <code className="text-gray-300">{`curl -X GET https://api.ilal.tech/api/v1/session/status \\
-  -H "Authorization: Bearer ilal_live_1234567890abcdef" \\
+  -H "X-API-Key: ilal_live_1234567890abcdef" \\
   -H "Content-Type: application/json"`}</code>
           </pre>
         </div>

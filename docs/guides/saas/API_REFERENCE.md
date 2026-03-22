@@ -5,7 +5,7 @@ For **on-chain / wallet** flows, use the [SDK + wallet](../packages/sdk/README.m
 
 ## Base
 
-- **Base URL (examples)**: `https://api.ilal.xyz` (production) / `http://localhost:3001` (local)
+- **Base URL (examples)**: `https://api.ilal.tech` (production) / `http://localhost:3001` (local)
 - **Authentication**: API Key sent in an HTTP header
 
 ## Authentication

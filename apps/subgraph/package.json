@@ -4,7 +4,7 @@
   "description": "ILAL (Institutional Liquidity Access Layer) Subgraph",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/ilal"
+    "url": "https://github.com/rpnny/ILAL-mvp"
   },
   "license": "Apache-2.0",
   "scripts": {
@@ -13,7 +13,7 @@
     "codegen": "graph codegen",
     "build": "graph build",
     "deploy": "graph deploy --node https://api.studio.thegraph.com/deploy/ ilal-subgraph",
-    "deploy:hosted": "graph deploy --product hosted-service your-org/ilal-subgraph",
+    "deploy:hosted": "graph deploy --product hosted-service rpnny/ILAL-mvp-subgraph",
     "create-local": "graph create --node http://localhost:8020/ ilal-subgraph",
     "remove-local": "graph remove --node http://localhost:8020/ ilal-subgraph",
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 ilal-subgraph",

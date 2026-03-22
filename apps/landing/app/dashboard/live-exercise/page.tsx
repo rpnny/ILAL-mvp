@@ -65,7 +65,7 @@ export default function LiveExercisePage() {
                         <h2 className="font-heading text-lg font-semibold mb-4">What This Verifies</h2>
                         <div className="space-y-3 text-sm text-gray-300">
                             <div>1. Frontend signs a real permit with the connected wallet.</div>
-                            <div>2. `ComplianceHook` resolves the user from `hookData >= 148 bytes`.</div>
+                            <div>2. `ComplianceHook` resolves the user from `hookData &gt;= 148 bytes`.</div>
                             <div>3. Session-gated permissioning is enforced against the signed user.</div>
                             <div>4. The trade flows through the native Uniswap v4 router and pool.</div>
                         </div>

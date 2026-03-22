@@ -2,7 +2,7 @@
 
 **生产级 SaaS API 服务** - 提供用户认证、邮箱验证、API Key 管理和区块链集成
 
-[![Status](https://img.shields.io/badge/status-production--ready-brightgreen)](.)
+[![Status](https://img.shields.io/badge/status-testnet--verified-blue)](.)
 [![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](.)
 [![TypeScript](https://img.shields.io/badge/typescript-5.6.0-blue)](.)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](../../LICENSE)
@@ -337,8 +337,8 @@ Apache-2.0 © 2026 ILAL Team
 ## 📞 支持
 
 - **文档**: 查看 `docs/` 目录
-- **Issue**: [GitHub Issues](https://github.com/your-org/ilal/issues)
-- **讨论**: [GitHub Discussions](https://github.com/your-org/ilal/discussions)
+- **Issue**: [GitHub Issues](https://github.com/rpnny/ILAL-mvp/issues)
+- **讨论**: [GitHub Discussions](https://github.com/rpnny/ILAL-mvp/discussions)
 
 ---
 

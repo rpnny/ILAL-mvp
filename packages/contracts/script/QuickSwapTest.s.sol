@@ -9,10 +9,10 @@ import {Currency} from "@uniswap/v4-core/types/Currency.sol";
 import {IHooks} from "@uniswap/v4-core/interfaces/IHooks.sol";
 
 contract QuickSwapTest is Script {
-    address constant SWAP_ROUTER = 0x2AAF6C551168DCF22804c04DdA2c08c82031F289;
+    address constant SWAP_ROUTER = 0xd46D84Dc2D098c767451675C9BcB85bf3f8a2891;
     address constant WETH = 0x4200000000000000000000000000000000000006;
     address constant USDC = 0x036CbD53842c5426634e7929541eC2318f3dCF7e;
-    address constant HOOK = 0xDeDcFDF10b03AB45eEbefD2D91EDE66D9E5c8a80;
+    address constant HOOK = 0xe633220f15932428FcA60A1A2C2C48797A180A80;
 
     function run() external {
         console.log("=== Quick Swap Test ===");

@@ -9,7 +9,7 @@ ILAL API 是一个企业级 REST API 服务，提供：
 - ZK Proof 验证和 Session 激活
 - 使用追踪和计费
 
-**Base URL**: `https://api.ilal.xyz` (生产环境)  
+**Base URL**: `https://api.ilal.tech` (生产环境)  
 **Base URL**: `http://localhost:3001` (开发环境)
 
 **API 版本**: v1
@@ -575,7 +575,7 @@ import { ILALApiClient } from '@ilal/sdk';
 
 const client = new ILALApiClient({
   apiKey: 'ilal_live_xxxxx',
-  apiBaseUrl: 'https://api.ilal.xyz',
+  apiBaseUrl: 'https://api.ilal.tech',
   chainId: 8453,
 });
 
@@ -599,7 +599,7 @@ console.log('Session activated:', result.txHash);
 
 ## 联系支持
 
-- **文档**: https://docs.ilal.xyz
+- **文档**: https://docs.ilal.tech
 - **GitHub**: https://github.com/ilal-xyz/ilal
-- **Email**: support@ilal.xyz
+- **Email**: support@ilal.tech
 - **Discord**: https://discord.gg/ilal

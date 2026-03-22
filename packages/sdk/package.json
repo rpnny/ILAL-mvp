@@ -27,6 +27,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "test": "vitest",
+    "test:coverage": "vitest run --coverage",
     "lint": "eslint src --ext ts",
     "type-check": "tsc --noEmit",
     "prepublishOnly": "npm run build"
@@ -62,11 +63,11 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/ilal.git",
+    "url": "https://github.com/rpnny/ILAL-mvp.git",
     "directory": "packages/sdk"
   },
   "bugs": {
-    "url": "https://github.com/your-org/ilal/issues"
+    "url": "https://github.com/rpnny/ILAL-mvp/issues"
   },
-  "homepage": "https://github.com/your-org/ilal/tree/main/packages/sdk#readme"
+  "homepage": "https://github.com/rpnny/ILAL-mvp/tree/main/packages/sdk#readme"
 }

@@ -7,7 +7,7 @@ This guide helps you get started with ILAL SaaS in 5 minutes.
 ### Option A: Register via API
 
 ```bash
-curl -X POST https://api.ilal.xyz/api/v1/auth/register \
+curl -X POST https://api.ilal.tech/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "your@example.com",
@@ -29,14 +29,14 @@ Save the `accessToken` for the next step.
 
 ### Option B: Register via Dashboard
 
-Visit `https://dashboard.ilal.xyz` to register (coming soon).
+Visit `https://dashboard.ilal.tech` to register (coming soon).
 
 ## Step 2: Create an API Key
 
 Using the `accessToken` from the previous step:
 
 ```bash
-curl -X POST https://api.ilal.xyz/api/v1/apikeys \
+curl -X POST https://api.ilal.tech/api/v1/apikeys \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
   -d '{
@@ -76,8 +76,8 @@ import { ILALApiClient } from '@ilal/sdk';
 
 const client = new ILALApiClient({
   apiKey: 'ilal_live_xxxxxxxxxxxxx', // Your API Key
-  apiBaseUrl: 'https://api.ilal.xyz',
-  chainId: 8453, // Base Mainnet
+  apiBaseUrl: 'https://api.ilal.tech',
+  chainId: 84532, // Base Sepolia (testnet)
 });
 
 async function main() {
@@ -119,7 +119,7 @@ npx tsx test.ts
 ## Step 5: View Usage Statistics
 
 ```bash
-curl https://api.ilal.xyz/api/v1/usage/stats \
+curl https://api.ilal.tech/api/v1/usage/stats \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 ```
 
@@ -149,8 +149,8 @@ import { ILALApiClient } from '@ilal/sdk';
 
 const client = new ILALApiClient({
   apiKey: process.env.ILAL_API_KEY!,
-  apiBaseUrl: 'https://api.ilal.xyz',
-  chainId: 8453,
+  apiBaseUrl: 'https://api.ilal.tech',
+  chainId: 84532, // Base Sepolia (testnet)
   // Provide config if ZK Proof generation is needed
   zkConfig: {
     wasmPath: './circuits/compliance.wasm',
@@ -198,7 +198,7 @@ completeFlow().catch(console.error);
 When the free tier (100 calls/month) is insufficient, upgrade to Pro:
 
 ```bash
-curl -X POST https://api.ilal.xyz/api/v1/billing/upgrade \
+curl -X POST https://api.ilal.tech/api/v1/billing/upgrade \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
   -d '{"targetPlan": "PRO"}'
@@ -217,7 +217,7 @@ Create `.env`:
 ```bash
 # API
 ILAL_API_KEY=ilal_live_xxxxxxxxxxxxx
-ILAL_API_URL=https://api.ilal.xyz
+ILAL_API_URL=https://api.ilal.tech
 
 # JWT (if managing API Keys)
 ILAL_ACCESS_TOKEN=eyJhbGciOi...
@@ -232,7 +232,7 @@ dotenv.config();
 const client = new ILALApiClient({
   apiKey: process.env.ILAL_API_KEY!,
   apiBaseUrl: process.env.ILAL_API_URL!,
-  chainId: 8453,
+  chainId: 84532, // Base Sepolia (testnet)
 });
 ```
 
@@ -298,8 +298,8 @@ For fully decentralized usage, use the traditional `ILALClient`:
 import { ILALClient } from '@ilal/sdk';
 
 const client = await ILALClient.fromRPC({
-  rpcUrl: 'https://base.llamarpc.com',
-  chainId: 8453,
+  rpcUrl: 'https://base-sepolia-rpc.publicnode.com',
+  chainId: 84532, // Base Sepolia (testnet)
   privateKey: process.env.PRIVATE_KEY,
 });
 
@@ -331,7 +331,7 @@ A: The free tier (100 calls/month) is suitable for development and small-scale a
 **Q: How do I get technical support?**  
 A: 
 - Community (Discord): https://discord.gg/ilal
-- Documentation: https://docs.ilal.xyz
+- Documentation: https://docs.ilal.tech
 - Email (Pro+): 2867755637@qq.com
 
 ## Next Steps

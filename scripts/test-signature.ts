@@ -24,7 +24,7 @@ const walletClient = createWalletClient({
   transport: http('https://sepolia.base.org'),
 });
 
-const COMPLIANCE_HOOK = '0xDeDcFDF10b03AB45eEbefD2D91EDE66D9E5c8a80';
+const COMPLIANCE_HOOK = '0xe633220f15932428FcA60A1A2C2C48797A180A80';
 
 const COMPLIANCE_HOOK_ABI = [
   {

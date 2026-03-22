@@ -20,8 +20,8 @@ const publicClient = createPublicClient({
 
 // 合约地址
 const CONTRACTS = {
-  simpleSwapRouter: '0x96ad5eAE7e5797e628F9d3FD21995dB19aE17d58',
-  complianceHook: '0xDeDcFDF10b03AB45eEbefD2D91EDE66D9E5c8a80',
+  simpleSwapRouter: '0xd46D84Dc2D098c767451675C9BcB85bf3f8a2891',
+  complianceHook: '0xe633220f15932428FcA60A1A2C2C48797A180A80',
   usdc: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
   weth: '0x4200000000000000000000000000000000000006',
 };

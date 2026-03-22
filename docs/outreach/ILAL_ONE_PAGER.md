@@ -41,7 +41,7 @@ ILAL is a Uniswap v4 Hook that enforces KYC/AML compliance at the protocol level
 
 ## What's Built (Live on Base Sepolia)
 
-- **7 audited smart contracts** — ComplianceHook, SessionManager, Registry, SimpleSwapRouter, PositionManager, PlonkVerifier, PlonkVerifierAdapter
+- **7 internally audited smart contracts** (external audit pending) — ComplianceHook, SessionManager, Registry, SimpleSwapRouter, PositionManager, PlonkVerifier, PlonkVerifierAdapter
 - **ZK circuit** — Circom PLONK (EdDSA-Poseidon signature + depth-20 Merkle tree)
 - **REST API** — Session management, ZK proof verification, swap payload generation
 - **TypeScript SDK** — Programmatic integration for institutional backends

@@ -59,8 +59,8 @@ const routerAbi = [
     },
 ] as const;
 
-const MIN_SQRT_PRICE = 4295128739n + 1n;
-const MAX_SQRT_PRICE = 1461446703485210103287273052203988822378723970342n - 1n;
+const MIN_SQRT_PRICE = BigInt("4295128739") + BigInt(1);
+const MAX_SQRT_PRICE = BigInt("1461446703485210103287273052203988822378723970342") - BigInt(1);
 
 type TokenConfig = {
     symbol: string;
@@ -219,9 +219,9 @@ export default function SwapWidget({
                 const token1 = token0.address.toLowerCase() === tokenA.address.toLowerCase() ? tokenB : tokenA;
                 const zeroForOneActual = tokenInConfig.address.toLowerCase() === token0.address.toLowerCase();
                 const minAmountOut = slippage > 0
-                    ? (amountBigInt * BigInt(10_000 - Math.round(slippage * 100))) / 10_000n
-                    : 0n;
-                const hookData = await buildPermitHookData(walletClient, publicClient, account);
+                    ? (amountBigInt * BigInt(10_000 - Math.round(slippage * 100))) / BigInt(10_000)
+                    : BigInt(0);
+                const hookData = await buildPermitHookData(walletClient, publicClient as any, account);
 
                 toast.loading('Signing permit and confirming swap...', { id: 'swap-toast' });
                 hash = await walletClient.writeContract({

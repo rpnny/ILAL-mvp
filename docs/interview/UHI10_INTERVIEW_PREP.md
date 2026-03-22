@@ -1270,9 +1270,9 @@ cd /path/to/ilal
 
 ### Option E: BaseScan Links (share in chat)
 
-- ComplianceHook: https://sepolia.basescan.org/address/0xE1AF9f1D1ddF819f729ec08A612a2212D1058a80
+- ComplianceHook: https://sepolia.basescan.org/address/0xe633220f15932428FcA60A1A2C2C48797A180A80
 - SessionManager: https://sepolia.basescan.org/address/0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2
-- SimpleSwapRouter: https://sepolia.basescan.org/address/0x9450fAfdE8aB1E68E29cB6F3faCaEC0CF2221C73
+- SimpleSwapRouter: https://sepolia.basescan.org/address/0xd46D84Dc2D098c767451675C9BcB85bf3f8a2891
 
 ---
 
