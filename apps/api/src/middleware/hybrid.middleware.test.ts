@@ -48,7 +48,7 @@ test('hybridAuth uses API Key when X-API-Key header is present', async () => {
   prisma.apiKey.findMany = async () => [{
     id: 'k1', key: hashed, keyPrefix: prefix,
     userId: 'u1', permissions: 'verify', rateLimit: 10,
-    isActive: 1, expiresAt: null,
+    isActive: true, expiresAt: null,
     user: { id: 'u1', email: 'a@b.com', plan: 'FREE' },
   }] as any;
   prisma.apiKey.update = async () => ({} as any);

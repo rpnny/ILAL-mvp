@@ -77,7 +77,7 @@ export async function createApiKey(req: Request, res: Response): Promise<void> {
     const existingKeysCount = await prisma.apiKey.count({
       where: {
         userId: req.user.userId,
-        isActive: 1 as any, // SQLite: 1=true
+        isActive: true,
       },
     });
 
@@ -96,7 +96,7 @@ export async function createApiKey(req: Request, res: Response): Promise<void> {
     const apiKeyHash = await hashApiKey(apiKey);
     const prefix = extractApiKeyPrefix(apiKey);
 
-    // Calculate expiration time (SQLite: store as ISO string)
+    // Calculate expiration time (store as ISO string)
     const expiresAt = body.expiresIn
       ? new Date(Date.now() + body.expiresIn * 24 * 60 * 60 * 1000).toISOString()
       : null;
@@ -108,7 +108,7 @@ export async function createApiKey(req: Request, res: Response): Promise<void> {
         key: apiKeyHash,
         keyPrefix: prefix,
         name: body.name,
-        permissions: body.permissions.join(','), // SQLite: comma-separated string
+        permissions: body.permissions.join(','),
         rateLimit: body.rateLimit || 10,
         expiresAt: expiresAt,
       },
@@ -187,7 +187,7 @@ export async function deleteApiKey(req: Request, res: Response): Promise<void> {
     // Soft delete: set to inactive
     await prisma.apiKey.update({
       where: { id: id as string },
-      data: { isActive: 0 as any }, // SQLite: 0=false
+      data: { isActive: false },
     });
 
     logger.info('API key revoked', {
@@ -235,7 +235,7 @@ export async function updateApiKey(req: Request, res: Response): Promise<void> {
       where: {
         id: id as string,
         userId: req.user.userId,
-        isActive: 1 as any, // SQLite: 1=true
+        isActive: true,
       },
     });
 
@@ -247,7 +247,7 @@ export async function updateApiKey(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    // Update API Key (convert permissions array to comma-separated string for SQLite)
+    // Update API Key (convert permissions array to comma-separated string)
     const updateData: any = { ...body };
     if (body.permissions) {
       updateData.permissions = body.permissions.join(',');

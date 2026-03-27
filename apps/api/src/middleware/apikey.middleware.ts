@@ -58,7 +58,7 @@ export async function apiKeyMiddleware(
     const apiKeys = await prisma.apiKey.findMany({
       where: {
         keyPrefix: prefix,
-        isActive: 1,
+        isActive: true,
       },
       include: {
         user: {

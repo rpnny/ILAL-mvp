@@ -48,7 +48,7 @@ const authedReq = (extra?: object) => ({
 test('listApiKeys returns keys for authenticated user', async () => {
   const res = createMockResponse();
   prisma.apiKey.findMany = async () => [
-    { id: 'k1', name: 'key1', keyPrefix: 'ilal_live', permissions: 'verify', rateLimit: 10, isActive: 1, lastUsedAt: null, createdAt: new Date().toISOString(), expiresAt: null },
+    { id: 'k1', name: 'key1', keyPrefix: 'ilal_live', permissions: 'verify', rateLimit: 10, isActive: true, lastUsedAt: null, createdAt: new Date().toISOString(), expiresAt: null },
   ] as any;
 
   await listApiKeys(authedReq(), res as any);
@@ -145,7 +145,7 @@ test('updateApiKey succeeds with valid data', async () => {
   prisma.apiKey.findFirst = async () => ({ id: 'k1', userId: 'u1' } as any);
   prisma.apiKey.update = async () => ({
     id: 'k1', name: 'renamed', keyPrefix: 'ilal_live',
-    permissions: 'verify', rateLimit: 50, isActive: 1,
+    permissions: 'verify', rateLimit: 50, isActive: true,
     lastUsedAt: null, createdAt: new Date().toISOString(), expiresAt: null,
   } as any);
 

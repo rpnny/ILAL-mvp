@@ -41,22 +41,46 @@
 ### 本地开发
 
 ```bash
-# 1. 安装依赖
+# 1. 启动本地 PostgreSQL（需要 Docker）
+docker-compose up -d
+
+# 2. 安装依赖
 npm install
 
-# 2. 配置环境变量
+# 3. 配置环境变量（默认已指向本地 Docker PostgreSQL）
 cp .env.example .env
-# 编辑 .env 文件
 
-# 3. 初始化数据库
+# 4. 初始化数据库
 npm run db:generate
 npm run db:push
 
-# 4. 启动开发服务器
+# 5. 启动开发服务器
 npm run dev
 ```
 
 服务将运行在 `http://localhost:3001`
+
+### Railway 生产部署（5 分钟）
+
+1. 前往 [railway.app](https://railway.app) 新建项目
+2. 点击 **+ New** → **Database** → **PostgreSQL**，获得一个免费 PostgreSQL 数据库
+3. 点击 **+ New** → **GitHub Repo** → 选择此仓库
+4. 在服务 **Settings → Build** 中设置 Root Directory 为 `/`（不要选 `apps/api`）
+5. 在服务 **Variables** 中添加以下环境变量：
+
+| 变量 | 说明 |
+|------|------|
+| `DATABASE_URL` | 直接引用同项目 PostgreSQL 的 `${{Postgres.DATABASE_URL}}` |
+| `JWT_SECRET` | 随机 64 位字符串 |
+| `JWT_REFRESH_SECRET` | 随机 64 位字符串 |
+| `API_KEY_SECRET` | 随机 64 位字符串 |
+| `NODE_ENV` | `production` |
+| `CORS_ORIGIN` | Vercel 前端 URL，如 `https://ilal-landing.vercel.app` |
+
+6. 部署成功后，复制 Railway 生成的公开 URL（格式如 `https://xxxx.railway.app`）
+7. 前往 Vercel 项目 **Settings → Environment Variables**，添加：
+   - `NEXT_PUBLIC_API_URL` = `https://xxxx.railway.app`（你的 Railway URL）
+8. 在 Vercel 重新触发一次部署（Redeploy）
 
 ### 测试 API
 

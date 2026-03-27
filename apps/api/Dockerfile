@@ -56,9 +56,6 @@ COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/api/node_modules ./apps/api/node_modules
 
-# Create persistent data directory for SQLite
-RUN mkdir -p /data && chown -R node:node /data
-
 # Use non-root user
 USER node
 
@@ -72,4 +69,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=40s \
   CMD node -e "require('http').get('http://localhost:' + (process.env.PORT || 3001) + '/api/v1/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
 # Run migrations then start server
-CMD ["sh", "-c", "npx prisma db push --schema=prisma/schema.prisma --accept-data-loss && node dist/index.js"]
+CMD ["sh", "-c", "npx prisma db push --schema=prisma/schema.prisma && node dist/index.js"]

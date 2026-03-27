@@ -80,7 +80,7 @@ test('apiKeyMiddleware passes with valid key', async () => {
   prisma.apiKey.findMany = async () => [{
     id: 'k1', key: hashedKey, keyPrefix: prefix,
     userId: 'u1', permissions: 'verify,session', rateLimit: 10,
-    isActive: 1, expiresAt: null,
+    isActive: true, expiresAt: null,
     user: { id: 'u1', email: 'a@b.com', plan: 'FREE' },
   }] as any;
   prisma.apiKey.update = async () => ({} as any);
@@ -103,7 +103,7 @@ test('apiKeyMiddleware rejects expired key', async () => {
   prisma.apiKey.findMany = async () => [{
     id: 'k1', key: hashedKey, keyPrefix: prefix,
     userId: 'u1', permissions: 'verify', rateLimit: 10,
-    isActive: 1, expiresAt: new Date(Date.now() - 86400000).toISOString(),
+    isActive: true, expiresAt: new Date(Date.now() - 86400000).toISOString(),
     user: { id: 'u1', email: 'a@b.com', plan: 'FREE' },
   }] as any;
 
