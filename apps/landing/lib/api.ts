@@ -5,7 +5,9 @@
 
 import type { ApiKeysResponse, CreateApiKeyResponse, UsageStats, User, Plan } from './types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+// Empty string = same origin (works for both local Next.js dev and Vercel production).
+// Set NEXT_PUBLIC_API_URL to override (e.g. if using a separate API server).
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 // ── Helper ────────────────────────────────────────────────────
 async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
