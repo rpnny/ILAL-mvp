@@ -19,5 +19,26 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  apiKeys ApiKey[]
+
   @@index([email])
+}
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  userId      String
+  key         String    @unique
+  keyPrefix   String
+  name        String
+  permissions String    @default("verify,session")
+  rateLimit   Int       @default(10)
+  isActive    Boolean   @default(true)
+  lastUsedAt  String?
+  createdAt   DateTime  @default(now())
+  expiresAt   String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([keyPrefix])
 }
