@@ -97,3 +97,4 @@ circuits/keys/*.ptau
 # ZK trusted setup artifacts (too large for GitHub)
 packages/circuits/keys/compliance.zkey
 packages/circuits/keys/*.ptau
+.vercel
