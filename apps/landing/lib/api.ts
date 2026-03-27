@@ -13,7 +13,11 @@ async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.message || `Request failed with status ${res.status}`);
+    // Include validation details when present (e.g. password requirements)
+    const details = Array.isArray(body.details) && body.details.length > 0
+      ? ': ' + body.details.join(', ')
+      : '';
+    throw new Error((body.message || `Request failed with status ${res.status}`) + details);
   }
 
   return res.json();

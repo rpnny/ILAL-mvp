@@ -138,7 +138,7 @@ export default function LoginPage() {
                                     type={showPassword ? 'text' : 'password'}
                                     value={password}
                                     onChange={e => setPassword(e.target.value)}
-                                    placeholder={mode === 'register' ? 'Min 8 characters' : 'Your password'}
+                                    placeholder={mode === 'register' ? 'Min 8 chars, A-z, 0-9' : 'Your password'}
                                     required
                                     className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-3 pl-10 pr-10 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#00F0FF]/40 focus:bg-white/[0.06] transition-all"
                                 />
@@ -150,6 +150,11 @@ export default function LoginPage() {
                                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                 </button>
                             </div>
+                            {mode === 'register' && (
+                                <p className="mt-1.5 text-xs text-gray-600">
+                                    Must include uppercase, lowercase, and a number
+                                </p>
+                            )}
                         </div>
 
                         <motion.button

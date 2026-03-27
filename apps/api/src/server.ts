@@ -50,8 +50,13 @@ export async function createServer(): Promise<express.Application> {
   app.use(helmet());
 
   // CORS
+  // CORS_ORIGIN can be a comma-separated list of allowed origins.
+  // Defaults to '*' in development; set explicitly in production.
+  const corsOrigins = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
+    : '*';
   app.use(cors({
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: corsOrigins,
     credentials: true,
   }));
 
