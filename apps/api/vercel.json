@@ -7,7 +7,9 @@
       "config": {
         "includeFiles": [
           "prisma/**",
-          "src/**"
+          "src/**",
+          "node_modules/.prisma/**",
+          "node_modules/@prisma/client/**"
         ]
       }
     }
@@ -17,8 +19,5 @@
       "src": "/(.*)",
       "dest": "/api/index.ts"
     }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  }
+  ]
 }

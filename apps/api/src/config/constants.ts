@@ -113,17 +113,12 @@ export function validateConfig() {
     process.exit(1);
   }
 
-  if (NODE_ENV === 'production') {
-    const missingProd = requiredInProduction.filter(key => !process.env[key]);
-    if (missingProd.length > 0) {
-      console.error('Missing required production environment variables:', missingProd.join(', '));
-      process.exit(1);
-    }
-  } else {
-    const missingOptional = requiredInProduction.filter(key => !process.env[key]);
-    if (missingOptional.length > 0) {
-      console.log('Warning: Missing optional environment variables:', missingOptional.join(', '));
-      console.log('Some features (blockchain, ZK verification) may be disabled.');
-    }
+  // ZK/blockchain vars are required for proof verification endpoints,
+  // but auth/apikey/billing endpoints work without them.
+  // We warn (not exit) so a partial deployment remains functional.
+  const missingZk = requiredInProduction.filter(key => !process.env[key]);
+  if (missingZk.length > 0) {
+    console.warn('Warning: Missing ZK/blockchain environment variables:', missingZk.join(', '));
+    console.warn('ZK proof verification endpoints will be unavailable.');
   }
 }
