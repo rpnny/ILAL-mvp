@@ -1,25 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Play, ChevronDown, Copy, CheckCircle2, Loader2, Code, Terminal } from 'lucide-react';
+import { Play, Copy, CheckCircle2, Loader2, AlertTriangle } from 'lucide-react';
 import { getApiKeys } from '../../../lib/api';
 import { getAccessToken } from '../../../lib/auth';
 import toast from 'react-hot-toast';
 import type { ApiKey } from '../../../lib/types';
 
+const RAILWAY_API = 'https://ilal-mvp-production.up.railway.app';
+
 const endpoints = [
-    { method: 'POST' as const, path: '/verify', description: 'Verify ZK Proof and create session', defaultBody: JSON.stringify({ proof: '0x...', publicSignals: ['signal1', 'signal2'], userAddress: '0x1234567890abcdef1234567890abcdef12345678' }, null, 2) },
-    { method: 'GET' as const, path: '/session/status', description: 'Query session status', defaultBody: JSON.stringify({ userAddress: '0x1234567890abcdef1234567890abcdef12345678' }, null, 2) },
-    { method: 'POST' as const, path: '/session/extend', description: 'Extend session lifetime', defaultBody: JSON.stringify({ sessionId: '0xabcdef...' }, null, 2) },
-    { method: 'GET' as const, path: '/compliance/check', description: 'Check address compliance status', defaultBody: JSON.stringify({ address: '0x1234567890abcdef1234567890abcdef12345678' }, null, 2) },
+    { method: 'GET' as const, path: '/api/v1/health', description: 'API health check (no auth required)', requiresAuth: false, defaultBody: '' },
+    { method: 'GET' as const, path: '/api/v1/session/0x1b869CaC69Df23Ad9D727932496AEb3605538c8D', description: 'Query on-chain session status', requiresAuth: false, defaultBody: '' },
+    { method: 'POST' as const, path: '/api/v1/defi/swap', description: 'Build unsigned swap TX (mUSD -> mTBILL)', requiresAuth: true, defaultBody: JSON.stringify({ tokenIn: '0xdd3d112a48906807c4b73c94ed884552427e4cf9', tokenOut: '0xfb080423cedd4ca56da3f60a4b901f51846459ae', amount: '1000000000000000', zeroForOne: true, userAddress: '0x1b869CaC69Df23Ad9D727932496AEb3605538c8D' }, null, 2) },
+    { method: 'GET' as const, path: '/api/v1/onboarding/status/0x1b869CaC69Df23Ad9D727932496AEb3605538c8D', description: 'Check institution onboarding status', requiresAuth: true, defaultBody: '' },
 ];
 
 const methodColors: Record<string, string> = {
     GET: 'bg-blue-500/20 text-blue-400 border-blue-500/20',
     POST: 'bg-green-500/20 text-green-400 border-green-500/20',
-    PUT: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/20',
-    DELETE: 'bg-red-500/20 text-red-400 border-red-500/20',
 };
 
 const containerVariants = {
@@ -38,57 +38,81 @@ export default function PlaygroundPage() {
     const [requestBody, setRequestBody] = useState(endpoints[0].defaultBody);
     const [response, setResponse] = useState<string | null>(null);
     const [responseStatus, setResponseStatus] = useState<number | null>(null);
+    const [responseTime, setResponseTime] = useState<number | null>(null);
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState<'response' | 'curl' | 'js' | 'python'>('response');
     const [copied, setCopied] = useState(false);
     const [loadingKeys, setLoadingKeys] = useState(true);
 
-    const baseUrl = 'https://api.ilal.tech/api/v1';
     const endpoint = endpoints[selectedEndpoint];
+    const fullUrl = `${RAILWAY_API}${endpoint.path}`;
 
     useEffect(() => { loadApiKeys(); }, []);
     useEffect(() => {
         setRequestBody(endpoints[selectedEndpoint].defaultBody);
         setResponse(null);
         setResponseStatus(null);
+        setResponseTime(null);
     }, [selectedEndpoint]);
 
     async function loadApiKeys() {
         const token = getAccessToken();
-        if (!token) return;
+        if (!token) { setLoadingKeys(false); return; }
         try { const res = await getApiKeys(token); setApiKeys(res.apiKeys || []); }
         catch { /* silent */ }
         finally { setLoadingKeys(false); }
     }
 
     async function handleSend() {
-        setLoading(true); setResponse(null); setResponseStatus(null);
-        await new Promise(r => setTimeout(r, 800 + Math.random() * 400));
-        const mockResponses: Record<string, any> = {
-            '/verify': { success: true, sessionId: '0x' + Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join(''), expiresAt: new Date(Date.now() + 86400000).toISOString(), message: 'Verification successful' },
-            '/session/status': { isActive: true, sessionId: '0x' + Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join(''), expiresAt: new Date(Date.now() + 43200000).toISOString() },
-            '/session/extend': { success: true, newExpiresAt: new Date(Date.now() + 86400000).toISOString() },
-            '/compliance/check': { isCompliant: true, reason: 'Address passed all compliance checks' },
-        };
-        setResponseStatus(200);
-        setResponse(JSON.stringify(mockResponses[endpoint.path] || { success: true }, null, 2));
-        setLoading(false); setActiveTab('response');
+        setLoading(true); setResponse(null); setResponseStatus(null); setResponseTime(null);
+
+        const start = Date.now();
+        try {
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+            const selectedKey = apiKeys[selectedKeyIndex];
+            if (endpoint.requiresAuth && selectedKey) {
+                headers['x-api-key'] = selectedKey.key || `${selectedKey.keyPrefix || selectedKey.prefix}...`;
+            }
+
+            const fetchOptions: RequestInit = {
+                method: endpoint.method,
+                headers,
+            };
+            if (endpoint.method === 'POST' && requestBody.trim()) {
+                fetchOptions.body = requestBody;
+            }
+
+            const res = await fetch(fullUrl, fetchOptions);
+            const elapsed = Date.now() - start;
+            const data = await res.json().catch(() => ({ error: 'Non-JSON response' }));
+
+            setResponseStatus(res.status);
+            setResponse(JSON.stringify(data, null, 2));
+            setResponseTime(elapsed);
+        } catch (err: any) {
+            const elapsed = Date.now() - start;
+            setResponseStatus(0);
+            setResponse(JSON.stringify({ error: err.message || 'Network error' }, null, 2));
+            setResponseTime(elapsed);
+        } finally {
+            setLoading(false); setActiveTab('response');
+        }
     }
 
     const selectedKey = apiKeys[selectedKeyIndex];
-    const keyDisplay = selectedKey ? `${selectedKey.keyPrefix}...` : 'YOUR_API_KEY';
+    const keyDisplay = selectedKey ? (selectedKey.key || `${selectedKey.keyPrefix || selectedKey.prefix}...`) : 'YOUR_API_KEY';
 
-    const curlCode = `curl -X ${endpoint.method} ${baseUrl}${endpoint.path} \\
-  -H "Authorization: Bearer ${keyDisplay}" \\
-  -H "Content-Type: application/json"${endpoint.method === 'POST' ? ` \\
-  -d '${requestBody}'` : ''}`;
+    const curlCode = `curl -X ${endpoint.method} '${fullUrl}' \\
+  -H "x-api-key: ${keyDisplay}" \\
+  -H "Content-Type: application/json"${endpoint.method === 'POST' && requestBody ? ` \\
+  -d '${requestBody.replace(/\n/g, '')}'` : ''}`;
 
-    const jsCode = `const response = await fetch('${baseUrl}${endpoint.path}', {
+    const jsCode = `const response = await fetch('${fullUrl}', {
   method: '${endpoint.method}',
   headers: {
-    'Authorization': 'Bearer ${keyDisplay}',
+    'x-api-key': '${keyDisplay}',
     'Content-Type': 'application/json',
-  },${endpoint.method === 'POST' ? `
+  },${endpoint.method === 'POST' && requestBody ? `
   body: JSON.stringify(${requestBody}),` : ''}
 });
 
@@ -98,11 +122,11 @@ console.log(data);`;
     const pythonCode = `import requests
 
 response = requests.${endpoint.method.toLowerCase()}(
-    '${baseUrl}${endpoint.path}',
+    '${fullUrl}',
     headers={
-        'Authorization': 'Bearer ${keyDisplay}',
+        'x-api-key': '${keyDisplay}',
         'Content-Type': 'application/json'
-    },${endpoint.method === 'POST' ? `
+    },${endpoint.method === 'POST' && requestBody ? `
     json=${requestBody}` : ''}
 )
 
@@ -123,7 +147,10 @@ print(response.json())`;
                     </div>
                     API Playground
                 </h1>
-                <p className="text-gray-400">Test ILAL API endpoints and view requests and responses in real time</p>
+                <p className="text-gray-400">
+                    Test ILAL API endpoints with live requests to{' '}
+                    <code className="text-[#00F0FF]/70 text-xs">{RAILWAY_API}</code>
+                </p>
             </motion.div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -134,12 +161,15 @@ print(response.json())`;
                         {loadingKeys ? (
                             <div className="flex items-center text-sm text-gray-500"><Loader2 className="w-4 h-4 mr-2 animate-spin" />Loading...</div>
                         ) : apiKeys.length === 0 ? (
-                            <div className="text-sm text-yellow-400">⚠ Please create a key first on the <a href="/dashboard/api-keys" className="text-[#00F0FF] hover:underline">API Keys</a> page</div>
+                            <div className="text-sm text-yellow-400 flex items-center gap-2">
+                                <AlertTriangle className="w-4 h-4" />
+                                Create a key on the <a href="/dashboard/api-keys" className="text-[#00F0FF] hover:underline">API Keys</a> page first
+                            </div>
                         ) : (
                             <select value={selectedKeyIndex} onChange={(e) => setSelectedKeyIndex(Number(e.target.value))}
                                 className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#00F0FF]/50 transition-all appearance-none cursor-pointer"
                             >
-                                {apiKeys.map((key, i) => <option key={key.id} value={i} className="bg-[#1A1A1A]">{key.name} ({key.keyPrefix}...)</option>)}
+                                {apiKeys.map((key, i) => <option key={key.id} value={i} className="bg-[#1A1A1A]">{key.name} ({key.keyPrefix || key.prefix}...)</option>)}
                             </select>
                         )}
                     </div>
@@ -152,33 +182,36 @@ print(response.json())`;
                                     key={i}
                                     whileHover={{ x: 4 }}
                                     onClick={() => setSelectedEndpoint(i)}
-                                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm transition-all ${selectedEndpoint === i
+                                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm transition-all text-left ${selectedEndpoint === i
                                         ? 'bg-[#00F0FF]/10 border border-[#00F0FF]/30'
                                         : 'border border-white/[0.06] hover:border-white/[0.12] hover:bg-white/[0.02]'
                                         }`}
                                 >
                                     <span className={`px-2 py-0.5 rounded font-mono text-xs font-semibold border ${methodColors[ep.method]}`}>{ep.method}</span>
-                                    <code className="text-gray-300">{ep.path}</code>
+                                    <div className="min-w-0">
+                                        <code className="text-gray-300 text-xs block truncate">{ep.path}</code>
+                                        <span className="text-gray-500 text-xs">{ep.description}</span>
+                                    </div>
                                 </motion.button>
                             ))}
                         </div>
                     </div>
 
-                    <div className="bg-white/[0.02] backdrop-blur-xl border border-white/[0.08] rounded-xl p-4">
-                        <label className="block text-sm text-gray-400 mb-2">
-                            {endpoint.method === 'GET' ? 'Query Parameters' : 'Request Body'} (JSON)
-                        </label>
-                        <textarea value={requestBody} onChange={(e) => setRequestBody(e.target.value)} rows={8}
-                            className="w-full bg-[#111] border border-white/[0.08] rounded-lg p-4 text-sm font-mono text-gray-300 focus:outline-none focus:border-[#00F0FF]/50 focus:shadow-[0_0_20px_rgba(41,98,255,0.08)] transition-all resize-none"
-                            spellCheck={false}
-                        />
-                    </div>
+                    {endpoint.method === 'POST' && (
+                        <div className="bg-white/[0.02] backdrop-blur-xl border border-white/[0.08] rounded-xl p-4">
+                            <label className="block text-sm text-gray-400 mb-2">Request Body (JSON)</label>
+                            <textarea value={requestBody} onChange={(e) => setRequestBody(e.target.value)} rows={8}
+                                className="w-full bg-[#111] border border-white/[0.08] rounded-lg p-4 text-sm font-mono text-gray-300 focus:outline-none focus:border-[#00F0FF]/50 transition-all resize-none"
+                                spellCheck={false}
+                            />
+                        </div>
+                    )}
 
                     <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={handleSend}
-                        disabled={loading}
+                        disabled={loading || (endpoint.requiresAuth && apiKeys.length === 0)}
                         className="w-full py-3 bg-[#00F0FF] hover:bg-[#00F0FF]/90 rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-lg shadow-[#00F0FF]/20 relative overflow-hidden group"
                     >
                         <div className="absolute inset-0 bg-gradient-to-r from-[#00F0FF] to-[#A855F7] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -228,8 +261,10 @@ print(response.json())`;
                                         <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${responseStatus >= 200 && responseStatus < 300
                                             ? 'bg-green-500/20 text-green-400 border-green-500/20'
                                             : responseStatus >= 400 ? 'bg-red-500/20 text-red-400 border-red-500/20' : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/20'
-                                            }`}>{responseStatus}</span>
-                                        <span className="text-xs text-gray-500">200ms</span>
+                                            }`}>{responseStatus || 'ERR'}</span>
+                                        {responseTime !== null && (
+                                            <span className="text-xs text-gray-500">{responseTime}ms</span>
+                                        )}
                                     </motion.div>
                                 )}
                                 <pre className="bg-[#111] rounded-lg p-4 text-sm font-mono text-gray-300 overflow-auto max-h-[500px] min-h-[300px] border border-white/[0.04]">

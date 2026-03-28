@@ -119,6 +119,8 @@ export default function DashboardPage() {
       linkText: 'Manage →',
       color: '#00F0FF',
       gradient: 'from-[#00F0FF]/20 to-[#00F0FF]/5',
+      accentLine: 'via-[#00F0FF]/50',
+      hoverGlow: 'bg-[#00F0FF]/5',
     },
     {
       icon: TrendingUp,
@@ -129,6 +131,8 @@ export default function DashboardPage() {
       linkText: 'Details →',
       color: '#10B981',
       gradient: 'from-green-500/20 to-green-500/5',
+      accentLine: 'via-green-500/50',
+      hoverGlow: 'bg-green-500/5',
       progress: usagePercent,
     },
     {
@@ -139,6 +143,8 @@ export default function DashboardPage() {
       sub: `${stats?.limits?.rateLimit || 10} requests/min`,
       color: '#A855F7',
       gradient: 'from-purple-500/20 to-purple-500/5',
+      accentLine: 'via-purple-500/50',
+      hoverGlow: 'bg-purple-500/5',
     },
   ];
 
@@ -165,10 +171,8 @@ export default function DashboardPage() {
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             className="relative bg-white/[0.02] backdrop-blur-xl border border-white/[0.08] rounded-xl p-6 overflow-hidden group cursor-default"
           >
-            {/* Gradient top accent */}
-            <div className={`absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[${card.color}]/50 to-transparent`} />
-            {/* Hover glow */}
-            <div className={`absolute -top-20 -right-20 w-40 h-40 bg-[${card.color}]/5 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+            <div className={`absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent ${card.accentLine} to-transparent`} />
+            <div className={`absolute -top-20 -right-20 w-40 h-40 ${card.hoverGlow} rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
 
             <div className="relative z-10">
               <div className="flex items-start justify-between mb-4">

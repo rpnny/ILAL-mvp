@@ -4,7 +4,7 @@
  *  适合传统金融机构 / 资管公司 / 不直接碰链的团队
  * ══════════════════════════════════════════════════════════════
  *
- *  机构通过 https://ilal.tech 的 HTTP API 接入。
+ *  机构通过 Railway API (ilal-mvp-production.up.railway.app) 接入 DeFi 端点。
  *
  *  ⚠️ 重要：ILAL DeFi API 返回的是【未签名交易数据】，
  *     机构需要用自己的钱包签名后广播。

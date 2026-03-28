@@ -3,9 +3,12 @@
 import { useState } from 'react';
 import { useAuth } from '../../../hooks/useAuth';
 import { motion } from 'framer-motion';
-import { Settings, User, Mail, Lock, Zap, CheckCircle2, ArrowRight, Loader2 } from 'lucide-react';
+import { Settings, User, Mail, Lock, Zap, CheckCircle2, ArrowRight, Loader2, ExternalLink } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getAccessToken } from '../../../lib/auth';
+import Link from 'next/link';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -43,7 +46,7 @@ export default function SettingsPage() {
     setUpgrading(targetPlan);
     try {
       const token = getAccessToken();
-      const res = await fetch('http://localhost:3001/api/v1/stripe/create-session', {
+      const res = await fetch(`${API_URL}/api/v1/stripe/create-session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -216,17 +219,15 @@ export default function SettingsPage() {
             className="flex items-center justify-between p-4 border border-white/[0.08] rounded-lg hover:border-white/[0.15] transition-all duration-200"
           >
             <div>
-              <div className="font-medium mb-1">Password</div>
-              <div className="text-sm text-gray-400">Last changed: Unknown</div>
+              <div className="font-medium mb-1">API Keys</div>
+              <div className="text-sm text-gray-400">Manage your API Keys</div>
             </div>
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              className="px-4 py-2 border border-white/[0.1] rounded-lg hover:bg-white/[0.04] transition-all"
-              onClick={() => toast('Password change coming soon')}
+            <Link
+              href="/dashboard/api-keys"
+              className="px-4 py-2 bg-[#00F0FF] hover:bg-[#00F0FF]/90 rounded-lg transition-all shadow-lg shadow-[#00F0FF]/20 font-medium"
             >
-              Change Password
-            </motion.button>
+              Manage
+            </Link>
           </motion.div>
 
           <motion.div
@@ -234,17 +235,15 @@ export default function SettingsPage() {
             className="flex items-center justify-between p-4 border border-white/[0.08] rounded-lg hover:border-white/[0.15] transition-all duration-200"
           >
             <div>
-              <div className="font-medium mb-1">API Keys</div>
-              <div className="text-sm text-gray-400">Manage your API Keys</div>
+              <div className="font-medium mb-1">Support</div>
+              <div className="text-sm text-gray-400">Password resets, account issues, and questions</div>
             </div>
-            <motion.a
-              href="/dashboard/api-keys"
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              className="px-4 py-2 bg-[#00F0FF] hover:bg-[#00F0FF]/90 rounded-lg transition-all shadow-lg shadow-[#00F0FF]/20"
+            <a
+              href="mailto:2867755637@qq.com"
+              className="px-4 py-2 border border-white/[0.1] rounded-lg hover:bg-white/[0.04] transition-all flex items-center gap-2 text-sm"
             >
-              Manage
-            </motion.a>
+              Contact <ExternalLink className="w-3.5 h-3.5" />
+            </a>
           </motion.div>
         </div>
       </motion.div>

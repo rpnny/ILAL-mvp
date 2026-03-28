@@ -75,8 +75,8 @@ export default function Home() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 divide-x divide-white/5">
               {[
                 { value: "97%", label: "Gas Reduction vs Per-Tx", color: "text-primary" },
-                { value: "350+", label: "Tests Passing", color: "text-white" },
-                { value: "15/15", label: "E2E on Base Sepolia", color: "text-white" },
+                { value: "364", label: "Tests Passing", color: "text-white" },
+                { value: "All E2E", label: "Passing on Base Sepolia", color: "text-white" },
                 { value: "Live", label: "API + Contracts Deployed", color: "text-secondary" },
               ].map((stat, i) => (
                 <motion.div

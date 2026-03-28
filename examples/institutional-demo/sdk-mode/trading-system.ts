@@ -45,7 +45,7 @@ interface TradingConfig {
 const CONFIG: TradingConfig = {
   privateKey: process.env.PRIVATE_KEY as `0x${string}`,
   rpcUrl: process.env.RPC_URL || 'https://sepolia.base.org',
-  apiBaseUrl: process.env.ILAL_API_URL || 'https://ilal.tech',
+  apiBaseUrl: process.env.ILAL_API_URL || 'https://ilal-mvp-production.up.railway.app',
   apiKey: process.env.ILAL_API_KEY!,
   maxPositionUSDC: parseUnits('1000', 6),
   maxSlippage: 0.5,

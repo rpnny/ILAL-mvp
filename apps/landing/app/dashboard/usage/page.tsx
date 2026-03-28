@@ -87,9 +87,9 @@ export default function UsagePage() {
       }));
 
   const statCards = [
-    { icon: TrendingUp, value: totalCalls, label: 'Monthly Total Calls', sub: `${totalCalls} / ${callLimit} (${usagePercent.toFixed(1)}%)`, color: '#00F0FF', gradient: 'from-[#00F0FF]/20 to-[#00F0FF]/5', progress: usagePercent },
-    { icon: Zap, value: rateLimit, label: 'Requests / Minute', sub: 'Current plan limit', color: '#10B981', gradient: 'from-green-500/20 to-green-500/5' },
-    { icon: Calendar, value: callLimit - totalCalls, label: 'Remaining Calls', sub: 'Monthly quota remaining', color: '#A855F7', gradient: 'from-purple-500/20 to-purple-500/5' },
+    { icon: TrendingUp, value: totalCalls, label: 'Monthly Total Calls', sub: `${totalCalls} / ${callLimit} (${usagePercent.toFixed(1)}%)`, color: '#00F0FF', gradient: 'from-[#00F0FF]/20 to-[#00F0FF]/5', accentLine: 'via-[#00F0FF]/50', hoverGlow: 'bg-[#00F0FF]/5', progress: usagePercent },
+    { icon: Zap, value: rateLimit, label: 'Requests / Minute', sub: 'Current plan limit', color: '#10B981', gradient: 'from-green-500/20 to-green-500/5', accentLine: 'via-green-500/50', hoverGlow: 'bg-green-500/5' },
+    { icon: Calendar, value: callLimit - totalCalls, label: 'Remaining Calls', sub: 'Monthly quota remaining', color: '#A855F7', gradient: 'from-purple-500/20 to-purple-500/5', accentLine: 'via-purple-500/50', hoverGlow: 'bg-purple-500/5' },
   ];
 
   return (
@@ -115,8 +115,8 @@ export default function UsagePage() {
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             className="relative bg-white/[0.02] backdrop-blur-xl border border-white/[0.08] rounded-xl p-6 overflow-hidden group cursor-default"
           >
-            <div className={`absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[${card.color}]/50 to-transparent`} />
-            <div className={`absolute -top-20 -right-20 w-40 h-40 bg-[${card.color}]/5 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+            <div className={`absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent ${card.accentLine} to-transparent`} />
+            <div className={`absolute -top-20 -right-20 w-40 h-40 ${card.hoverGlow} rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
             <div className="relative z-10">
               <div className="flex items-start justify-between mb-4">
                 <div className={`w-10 h-10 bg-gradient-to-br ${card.gradient} rounded-lg flex items-center justify-center border border-white/[0.06]`}>

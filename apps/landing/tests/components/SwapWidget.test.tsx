@@ -81,9 +81,9 @@ describe('SwapWidget', () => {
     expect(btn).toBeDisabled();
   });
 
-  it('displays ZK Compliance Verified badge', () => {
+  it('displays session status indicator', () => {
     render(<SwapWidget />);
-    expect(screen.getByText('ZK Compliance Verified')).toBeInTheDocument();
+    expect(screen.getByText('Connect wallet to check session')).toBeInTheDocument();
   });
 
   it('toggles direction on arrow button click', () => {

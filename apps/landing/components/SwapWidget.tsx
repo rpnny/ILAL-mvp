@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings2, ShieldCheck, ArrowDownUp, Loader2 } from 'lucide-react';
+import { Settings2, ShieldCheck, ShieldOff, ArrowDownUp, Loader2, Clock } from 'lucide-react';
 import { executeSwap } from '../lib/api';
 import { getAccessToken } from '../lib/auth';
 import { ADDRESSES } from '../lib/contracts';
@@ -99,6 +99,34 @@ export default function SwapWidget({
     const [showSettings, setShowSettings] = useState(false);
     const [loading, setLoading] = useState(false);
     const [txHash, setTxHash] = useState<string | null>(null);
+    const [sessionActive, setSessionActive] = useState<boolean | null>(null);
+    const [sessionRemaining, setSessionRemaining] = useState<number>(0);
+    const [sessionLoading, setSessionLoading] = useState(false);
+
+    const RAILWAY_API = 'https://ilal-mvp-production.up.railway.app';
+
+    const checkSession = useCallback(async (address?: string) => {
+        const addr = address || walletAddress;
+        if (!addr) { setSessionActive(null); return; }
+        setSessionLoading(true);
+        try {
+            const res = await fetch(`${RAILWAY_API}/api/v1/session/${addr}`);
+            if (res.ok) {
+                const data = await res.json();
+                setSessionActive(!!data.isActive);
+                setSessionRemaining(data.remainingSeconds || 0);
+            } else {
+                setSessionActive(false);
+                setSessionRemaining(0);
+            }
+        } catch {
+            setSessionActive(null);
+        } finally {
+            setSessionLoading(false);
+        }
+    }, [walletAddress]);
+
+    useEffect(() => { checkSession(); }, [checkSession]);
 
     const tokenIn = zeroForOne ? tokenA.symbol : tokenB.symbol;
     const tokenOut = zeroForOne ? tokenB.symbol : tokenA.symbol;
@@ -383,10 +411,29 @@ export default function SwapWidget({
                     </div>
                 </div>
 
-                {/* Verification Footer Text */}
-                <div className="flex items-center justify-center gap-1.5 mt-4 text-xs text-green-400">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    ZK Compliance Verified
+                {/* Compliance Session Status */}
+                <div className={`flex items-center justify-center gap-1.5 mt-4 text-xs ${
+                    sessionLoading ? 'text-gray-500' :
+                    sessionActive ? 'text-green-400' :
+                    sessionActive === false ? 'text-red-400' : 'text-gray-500'
+                }`}>
+                    {sessionLoading ? (
+                        <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Checking session...</>
+                    ) : sessionActive ? (
+                        <>
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                            Session Active
+                            {sessionRemaining > 0 && (
+                                <span className="text-gray-500 ml-1">
+                                    ({Math.floor(sessionRemaining / 3600)}h {Math.floor((sessionRemaining % 3600) / 60)}m remaining)
+                                </span>
+                            )}
+                        </>
+                    ) : sessionActive === false ? (
+                        <><ShieldOff className="w-3.5 h-3.5" /> No Active Session — Swap will be rejected</>
+                    ) : (
+                        <><Clock className="w-3.5 h-3.5" /> Connect wallet to check session</>
+                    )}
                 </div>
 
                 {/* Submit */}
