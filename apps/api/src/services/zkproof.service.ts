@@ -144,15 +144,40 @@ export async function generateProof(params: {
 
   logger.info('ZK proof generated', { elapsed, publicSignals: publicSignals.length });
 
-  // Encode proof as hex bytes (same format as PlonkVerifierAdapter.verifyProof)
-  const calldata = await snarkjs.plonk.exportSolidityCallData(proof, publicSignals);
-  // calldata format: "0xABC...[pub1,pub2,...]"
-  const proofHex = calldata.split(',')[0].trim() as string;
+  // Encode PLONK proof bytes — must match packages/sdk formatForContract (not exportSolidityCallData)
+  const proofHex = plonkProofObjectToHex(proof);
 
   return {
     proofHex,
     publicInputs: publicSignals.map(String),
   };
+}
+
+/** Same field order as @ilal/sdk ZKProofModule.formatForContract */
+function plonkProofObjectToHex(proof: Record<string, unknown>): `0x${string}` {
+  const proofElements: string[] = [];
+  const p = proof as any;
+  if (p.A) proofElements.push(p.A[0], p.A[1]);
+  if (p.B) proofElements.push(p.B[0], p.B[1]);
+  if (p.C) proofElements.push(p.C[0], p.C[1]);
+  if (p.Z) proofElements.push(p.Z[0], p.Z[1]);
+  if (p.T1) proofElements.push(p.T1[0], p.T1[1]);
+  if (p.T2) proofElements.push(p.T2[0], p.T2[1]);
+  if (p.T3) proofElements.push(p.T3[0], p.T3[1]);
+  if (p.Wxi) proofElements.push(p.Wxi[0], p.Wxi[1]);
+  if (p.Wxiw) proofElements.push(p.Wxiw[0], p.Wxiw[1]);
+  if (p.eval_a) proofElements.push(p.eval_a);
+  if (p.eval_b) proofElements.push(p.eval_b);
+  if (p.eval_c) proofElements.push(p.eval_c);
+  if (p.eval_s1) proofElements.push(p.eval_s1);
+  if (p.eval_s2) proofElements.push(p.eval_s2);
+  if (p.eval_zw) proofElements.push(p.eval_zw);
+
+  let hex = '0x';
+  for (const element of proofElements) {
+    hex += BigInt(element).toString(16).padStart(64, '0');
+  }
+  return hex as `0x${string}`;
 }
 
 /**
