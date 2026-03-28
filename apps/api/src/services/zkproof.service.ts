@@ -9,6 +9,7 @@
  * Example: ZKEY_URL=https://your-bucket.s3.amazonaws.com/compliance.zkey
  */
 
+import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { logger } from '../config/logger.js';
@@ -20,35 +21,47 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // 4 levels up → project root in both cases.
 const PROJECT_ROOT = path.resolve(__dirname, '../../../..');
 const WASM_PATH = path.join(PROJECT_ROOT, 'packages/circuits/build/compliance_js/compliance.wasm');
-const ZKEY_PATH = path.join(PROJECT_ROOT, 'packages/circuits/keys/compliance.zkey');
+/** Local repo zkey (developer machines) */
+const REPO_ZKEY_PATH = path.join(PROJECT_ROOT, 'packages/circuits/keys/compliance.zkey');
+/** Writable cache — Docker runs as non-root; /app/packages is not writable */
+const CACHE_ZKEY_PATH = path.join(
+  process.env.ZKEY_CACHE_DIR || path.join(os.tmpdir(), 'ilal-circuits'),
+  'compliance.zkey',
+);
 
 let zkeyReady = false;
+let resolvedZkeyPath: string | null = null;
 
 /**
  * Download zkey from ZKEY_URL if not present locally.
  */
 async function ensureZkey(): Promise<void> {
-  if (zkeyReady) return;
+  if (zkeyReady && resolvedZkeyPath) return;
 
   const { access, mkdir } = await import('fs/promises');
-  try {
-    await access(ZKEY_PATH);
-    zkeyReady = true;
-    return;
-  } catch {
-    // Not present locally — try to download
+
+  for (const p of [REPO_ZKEY_PATH, CACHE_ZKEY_PATH]) {
+    try {
+      await access(p);
+      resolvedZkeyPath = p;
+      zkeyReady = true;
+      return;
+    } catch {
+      /* try next */
+    }
   }
 
   const url = process.env.ZKEY_URL;
   if (!url) {
     throw new Error(
-      'compliance.zkey not found and ZKEY_URL env var is not set. ' +
+      'compliance.zkey not found and ZKEY_URL env not set. ' +
       'Set ZKEY_URL to a public download URL for the zkey file.',
     );
   }
 
-  logger.info('Downloading compliance.zkey from ZKEY_URL...', { url });
-  await mkdir(path.dirname(ZKEY_PATH), { recursive: true });
+  resolvedZkeyPath = CACHE_ZKEY_PATH;
+  logger.info('Downloading compliance.zkey from ZKEY_URL...', { url, dest: resolvedZkeyPath });
+  await mkdir(path.dirname(resolvedZkeyPath), { recursive: true });
 
   const { createWriteStream } = await import('fs');
   const res = await fetch(url);
@@ -56,7 +69,7 @@ async function ensureZkey(): Promise<void> {
 
   const { pipeline } = await import('stream/promises');
   const { Readable } = await import('stream');
-  const dest = createWriteStream(ZKEY_PATH);
+  const dest = createWriteStream(resolvedZkeyPath);
   await pipeline(Readable.fromWeb(res.body as any), dest);
 
   logger.info('compliance.zkey downloaded successfully');
@@ -122,8 +135,11 @@ export async function generateProof(params: {
     merkleIndex: params.merkleIndex,
   });
 
+  const zkeyPath = resolvedZkeyPath;
+  if (!zkeyPath) throw new Error('ZKEY path not resolved after ensureZkey()');
+
   const start = Date.now();
-  const { proof, publicSignals } = await snarkjs.plonk.fullProve(input, WASM_PATH, ZKEY_PATH);
+  const { proof, publicSignals } = await snarkjs.plonk.fullProve(input, WASM_PATH, zkeyPath);
   const elapsed = Date.now() - start;
 
   logger.info('ZK proof generated', { elapsed, publicSignals: publicSignals.length });
@@ -146,13 +162,15 @@ export async function circuitsAvailable(): Promise<boolean> {
   try {
     const { access } = await import('fs/promises');
     await access(WASM_PATH);
-    // zkey: either present locally or ZKEY_URL is configured for download
-    try {
-      await access(ZKEY_PATH);
-      return true;
-    } catch {
-      return !!process.env.ZKEY_URL;
+    for (const p of [REPO_ZKEY_PATH, CACHE_ZKEY_PATH]) {
+      try {
+        await access(p);
+        return true;
+      } catch {
+        /* continue */
+      }
     }
+    return !!process.env.ZKEY_URL;
   } catch {
     return false;
   }
