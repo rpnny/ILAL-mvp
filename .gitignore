@@ -41,8 +41,9 @@ build/
 
 # ZK artifacts
 circuits/**/*.r1cs
-circuits/**/*.wasm
 circuits/**/*.zkey
+# compliance.wasm is committed (3.1 MB) for server-side proof generation
+# circuits/**/*.wasm — do NOT ignore compliance.wasm
 circuits/**/*.ptau
 *.ptau
 circuits/verification_key.json

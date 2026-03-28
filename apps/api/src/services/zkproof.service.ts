@@ -2,7 +2,11 @@
  * ZK Proof Service — Server-side PLONK proof generation
  *
  * Generates a compliance ZK proof server-side on behalf of an institution.
- * Requires: snarkjs, circuit WASM, and the zkey file accessible at runtime.
+ * Requires: snarkjs, circuit WASM (committed to git), and the zkey file.
+ *
+ * The 136 MB compliance.zkey is NOT committed to git.
+ * Set ZKEY_URL env var to a public download URL; the service downloads it on first use.
+ * Example: ZKEY_URL=https://your-bucket.s3.amazonaws.com/compliance.zkey
  */
 
 import path from 'path';
@@ -17,6 +21,47 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, '../../../..');
 const WASM_PATH = path.join(PROJECT_ROOT, 'packages/circuits/build/compliance_js/compliance.wasm');
 const ZKEY_PATH = path.join(PROJECT_ROOT, 'packages/circuits/keys/compliance.zkey');
+
+let zkeyReady = false;
+
+/**
+ * Download zkey from ZKEY_URL if not present locally.
+ */
+async function ensureZkey(): Promise<void> {
+  if (zkeyReady) return;
+
+  const { access, mkdir } = await import('fs/promises');
+  try {
+    await access(ZKEY_PATH);
+    zkeyReady = true;
+    return;
+  } catch {
+    // Not present locally — try to download
+  }
+
+  const url = process.env.ZKEY_URL;
+  if (!url) {
+    throw new Error(
+      'compliance.zkey not found and ZKEY_URL env var is not set. ' +
+      'Set ZKEY_URL to a public download URL for the zkey file.',
+    );
+  }
+
+  logger.info('Downloading compliance.zkey from ZKEY_URL...', { url });
+  await mkdir(path.dirname(ZKEY_PATH), { recursive: true });
+
+  const { createWriteStream } = await import('fs');
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to download zkey: HTTP ${res.status}`);
+
+  const { pipeline } = await import('stream/promises');
+  const { Readable } = await import('stream');
+  const dest = createWriteStream(ZKEY_PATH);
+  await pipeline(Readable.fromWeb(res.body as any), dest);
+
+  logger.info('compliance.zkey downloaded successfully');
+  zkeyReady = true;
+}
 
 export interface ProofResult {
   proofHex: string;
@@ -52,6 +97,8 @@ export async function generateProof(params: {
   countryCode: number;
   timestamp: number;
 }): Promise<ProofResult> {
+  await ensureZkey();
+
   // @ts-ignore — snarkjs has no official type declarations
   const snarkjs = await import('snarkjs');
 
@@ -93,13 +140,19 @@ export async function generateProof(params: {
 }
 
 /**
- * Check whether circuit files are accessible.
+ * Check whether circuit files are accessible (or can be downloaded).
  */
 export async function circuitsAvailable(): Promise<boolean> {
   try {
     const { access } = await import('fs/promises');
-    await Promise.all([access(WASM_PATH), access(ZKEY_PATH)]);
-    return true;
+    await access(WASM_PATH);
+    // zkey: either present locally or ZKEY_URL is configured for download
+    try {
+      await access(ZKEY_PATH);
+      return true;
+    } catch {
+      return !!process.env.ZKEY_URL;
+    }
   } catch {
     return false;
   }
