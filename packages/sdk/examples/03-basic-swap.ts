@@ -26,7 +26,8 @@ const publicClient = createPublicClient({ chain: baseSepolia, transport: http('h
 const client = new ILALClient({ walletClient, publicClient, chainId: 84532 });
 
 async function swapExample() {
-  const { USDC, WETH } = BASE_SEPOLIA_TOKENS;
+  // mUSD/mTBILL is the initialized ILAL compliance pool on Base Sepolia
+  const { mUSD, mTBILL } = BASE_SEPOLIA_TOKENS;
 
   // 检查 Session
   const sessionActive = await client.session.isActive();
@@ -37,17 +38,17 @@ async function swapExample() {
   console.log('✅ Session active');
 
   // 查询余额
-  const usdcBefore = await client.swap.getBalance(USDC);
-  const wethBefore = await client.swap.getBalance(WETH);
-  console.log(`\nBefore: USDC=${usdcBefore} | WETH=${wethBefore}`);
+  const musdBefore   = await client.swap.getBalance(mUSD);
+  const mtbillBefore = await client.swap.getBalance(mTBILL);
+  console.log(`\nBefore: mUSD=${musdBefore} | mTBILL=${mtbillBefore}`);
 
-  // 执行 Swap: 0.01 USDC → WETH
-  console.log('\nExecuting swap: 0.01 USDC → WETH ...');
+  // 执行 Swap: 1 mUSD → mTBILL (both 18 decimals)
+  console.log('\nExecuting swap: 1 mUSD → mTBILL ...');
   const result = await client.swap.execute({
-    tokenIn: USDC,
-    tokenOut: WETH,
-    amountIn: parseUnits('0.01', 6), // 0.01 USDC (6 decimals)
-    slippageTolerance: 0.5,          // 0.5%
+    tokenIn: mUSD,
+    tokenOut: mTBILL,
+    amountIn: parseUnits('1', 18),  // 1 mUSD (18 decimals)
+    slippageTolerance: 0.5,         // 0.5%
   });
 
   console.log('✅ Swap successful!');
@@ -56,9 +57,9 @@ async function swapExample() {
   console.log('   Explorer: https://sepolia.basescan.org/tx/' + result.hash);
 
   // 查询余额变化
-  const usdcAfter = await client.swap.getBalance(USDC);
-  const wethAfter = await client.swap.getBalance(WETH);
-  console.log(`\nAfter:  USDC=${usdcAfter} | WETH=${wethAfter}`);
+  const musdAfter   = await client.swap.getBalance(mUSD);
+  const mtbillAfter = await client.swap.getBalance(mTBILL);
+  console.log(`\nAfter:  mUSD=${musdAfter} | mTBILL=${mtbillAfter}`);
 }
 
 swapExample().catch(err => { console.error('Error:', err.message); process.exit(1); });

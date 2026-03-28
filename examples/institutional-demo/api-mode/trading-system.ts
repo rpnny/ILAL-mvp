@@ -279,10 +279,11 @@ async function main() {
 
   // 3. 获取未签名交易 → 签名 → 广播
   console.log('\n── Step 3: Execute Swap (API → Sign → Broadcast) ──');
+  // mUSD/mTBILL — the initialized ILAL compliance pool on Base Sepolia (both 18 decimals)
   const hash = await system.swap({
-    tokenIn: '0x036CbD53842c5426634e7929541eC2318f3dCF7e' as Address, // USDC
-    tokenOut: '0x4200000000000000000000000000000000000006' as Address, // WETH
-    amount: '10000', // 0.01 USDC
+    tokenIn:  '0xdd3d112a48906807c4b73c94ed884552427e4cf9' as Address, // mUSD
+    tokenOut: '0xfb080423cedd4ca56da3f60a4b901f51846459ae' as Address, // mTBILL
+    amount: '10000000000000000', // 0.01 mUSD (18 decimals)
     zeroForOne: true,
   });
   console.log(`\n   ✅ Swap completed: ${hash}`);
@@ -308,12 +309,12 @@ Step 2: 身份验证 & Session
 
 Step 3: 交易（API 返回未签名交易，机构自行签名广播）
 
-  // 请求
+  // 请求 (mUSD → mTBILL, Base Sepolia testnet pools)
   POST /api/v1/defi/swap
   {
-    "tokenIn":  "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
-    "tokenOut": "0x4200000000000000000000000000000000000006",
-    "amount":   "100000000",
+    "tokenIn":  "0xdd3d112a48906807c4b73c94ed884552427e4cf9",
+    "tokenOut": "0xfb080423cedd4ca56da3f60a4b901f51846459ae",
+    "amount":   "10000000000000000",
     "zeroForOne": true,
     "userAddress": "0x..."
   }

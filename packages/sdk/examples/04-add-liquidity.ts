@@ -5,11 +5,12 @@
  * 运行:
  *   PRIVATE_KEY=0x... npx tsx packages/sdk/examples/04-add-liquidity.ts
  *
- * 前提: 钱包有活跃的合规 Session + 足够的 USDC/WETH
+ * 前提: 钱包有活跃的合规 Session + 足够的 mUSD / mTBILL
+ * 池子: mUSD/mTBILL fee=500 tickSpacing=10 (约 1:1 价格)
  */
 
 import { ILALClient, BASE_SEPOLIA_TOKENS } from '@ilal/sdk';
-import { createPublicClient, createWalletClient, http, parseUnits, parseEther, type Hex } from 'viem';
+import { createPublicClient, createWalletClient, http, parseUnits, type Hex } from 'viem';
 import { baseSepolia } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
 
@@ -22,93 +23,66 @@ const publicClient = createPublicClient({ chain: baseSepolia, transport: http('h
 const client = new ILALClient({ walletClient, publicClient, chainId: 84532 });
 
 async function addLiquidityExample() {
-  const { USDC, WETH } = BASE_SEPOLIA_TOKENS;
+  // mUSD/mTBILL — the initialized ILAL compliance pool on Base Sepolia (both 18 decimals)
+  const { mUSD, mTBILL } = BASE_SEPOLIA_TOKENS;
 
-  // Ensure session is active first: await client.session.activate({ expiry: 24 * 3600 });
-  // Define pool key
+  const sessionActive = await client.session.isActive();
+  if (!sessionActive) {
+    console.error('❌ No active compliance session. Run example 02 first.');
+    process.exit(1);
+  }
+  console.log('✅ Session active');
+
   const poolKey = {
-    currency0: USDC,
-    currency1: WETH,
-    fee: 500, // 0.05%
+    currency0: mUSD,
+    currency1: mTBILL,
+    fee: 500,        // 0.05%
     tickSpacing: 10,
     hooks: client.addresses.complianceHook,
   };
 
-  // 1. Add liquidity in a price range
-  console.log('Adding liquidity...');
-  
+  // Tick range for ~1:1 price pool (mUSD ≈ mTBILL)
+  // tick=0 corresponds to price 1.0; use ±100 ticks (~1% range)
+  const tickLower = -100;
+  const tickUpper =  100;
+
+  console.log('\nAdding liquidity to mUSD/mTBILL pool...');
+
   const result = await client.liquidity.add({
     poolKey,
-    tickLower: 190700, // lower price bound
-    tickUpper: 196250, // upper price bound
-    amount0Desired: parseUnits('100', 6), // 100 USDC
-    amount1Desired: parseEther('0.05'), // 0.05 WETH
-    amount0Min: parseUnits('95', 6), // min 95 USDC (5% slippage)
-    amount1Min: parseEther('0.0475'), // min 0.0475 WETH
+    tickLower,
+    tickUpper,
+    amount0Desired: parseUnits('10', 18),   // 10 mUSD
+    amount1Desired: parseUnits('10', 18),   // 10 mTBILL
+    amount0Min:     parseUnits('9.5', 18),  // 5% slippage
+    amount1Min:     parseUnits('9.5', 18),
   });
 
-  console.log('Liquidity added!');
-  console.log('Transaction hash:', result.hash);
-  console.log('Token ID:', result.tokenId);
-  console.log('Liquidity:', result.liquidity);
-  console.log('Actual amounts used:', {
-    amount0: result.amount0,
-    amount1: result.amount1,
+  console.log('\n✅ Liquidity added!');
+  console.log('   TX hash:', result.hash);
+  console.log('   Explorer: https://sepolia.basescan.org/tx/' + result.hash);
+  console.log('   Token ID:', result.tokenId?.toString());
+  console.log('   Liquidity:', result.liquidity?.toString());
+  console.log('   Amounts used:', {
+    mUSD:   result.amount0?.toString(),
+    mTBILL: result.amount1?.toString(),
   });
 
-  // 2. Query liquidity position
+  // Query position
   if (result.tokenId) {
     const position = await client.liquidity.getPosition(result.tokenId);
     if (position) {
-      console.log('Position details:', {
+      console.log('\n   Position:', {
         tickLower: position.tickLower,
         tickUpper: position.tickUpper,
-        liquidity: position.liquidity,
+        liquidity: position.liquidity.toString(),
       });
     }
   }
 
-  // 3. Query all user positions
+  // All positions
   const userPositions = await client.liquidity.getUserPositions();
-  console.log('Total positions:', userPositions.length);
-
-  // 4. Remove liquidity
-  if (result.tokenId) {
-    console.log('Removing liquidity...');
-    
-    const removeResult = await client.liquidity.remove({
-      tokenId: result.tokenId,
-      liquidity: result.liquidity, // remove full liquidity
-      amount0Min: 0n, // no minimum
-      amount1Min: 0n,
-    });
-
-    console.log('Liquidity removed!');
-    console.log('Received:', {
-      amount0: removeResult.amount0,
-      amount1: removeResult.amount1,
-    });
-  }
+  console.log('   Total positions:', userPositions.length);
 }
 
-// Single-sided liquidity example (WETH only)
-async function singleSidedLiquidity() {
-  const poolKey = {
-    currency0: BASE_SEPOLIA_TOKENS.USDC,
-    currency1: BASE_SEPOLIA_TOKENS.WETH,
-    fee: 500,
-    tickSpacing: 10,
-    hooks: client.addresses.complianceHook,
-  };
-
-  // WETH only; price range above current price
-  await client.liquidity.add({
-    poolKey,
-    tickLower: 196250, // above current price
-    tickUpper: 201800,
-    amount0Desired: 0n, // no USDC
-    amount1Desired: parseEther('0.1'), // 0.1 WETH only
-  });
-}
-
-addLiquidityExample().catch(console.error);
+addLiquidityExample().catch((err) => { console.error(err); process.exit(1); });

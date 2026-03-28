@@ -3,7 +3,7 @@
  * 提供流动性管理功能
  */
 
-import { type Address, type PublicClient, type WalletClient, decodeEventLog } from 'viem';
+import { type Address, type PublicClient, type WalletClient, decodeEventLog, maxUint256 } from 'viem';
 import type { LiquidityParams, RemoveLiquidityParams, LiquidityResult, LiquidityPosition } from '../types';
 import { positionManagerABI, ERC20_ABI } from '../constants/abis';
 import { validateLiquidityParams } from '../utils/validation';
@@ -35,11 +35,9 @@ export class LiquidityModule {
       throw new Error('No user address available');
     }
 
-    // 3. 检查并授权代币（授权给 PositionManager）
-    await Promise.all([
-      this.ensureAllowance(params.poolKey.currency0, params.amount0Desired, user),
-      this.ensureAllowance(params.poolKey.currency1, params.amount1Desired, user),
-    ]);
+    // 3. 检查并授权代币（授权给 PositionManager）— 顺序执行防止 nonce 冲突
+    await this.ensureAllowance(params.poolKey.currency0, params.amount0Desired, user);
+    await this.ensureAllowance(params.poolKey.currency1, params.amount1Desired, user);
 
     // 4. 计算 liquidity（合约 mint 接受 liquidity 而非 token amounts）
     const sqrtPriceLower = tickToSqrtPriceX96(params.tickLower);
@@ -59,7 +57,8 @@ export class LiquidityModule {
       throw new Error('Computed liquidity is zero; increase token amounts or narrow price range');
     }
 
-    // 5. hookData = 0x → v2 PositionManager auto-injects abi.encode(sender) (Mode 2)
+    // 5. hookData = 0x — PositionManager auto-encodes abi.encode(sender) internally (Mode 2).
+    //    Only 0x and EIP-712 (>=148 bytes) are accepted; 32-byte direct encode is rejected.
     const hookData = DIRECT_HOOK_DATA;
 
     // 6. 执行添加流动性 — 合约签名: mint(poolKey, tickLower, tickUpper, liquidity, hookData)
@@ -279,13 +278,14 @@ export class LiquidityModule {
       args: [user, this.positionManagerAddress],
     }) as bigint;
 
-    if (currentAllowance < amount) {
+    // Re-approve if within 10% of limit or insufficient — always set to maxUint256.
+    if (currentAllowance < amount * 11n / 10n) {
       const hash = await this.walletClient.writeContract({
         address: token,
         abi: ERC20_ABI,
         functionName: 'approve',
         chain: this.walletClient.chain ?? undefined,
-        args: [this.positionManagerAddress, amount],
+        args: [this.positionManagerAddress, maxUint256],
         account: this.walletClient.account ?? user,
       });
 

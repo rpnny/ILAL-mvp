@@ -33,12 +33,13 @@ const ADDR = {
   hook:           '0xe633220f15932428FcA60A1A2C2C48797A180A80' as Address,
   swapRouter:     '0xd46D84Dc2D098c767451675C9BcB85bf3f8a2891' as Address,
   poolManager:    '0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408' as Address,
-  USDC:           '0x036CbD53842c5426634e7929541eC2318f3dCF7e' as Address,
-  WETH:           '0x4200000000000000000000000000000000000006' as Address,
+  // mUSD/mTBILL: the initialized ILAL compliance pool on Base Sepolia (both 18 decimals)
+  mUSD:           '0xdd3d112a48906807c4b73c94ed884552427e4cf9' as Address,
+  mTBILL:         '0xfb080423cedd4ca56da3f60a4b901f51846459ae' as Address,
 };
 
 const POOL_KEY = {
-  currency0: ADDR.USDC, currency1: ADDR.WETH,
+  currency0: ADDR.mUSD, currency1: ADDR.mTBILL,
   fee: 500, tickSpacing: 10, hooks: ADDR.hook,
 };
 
@@ -135,16 +136,16 @@ async function doSwap(amount: bigint): Promise<{ hash: Hash; gas: bigint; block:
 }
 
 async function getBalances() {
-  const [eth, usdc, weth] = await Promise.all([
+  const [eth, musd, mtbill] = await Promise.all([
     pub.getBalance({ address: account.address }),
-    pub.readContract({ address: ADDR.USDC, abi: ERC20_ABI, functionName: 'balanceOf', args: [account.address] }),
-    pub.readContract({ address: ADDR.WETH, abi: ERC20_ABI, functionName: 'balanceOf', args: [account.address] }),
+    pub.readContract({ address: ADDR.mUSD,   abi: ERC20_ABI, functionName: 'balanceOf', args: [account.address] }),
+    pub.readContract({ address: ADDR.mTBILL, abi: ERC20_ABI, functionName: 'balanceOf', args: [account.address] }),
   ]);
-  return { eth, usdc, weth };
+  return { eth, musd, mtbill };
 }
 
-function printBal(label: string, b: { eth: bigint; usdc: bigint; weth: bigint }) {
-  console.log(`   ${label}: ETH=${formatEther(b.eth)} | USDC=${formatUnits(b.usdc, 6)} | WETH=${formatEther(b.weth)}`);
+function printBal(label: string, b: { eth: bigint; musd: bigint; mtbill: bigint }) {
+  console.log(`   ${label}: ETH=${formatEther(b.eth)} | mUSD=${formatUnits(b.musd, 18)} | mTBILL=${formatUnits(b.mtbill, 18)}`);
 }
 
 // ═══════════════════════════════════════
@@ -208,22 +209,22 @@ async function main() {
   console.log('│  Scene 2: 交易员上班 — Token 授权 & 首笔交易              │');
   console.log('└─────────────────────────────────────────────────────────┘\n');
 
-  // 确保 USDC 授权（USDC 6 decimals，授权 1,000 USDC）
-  const allow = await pub.readContract({ address: ADDR.USDC, abi: ERC20_ABI, functionName: 'allowance', args: [account.address, ADDR.swapRouter] });
-  if (allow < parseUnits('1', 6)) {
-    console.log('  🔓 Approving USDC for SwapRouter...');
-    const appTx = await wallet.writeContract({ address: ADDR.USDC, abi: ERC20_ABI, functionName: 'approve', args: [ADDR.swapRouter, parseUnits('1000', 6)] });
+  // 确保 mUSD 授权（18 decimals，授权 10,000 mUSD）
+  const allow = await pub.readContract({ address: ADDR.mUSD, abi: ERC20_ABI, functionName: 'allowance', args: [account.address, ADDR.swapRouter] });
+  if (allow < parseUnits('1', 18)) {
+    console.log('  🔓 Approving mUSD for SwapRouter...');
+    const appTx = await wallet.writeContract({ address: ADDR.mUSD, abi: ERC20_ABI, functionName: 'approve', args: [ADDR.swapRouter, parseUnits('10000', 18)] });
     await pub.waitForTransactionReceipt({ hash: appTx });
     console.log(`     ✅ Approved. TX: ${appTx.slice(0, 20)}...`);
     await sleep(2000);
   } else {
-    console.log('  ✅ USDC already approved');
+    console.log('  ✅ mUSD already approved');
   }
 
   // 首笔交易
-  console.log('\n  📊 Trade 1: Buy WETH with 0.02 USDC');
+  console.log('\n  📊 Trade 1: Buy mTBILL with 0.01 mUSD');
   console.log('     Signing EIP-712 permit...');
-  const t1 = await doSwap(parseUnits('0.02', 6));
+  const t1 = await doSwap(parseUnits('0.01', 18));
   console.log(`     ✅ Executed!`);
   console.log(`     Hash:  ${t1.hash}`);
   console.log(`     Block: ${t1.block}`);
@@ -240,14 +241,14 @@ async function main() {
   console.log('└─────────────────────────────────────────────────────────┘\n');
 
   const trades = [
-    { amount: parseUnits('0.01', 6), reason: 'DCA round 1' },
-    { amount: parseUnits('0.015', 6), reason: 'DCA round 2 — price dip' },
-    { amount: parseUnits('0.01', 6), reason: 'DCA round 3' },
+    { amount: parseUnits('0.01', 18), reason: 'DCA round 1' },
+    { amount: parseUnits('0.015', 18), reason: 'DCA round 2 — price dip' },
+    { amount: parseUnits('0.01', 18), reason: 'DCA round 3' },
   ];
 
   for (let i = 0; i < trades.length; i++) {
     const { amount, reason } = trades[i];
-    console.log(`  📊 Trade ${i + 2}: ${formatUnits(amount, 6)} USDC → WETH (${reason})`);
+    console.log(`  📊 Trade ${i + 2}: ${formatUnits(amount, 18)} mUSD → mTBILL (${reason})`);
     const t = await doSwap(amount);
     console.log(`     ✅ Hash: ${t.hash.slice(0, 20)}... | Gas: ${t.gas} | Block: ${t.block}`);
     await sleep(3000);
@@ -264,7 +265,7 @@ async function main() {
   const bal1 = await getBalances();
   printBal('Before', bal0);
   printBal('After ', bal1);
-  console.log(`   Delta:  USDC=${formatUnits(bal1.usdc - bal0.usdc, 6)} | WETH=${formatEther(bal1.weth - bal0.weth)} | ETH(gas)=${formatEther(bal1.eth - bal0.eth)}`);
+  console.log(`   Delta:  mUSD=${formatUnits(bal1.musd - bal0.musd, 18)} | mTBILL=${formatUnits(bal1.mtbill - bal0.mtbill, 18)} | ETH(gas)=${formatEther(bal1.eth - bal0.eth)}`);
 
   const nonce1 = await pub.readContract({ address: ADDR.hook, abi: HOOK_ABI, functionName: 'getNonce', args: [account.address] });
   console.log(`\n   Permit Nonce: ${nonce0} → ${nonce1} (${Number(nonce1) - Number(nonce0)} permits consumed)`);
@@ -283,8 +284,8 @@ async function main() {
   console.log('╠═══════════════════════════════════════════════════════════════════╣');
   console.log(`║  Total Trades:       4 swaps                                     ║`);
   console.log(`║  Permits Signed:     ${Number(nonce1) - Number(nonce0)} EIP-712 signatures                          ║`);
-  console.log(`║  USDC Spent:         ${formatUnits(bal0.usdc - bal1.usdc, 6).padEnd(40)}║`);
-  console.log(`║  WETH Received:      ${formatEther(bal1.weth - bal0.weth).padEnd(40)}║`);
+  console.log(`║  mUSD Spent:         ${formatUnits(bal0.musd - bal1.musd, 18).padEnd(40)}║`);
+  console.log(`║  mTBILL Received:    ${formatUnits(bal1.mtbill - bal0.mtbill, 18).padEnd(40)}║`);
   console.log(`║  ETH Gas Cost:       ${formatEther(bal0.eth - bal1.eth).padEnd(40)}║`);
   console.log(`║  Duration:           ${elapsed}s${' '.repeat(41 - elapsed.length)}║`);
   console.log(`║  Session Status:     ${session1 ? 'Active ✅' : 'Expired ❌'}${' '.repeat(33)}║`);
