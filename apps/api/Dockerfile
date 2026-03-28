@@ -56,6 +56,10 @@ COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/api/node_modules ./apps/api/node_modules
 
+# Copy ZK circuit files needed for server-side proof generation
+COPY --from=builder /app/packages/circuits/build/compliance_js/compliance.wasm ./packages/circuits/build/compliance_js/compliance.wasm
+COPY --from=builder /app/packages/circuits/keys/compliance.zkey ./packages/circuits/keys/compliance.zkey
+
 # Use non-root user
 USER node
 

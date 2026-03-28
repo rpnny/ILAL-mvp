@@ -13,6 +13,7 @@ const router: Router = Router();
 router.use(hybridAuthMiddleware);
 
 router.post('/register', onboardingController.register);
+router.post('/activate-session', onboardingController.activateSession);
 router.get('/status/:address', onboardingController.getStatus);
 router.get('/attestation/:address', onboardingController.getAttestation);
 

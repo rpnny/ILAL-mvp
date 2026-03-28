@@ -1,18 +1,21 @@
 /**
  * Onboarding Controller — Institution self-service registration
  *
- * POST /onboarding/register   — Register a new institution (mock KYC auto-approve)
- * GET  /onboarding/status/:address — Check onboarding status
- * GET  /onboarding/attestation/:address — Get IssuerAttestation + Merkle proof
+ * POST /onboarding/register              — Register a new institution (mock KYC auto-approve)
+ * POST /onboarding/activate-session      — Server-side ZK proof + on-chain session activation
+ * GET  /onboarding/status/:address       — Check onboarding status
+ * GET  /onboarding/attestation/:address  — Get IssuerAttestation + Merkle proof
  */
 
 import type { Request, Response } from 'express';
 import { z } from 'zod';
-import { getAddress } from 'viem';
+import { type Address, getAddress } from 'viem';
 import { prisma } from '../config/database.js';
 import { logger } from '../config/logger.js';
 import * as issuerService from '../services/issuer.service.js';
 import * as merkleService from '../services/merkle.service.js';
+import * as zkproofService from '../services/zkproof.service.js';
+import { blockchainService } from '../services/blockchain.service.js';
 
 const registerSchema = z.object({
   name: z.string().min(1).max(200),
@@ -114,6 +117,119 @@ export async function register(req: Request, res: Response): Promise<void> {
       return;
     }
     logger.error('Onboarding register error', { error: error.message });
+    res.status(500).json({ success: false, error: 'Internal Server Error', message: error.message });
+  }
+}
+
+/**
+ * POST /api/v1/onboarding/activate-session
+ *
+ * Server-side ZK proof generation + on-chain session activation.
+ * The institution must already be registered (POST /onboarding/register).
+ * The API generates the PLONK proof using the issuer key and activates the
+ * session on-chain as a relayer (paying gas).
+ */
+export async function activateSession(req: Request, res: Response): Promise<void> {
+  const startTime = Date.now();
+  try {
+    const { walletAddress: rawAddress, expiry = 86400 } = req.body as { walletAddress?: string; expiry?: number };
+    if (!rawAddress || !/^0x[a-fA-F0-9]{40}$/.test(rawAddress)) {
+      res.status(400).json({ success: false, error: 'Invalid or missing walletAddress' });
+      return;
+    }
+    const walletAddress = getAddress(rawAddress) as Address;
+
+    // 1. Check if session already active
+    const isActive = await blockchainService.isSessionActive(walletAddress);
+    if (isActive) {
+      const remaining = await blockchainService.getRemainingTime(walletAddress);
+      res.json({
+        success: true,
+        alreadyActive: true,
+        message: 'Session is already active',
+        remainingSeconds: remaining,
+        expiresAt: new Date(Date.now() + remaining * 1000).toISOString(),
+      });
+      return;
+    }
+
+    // 2. Check institution is registered
+    const institution = await prisma.institution.findUnique({ where: { walletAddress } });
+    if (!institution || institution.kycStatus !== 1) {
+      res.status(404).json({
+        success: false,
+        error: 'Not registered',
+        message: 'Call POST /onboarding/register first',
+      });
+      return;
+    }
+
+    // 3. Check circuit files are available
+    const available = await zkproofService.circuitsAvailable();
+    if (!available) {
+      res.status(503).json({
+        success: false,
+        error: 'Service unavailable',
+        message: 'ZK circuit files not available on this server. Use POST /api/v1/verify with a client-generated proof instead.',
+      });
+      return;
+    }
+
+    // 4. Generate fresh attestation
+    const timestamp = Math.floor(Date.now() / 1000);
+    const attestation = await issuerService.signAttestation(
+      walletAddress,
+      1,
+      institution.countryCode,
+      timestamp,
+    );
+    const merkleProof = merkleService.getProof(institution.merkleIndex!);
+
+    // 5. Generate ZK proof server-side
+    logger.info('Starting server-side ZK proof generation', { walletAddress });
+    const { proofHex, publicInputs } = await zkproofService.generateProof({
+      userAddressBigInt: BigInt(walletAddress).toString(),
+      merkleRoot:   merkleProof.root,
+      merkleProof:  merkleProof.siblings,
+      merkleIndex:  institution.merkleIndex!,
+      issuerAx:     attestation.issuerAx,
+      issuerAy:     attestation.issuerAy,
+      sigR8x:       attestation.sigR8x,
+      sigR8y:       attestation.sigR8y,
+      sigS:         attestation.sigS,
+      kycStatus:    1,
+      countryCode:  institution.countryCode,
+      timestamp,
+    });
+
+    // 6. Verify on-chain
+    const inputs = publicInputs.map(s => BigInt(s));
+    const isValid = await blockchainService.verifyProof(proofHex as `0x${string}`, inputs);
+    if (!isValid) {
+      res.status(400).json({ success: false, error: 'Proof verification failed' });
+      return;
+    }
+
+    // 7. Activate session on-chain
+    const result = await blockchainService.startSession(walletAddress);
+    const elapsed = Date.now() - startTime;
+
+    logger.info('Session activated via server-side ZK proof', {
+      walletAddress,
+      txHash: result.txHash,
+      elapsed,
+    });
+
+    res.json({
+      success: true,
+      txHash: result.txHash,
+      sessionExpiry: result.sessionExpiry.toString(),
+      expiresAt: new Date(Number(result.sessionExpiry) * 1000).toISOString(),
+      gasUsed: result.gasUsed.toString(),
+      elapsedMs: elapsed,
+    });
+  } catch (error: any) {
+    logger.error('activate-session error', { error: error.message });
     res.status(500).json({ success: false, error: 'Internal Server Error', message: error.message });
   }
 }
