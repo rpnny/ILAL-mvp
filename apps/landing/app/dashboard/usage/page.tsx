@@ -78,10 +78,13 @@ export default function UsagePage() {
   const usagePercent = callLimit > 0 ? (totalCalls / callLimit) * 100 : 0;
   const rateLimit = stats?.limits?.rateLimit || 10;
 
-  const chartData = Array.from({ length: 7 }, (_, i) => {
-    const date = subDays(new Date(), 6 - i);
-    return { date: format(date, 'MM-dd'), calls: Math.floor(Math.random() * (totalCalls / 3)) };
-  });
+  const byDay: { date: string; calls: number }[] = stats?.byDay || [];
+  const chartData = byDay.length > 0
+    ? byDay
+    : Array.from({ length: 7 }, (_, i) => ({
+        date: format(subDays(new Date(), 6 - i), 'MM-dd'),
+        calls: 0,
+      }));
 
   const statCards = [
     { icon: TrendingUp, value: totalCalls, label: 'Monthly Total Calls', sub: `${totalCalls} / ${callLimit} (${usagePercent.toFixed(1)}%)`, color: '#00F0FF', gradient: 'from-[#00F0FF]/20 to-[#00F0FF]/5', progress: usagePercent },

@@ -74,10 +74,10 @@ export default function Home() {
           <div className="container mx-auto px-6">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 divide-x divide-white/5">
               {[
-                { value: "97%", label: "Gas Reduction", color: "text-primary" },
-                { value: "99%", label: "Test Coverage", color: "text-white" },
-                { value: "18k+", label: "Lines of Code", color: "text-white" },
-                { value: "Active", label: "Live on Base Sepolia", color: "text-secondary" },
+                { value: "97%", label: "Gas Reduction vs Per-Tx", color: "text-primary" },
+                { value: "350+", label: "Tests Passing", color: "text-white" },
+                { value: "15/15", label: "E2E on Base Sepolia", color: "text-white" },
+                { value: "Live", label: "API + Contracts Deployed", color: "text-secondary" },
               ].map((stat, i) => (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}

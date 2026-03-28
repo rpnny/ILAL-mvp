@@ -106,7 +106,7 @@ export default function DashboardPage() {
   }
 
   const totalCalls = stats?.currentPeriod?.calls || 0;
-  const callLimit = stats?.limits?.monthlyCallLimit || 100;
+  const callLimit = stats?.limits?.monthlyCallLimit || 1000;
   const usagePercent = callLimit > 0 ? (totalCalls / callLimit) * 100 : 0;
 
   const statCards = [
