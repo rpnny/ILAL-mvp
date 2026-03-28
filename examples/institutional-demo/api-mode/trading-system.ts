@@ -33,7 +33,9 @@ import {
 //  配置
 // ═══════════════════════════════════════
 
-const ILAL_API = process.env.ILAL_API_URL || 'https://ilal.tech';
+// Auth + DeFi endpoints all live on the Railway API backend.
+// ilal.tech (Vercel) only serves the frontend dashboard and its own Next.js auth routes.
+const ILAL_API = process.env.ILAL_API_URL || 'https://ilal-mvp-production.up.railway.app';
 const API_KEY = process.env.ILAL_API_KEY!;
 const PRIVATE_KEY = process.env.PRIVATE_KEY as Hex;
 const DEMO_EMAIL = process.env.ILAL_DEMO_EMAIL;
@@ -243,14 +245,14 @@ class InstitutionalApiTradingSystem {
 async function main() {
   console.log('╔═══════════════════════════════════════════════════════╗');
   console.log('║  ILAL API Mode — Institutional Trading System        ║');
-  console.log('║  https://ilal.tech                                   ║');
+  console.log('║  https://ilal-mvp-production.up.railway.app         ║');
   console.log('╚═══════════════════════════════════════════════════════╝\n');
 
   if (!API_KEY || !PRIVATE_KEY) {
     console.log('⚠️  This demo requires environment variables:');
     console.log('   ILAL_API_KEY  — Your ILAL API Key');
     console.log('   PRIVATE_KEY   — Institutional wallet private key');
-    console.log('   ILAL_API_URL  — (optional) defaults to https://ilal.tech\n');
+    console.log('   ILAL_API_URL  — (optional) defaults to https://ilal-mvp-production.up.railway.app\n');
     console.log('The flow would be:\n');
     showFlow();
     return;
@@ -290,7 +292,8 @@ function showFlow() {
   console.log(`
 ┌─────────────────────────────────────────────────────────────┐
 │  ILAL API 模式 — 机构操作流程                                │
-│  Domain: https://ilal.tech                                  │
+│  API: https://ilal-mvp-production.up.railway.app           │
+│  Dashboard: https://ilal.tech                               │
 └─────────────────────────────────────────────────────────────┘
 
 Step 1: 注册 & 认证

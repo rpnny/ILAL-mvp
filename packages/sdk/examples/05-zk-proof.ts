@@ -1,11 +1,42 @@
 /**
  * Example 5: ZK Proof Generation
- * 展示如何生成和验证 ZK 证明
+ * 展示如何生成 ZK 证明并提交到 ILAL API 激活 Session
+ *
+ * 运行:
+ *   PRIVATE_KEY=0x... ILAL_API_KEY=ilal_live_... npx tsx packages/sdk/examples/05-zk-proof.ts
+ *
+ * 前提:
+ *   - 已完成机构 Onboarding (POST /api/v1/onboarding/register)
+ *   - ZK 电路文件存在于 packages/circuits/build/ 和 packages/circuits/keys/
  */
 
 import { ILALClient } from '@ilal/sdk';
+import { createPublicClient, createWalletClient, http, type Hex } from 'viem';
+import { baseSepolia } from 'viem/chains';
+import { privateKeyToAccount } from 'viem/accounts';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-declare const client: ILALClient;
+const __dirname    = path.dirname(fileURLToPath(import.meta.url));
+const PRIVATE_KEY  = process.env.PRIVATE_KEY as Hex;
+const API_KEY      = process.env.ILAL_API_KEY || '';
+const API_URL      = process.env.ILAL_API_URL || 'https://ilal-mvp-production.up.railway.app';
+
+if (!PRIVATE_KEY) { console.error('❌ Set PRIVATE_KEY env var'); process.exit(1); }
+
+const account      = privateKeyToAccount(PRIVATE_KEY);
+const walletClient = createWalletClient({ account, chain: baseSepolia, transport: http('https://sepolia.base.org') });
+const publicClient = createPublicClient({ chain: baseSepolia, transport: http('https://sepolia.base.org') });
+const client = new ILALClient({
+  walletClient,
+  publicClient,
+  chainId: 84532,
+  zkConfig: {
+    wasmPath: path.join(__dirname, '../../packages/circuits/build/compliance_js/compliance.wasm'),
+    zkeyPath: path.join(__dirname, '../../packages/circuits/keys/compliance.zkey'),
+  },
+});
+if (API_KEY) client.session.configureApi({ apiBaseUrl: API_URL, apiKey: API_KEY });
 
 async function zkProofExample() {
   const userAddress = client.getUserAddress()!;

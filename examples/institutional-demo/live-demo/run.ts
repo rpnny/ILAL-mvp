@@ -208,11 +208,11 @@ async function main() {
   console.log('│  Scene 2: 交易员上班 — Token 授权 & 首笔交易              │');
   console.log('└─────────────────────────────────────────────────────────┘\n');
 
-  // 确保 USDC 授权
+  // 确保 USDC 授权（USDC 6 decimals，授权 1,000 USDC）
   const allow = await pub.readContract({ address: ADDR.USDC, abi: ERC20_ABI, functionName: 'allowance', args: [account.address, ADDR.swapRouter] });
-  if (allow < parseEther('1')) {
+  if (allow < parseUnits('1', 6)) {
     console.log('  🔓 Approving USDC for SwapRouter...');
-    const appTx = await wallet.writeContract({ address: ADDR.USDC, abi: ERC20_ABI, functionName: 'approve', args: [ADDR.swapRouter, parseEther('100')] });
+    const appTx = await wallet.writeContract({ address: ADDR.USDC, abi: ERC20_ABI, functionName: 'approve', args: [ADDR.swapRouter, parseUnits('1000', 6)] });
     await pub.waitForTransactionReceipt({ hash: appTx });
     console.log(`     ✅ Approved. TX: ${appTx.slice(0, 20)}...`);
     await sleep(2000);

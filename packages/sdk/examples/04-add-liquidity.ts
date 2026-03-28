@@ -1,12 +1,25 @@
 /**
  * Example 4: Add Liquidity
- * How to add liquidity
+ * 展示如何向 ILAL 合规池添加流动性
+ *
+ * 运行:
+ *   PRIVATE_KEY=0x... npx tsx packages/sdk/examples/04-add-liquidity.ts
+ *
+ * 前提: 钱包有活跃的合规 Session + 足够的 USDC/WETH
  */
 
 import { ILALClient, BASE_SEPOLIA_TOKENS } from '@ilal/sdk';
-import { parseUnits, parseEther } from 'viem';
+import { createPublicClient, createWalletClient, http, parseUnits, parseEther, type Hex } from 'viem';
+import { baseSepolia } from 'viem/chains';
+import { privateKeyToAccount } from 'viem/accounts';
 
-declare const client: ILALClient;
+const PRIVATE_KEY = process.env.PRIVATE_KEY as Hex;
+if (!PRIVATE_KEY) { console.error('❌ Set PRIVATE_KEY env var'); process.exit(1); }
+
+const account      = privateKeyToAccount(PRIVATE_KEY);
+const walletClient = createWalletClient({ account, chain: baseSepolia, transport: http('https://sepolia.base.org') });
+const publicClient = createPublicClient({ chain: baseSepolia, transport: http('https://sepolia.base.org') });
+const client = new ILALClient({ walletClient, publicClient, chainId: 84532 });
 
 async function addLiquidityExample() {
   const { USDC, WETH } = BASE_SEPOLIA_TOKENS;

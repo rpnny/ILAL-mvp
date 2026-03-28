@@ -1,78 +1,64 @@
 /**
  * Example 3: Basic Swap
- * How to execute a token swap
+ * 展示如何通过 SDK 执行链上 Swap
+ *
+ * 运行:
+ *   PRIVATE_KEY=0x... npx tsx packages/sdk/examples/03-basic-swap.ts
+ *
+ * 前提:
+ *   - 钱包有活跃的 ILAL 合规 Session（先跑 02-session-management 检查）
+ *   - 钱包有足够的 USDC（Base Sepolia 测试 USDC）
+ *   - 已授权 SimpleSwapRouter 使用 USDC
  */
 
+import { createPublicClient, createWalletClient, http, parseUnits, type Hex } from 'viem';
+import { baseSepolia } from 'viem/chains';
+import { privateKeyToAccount } from 'viem/accounts';
 import { ILALClient, BASE_SEPOLIA_TOKENS } from '@ilal/sdk';
-import { parseUnits } from 'viem';
 
-declare const client: ILALClient;
+const PRIVATE_KEY = process.env.PRIVATE_KEY as Hex;
+if (!PRIVATE_KEY) { console.error('❌ Set PRIVATE_KEY env var'); process.exit(1); }
+
+const account      = privateKeyToAccount(PRIVATE_KEY);
+const walletClient = createWalletClient({ account, chain: baseSepolia, transport: http('https://sepolia.base.org') });
+const publicClient = createPublicClient({ chain: baseSepolia, transport: http('https://sepolia.base.org') });
+
+const client = new ILALClient({ walletClient, publicClient, chainId: 84532 });
 
 async function swapExample() {
   const { USDC, WETH } = BASE_SEPOLIA_TOKENS;
 
-  // Ensure session is active first: await client.session.activate({ expiry: 24 * 3600 });
-  // 1. Basic swap: 100 USDC -> WETH
-  console.log('Executing swap: 100 USDC -> WETH');
-  
+  // 检查 Session
+  const sessionActive = await client.session.isActive();
+  if (!sessionActive) {
+    console.error('❌ No active compliance session. Submit ZK Proof via API first.');
+    process.exit(1);
+  }
+  console.log('✅ Session active');
+
+  // 查询余额
+  const usdcBefore = await client.swap.getBalance(USDC);
+  const wethBefore = await client.swap.getBalance(WETH);
+  console.log(`\nBefore: USDC=${usdcBefore} | WETH=${wethBefore}`);
+
+  // 执行 Swap: 0.01 USDC → WETH
+  console.log('\nExecuting swap: 0.01 USDC → WETH ...');
   const result = await client.swap.execute({
     tokenIn: USDC,
     tokenOut: WETH,
-    amountIn: parseUnits('100', 6), // 100 USDC (6 decimals)
-    slippageTolerance: 0.5, // 0.5%
+    amountIn: parseUnits('0.01', 6), // 0.01 USDC (6 decimals)
+    slippageTolerance: 0.5,          // 0.5%
   });
 
-  console.log('Swap successful!');
-  console.log('Transaction hash:', result.hash);
-  console.log('Gas used:', result.gasUsed);
+  console.log('✅ Swap successful!');
+  console.log('   TX hash:', result.hash);
+  console.log('   Gas used:', result.gasUsed);
+  console.log('   Explorer: https://sepolia.basescan.org/tx/' + result.hash);
 
-  // 2. Swap with custom params
-  const customSwap = await client.swap.execute({
-    tokenIn: WETH,
-    tokenOut: USDC,
-    amountIn: parseUnits('0.05', 18), // 0.05 WETH
-    slippageTolerance: 1.0, // 1%
-    recipient: '0x...' as `0x${string}`, // optional: recipient address
-    deadline: BigInt(Math.floor(Date.now() / 1000) + 1200), // 20 min
-  });
-
-  // 3. Estimate output (read-only)
-  const estimatedOutput = await client.swap.estimateOutput({
-    tokenIn: USDC,
-    tokenOut: WETH,
-    amountIn: parseUnits('100', 6),
-  });
-  console.log('Estimated output:', estimatedOutput);
-
-  // 4. Query token balances
-  const usdcBalance = await client.swap.getBalance(USDC);
-  const wethBalance = await client.swap.getBalance(WETH);
-  console.log('USDC balance:', usdcBalance);
-  console.log('WETH balance:', wethBalance);
-
-  // 5. Get token info
-  const tokenInfo = await client.swap.getTokenInfo(USDC);
-  console.log('Token info:', tokenInfo);
-  // { decimals: 6, symbol: 'USDC', name: 'USD Coin' }
+  // 查询余额变化
+  const usdcAfter = await client.swap.getBalance(USDC);
+  const wethAfter = await client.swap.getBalance(WETH);
+  console.log(`\nAfter:  USDC=${usdcAfter} | WETH=${wethAfter}`);
 }
 
-// Error handling example
-async function swapWithErrorHandling() {
-  try {
-    await client.swap.execute({
-      tokenIn: BASE_SEPOLIA_TOKENS.USDC,
-      tokenOut: BASE_SEPOLIA_TOKENS.WETH,
-      amountIn: parseUnits('1000000', 6), // large amount
-    });
-  } catch (error: any) {
-    if (error.code === 'INSUFFICIENT_LIQUIDITY') {
-      console.error('Pool has insufficient liquidity');
-    } else if (error.code === 'SLIPPAGE_EXCEEDED') {
-      console.error('Price moved beyond slippage tolerance');
-    } else {
-      console.error('Swap failed:', error.message);
-    }
-  }
-}
-
-swapExample().catch(console.error);
+swapExample().catch(err => { console.error('Error:', err.message); process.exit(1); });
