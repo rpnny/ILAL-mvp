@@ -22,7 +22,7 @@ export function generateApiKey(env: 'test' | 'live' = 'live'): string {
  */
 export async function hashApiKey(apiKey: string): Promise<string> {
   const saltRounds = 10;
-  return await bcrypt.hash(apiKey + API_KEY_SECRET, saltRounds);
+  return await bcrypt.hash(apiKey, saltRounds);
 }
 
 /**
@@ -30,7 +30,7 @@ export async function hashApiKey(apiKey: string): Promise<string> {
  */
 export async function verifyApiKey(apiKey: string, hash: string): Promise<boolean> {
   try {
-    return await bcrypt.compare(apiKey + API_KEY_SECRET, hash);
+    return await bcrypt.compare(apiKey, hash);
   } catch (error) {
     return false;
   }
@@ -38,14 +38,11 @@ export async function verifyApiKey(apiKey: string, hash: string): Promise<boolea
 
 /**
  * Extract API Key prefix (for fast lookup)
+ * Returns first 12 characters, e.g. "ilal_live_6a"
+ * Must match the prefix stored by apps/landing when the key was created.
  */
 export function extractApiKeyPrefix(apiKey: string): string {
-  // Extract format "ilal_live" or "ilal_test"
-  const parts = apiKey.split('_');
-  if (parts.length >= 2) {
-    return `${parts[0]}_${parts[1]}`;
-  }
-  return apiKey.substring(0, 10); // fallback
+  return apiKey.substring(0, 12);
 }
 
 /**
