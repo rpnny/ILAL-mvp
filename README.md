@@ -17,6 +17,15 @@ ILAL is a Uniswap v4 Hook that enforces KYC/AML compliance at the protocol level
 
 **Current stage:** Security-hardened MVP on Base Sepolia testnet. Core ZK verification, session management, owner-scoped API authorization, and on-chain swap flows are functional. Billing enforcement and usage tracking are not yet implemented.
 
+### Latest Validation
+
+- Live API ownership protections are deployed on Railway: cross-account onboarding status, attestation, and session activation attempts now fail with `403`
+- Public session reads are no longer exposed anonymously: `/api/v1/session/:address` now returns `401` without auth
+- End-to-end live validation passed on the current deployment: register -> onboarding -> attestation -> proof -> session activation -> 2 real Base Sepolia swaps -> balance verification
+- Latest successful live swap transactions:
+  - [`0x2af30c93...`](https://sepolia.basescan.org/tx/0x2af30c931c076095e633aee489c62d9f84f6c3e7292b0f20ebf2801202b1008b)
+  - [`0x1193ddc1...`](https://sepolia.basescan.org/tx/0x1193ddc1653849ff0cfd1b02cbb67cf0b06e750757032f8cc66ee60c4fb4dfd2)
+
 ---
 
 ## How It Works
@@ -101,6 +110,7 @@ Institution
 ilal/
 ├── apps/
 │   ├── api/              # Express API — ZK verification, session relay, swap TX building
+│   ├── demo/             # Vite demo app for live onboarding / swap walkthroughs
 │   ├── landing/          # Institutional dashboard + Next.js API routes (Next.js 14)
 │   └── bot/              # Market-making bot prototype (WIP)
 ├── packages/
@@ -165,6 +175,23 @@ Full API reference: [`docs/guides/saas/API_REFERENCE.md`](docs/guides/saas/API_R
 | **API ownership** | Institution -> User binding | `/verify`, onboarding status, attestation, and session reads reject cross-account access |
 | **Emergency** | Global pause | Registry owner can halt all operations instantly |
 | **Upgradability** | UUPS Proxy | Registry and SessionManager are upgradeable |
+
+---
+
+## Security Status
+
+The current deployment includes the following hardening work:
+
+- Cross-account API access is blocked by binding `Institution -> User` ownership in onboarding, verification, attestation, and session-query paths
+- `ComplianceHook` no longer treats generic approved routers as identity-forwarding routers; Mode 2 identity forwarding is restricted to a stricter allowlist
+- Frontend/API integration no longer relies on public session endpoints or hard-coded backend paths for protected flows
+- Production API config requires explicit refresh-secret and CORS/proxy controls rather than permissive defaults
+
+Residual risk profile:
+
+- Mainnet deployment has not started and should still be gated on independent audit review
+- Billing/quota enforcement remains placeholder logic and should not be treated as a hardened abuse-control layer
+- Testnet/demo wallets and tokens should be treated as disposable operational assets
 
 ---
 
@@ -287,8 +314,11 @@ pnpm --filter @ilal/api test
 # Frontend component tests
 pnpm --filter @ilal/landing test
 
-# E2E on Base Sepolia (requires live API + funded relayer wallet)
-npx tsx scripts/institutional-e2e.ts
+# Full local + testnet validation wrapper
+pnpm check:testnet
+
+# Direct live E2E on Base Sepolia (requires funded wallet + circuit artifacts)
+npx tsx scripts/ilal-e2e-live.ts
 ```
 
 ### ZK Circuit
