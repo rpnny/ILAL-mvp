@@ -48,7 +48,7 @@ export async function verifyAndActivate(req: Request, res: Response): Promise<vo
 
   try {
     const body = verifySchema.parse(req.body);
-    const userAddress = body.userAddress as Address;
+    const userAddress = getAddress(body.userAddress) as Address;
     const userId = req.apiKey?.userId ?? req.user?.userId;
 
     if (!userId) {

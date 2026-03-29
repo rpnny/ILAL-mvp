@@ -269,6 +269,9 @@ async function main() {
     if (reg.status === 201) {
       record('P3', 'POST /onboarding/register', 'PASS',
         `status=${reg.data.status}, merkleRoot=${reg.data.merkleRoot?.slice(0, 20)}...`, reg.ms);
+    } else if (reg.status === 200) {
+      record('P3', 'POST /onboarding/register', 'PASS',
+        `status=${reg.data.status}, existing institution reused`, reg.ms);
     } else if (reg.status === 409) {
       record('P3', 'POST /onboarding/register', 'PASS',
         `already registered (idempotent)`, reg.ms);

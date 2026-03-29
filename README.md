@@ -15,7 +15,7 @@ ILAL is a Uniswap v4 Hook that enforces KYC/AML compliance at the protocol level
 
 **Core design principle:** Compliance belongs at session initiation, not at every swap. One ZK proof unlocks 24 hours of compliant, unlimited trading.
 
-**Current stage:** Working MVP on Base Sepolia testnet. Core ZK verification, session management, and on-chain swap flows are functional. Billing enforcement and usage tracking are not yet implemented.
+**Current stage:** Security-hardened MVP on Base Sepolia testnet. Core ZK verification, session management, owner-scoped API authorization, and on-chain swap flows are functional. Billing enforcement and usage tracking are not yet implemented.
 
 ---
 
@@ -53,6 +53,7 @@ Institution
 **Key properties:**
 - Non-compliant addresses revert mathematically — no admin action needed
 - ZK proof reveals nothing about the institution's identity on-chain
+- API onboarding/session/attestation reads are owner-scoped — no public or cross-account session activation
 - Hook bitmask `0x0A80` covers `beforeSwap`, `beforeAddLiquidity`, `beforeRemoveLiquidity`
 
 ---
@@ -158,9 +159,10 @@ Full API reference: [`docs/guides/saas/API_REFERENCE.md`](docs/guides/saas/API_R
 | **Identity** | ZK Proof (PLONK) | EdDSA-Poseidon signature + Merkle tree membership — reveals nothing on-chain |
 | **Session** | On-chain TTL | 24h sessions, max 6 renewals per ZK proof |
 | **Swap Gate** | ComplianceHook | `beforeSwap` checks `isSessionActive()` — single SLOAD, reverts if expired |
-| **Router ACL** | Registry whitelist | Only approved routers can forward hookData |
+| **Router ACL** | Two-tier router whitelist | Generic routers must be approved; Mode 2 identity forwarding requires a stricter identity-router allowlist |
 | **Permit signing** | EIP-712 | Separate `SwapPermit` and `LiquidityPermit` typed data |
 | **Anti-replay** | Proof dedup | Each ZK proof hashed (keccak256) and rejected on reuse |
+| **API ownership** | Institution -> User binding | `/verify`, onboarding status, attestation, and session reads reject cross-account access |
 | **Emergency** | Global pause | Registry owner can halt all operations instantly |
 | **Upgradability** | UUPS Proxy | Registry and SessionManager are upgradeable |
 
@@ -195,7 +197,7 @@ Fuzz / Invariant (5 invariants × 256 runs)
 Hell Mode (15): fake sig, replay, unauthorized upgrade, gas extremes
 ```
 
-### API — Vitest (102 tests)
+### API — Vitest (106 tests)
 
 ```
 auth.controller ........... 14   auth.middleware ............ 5
@@ -212,13 +214,20 @@ usage.middleware ........... 7
 SwapWidget ................ 9   SessionStatusCard .......... 6   UserMenu .................. 5
 ```
 
-### E2E — Base Sepolia Live Testnet (15 steps)
+### E2E — Base Sepolia Live Testnet (14 phases)
 
 Full flow: register → login → onboard institution → generate ZK proof → activate on-chain session → build & broadcast swap → verify balances.
 
 Verified on-chain transactions:
 - [`0xa78f45ea...`](https://sepolia.basescan.org/tx/0xa78f45ea060616c00451cee734b4a33d917e15002cde4b2469f9bbcb4cac74cd)
 - [`0xf2e363d1...`](https://sepolia.basescan.org/tx/0xf2e363d1e6b6979af46b56f42e0bee60c832f6024dbc10a3f544846d25a90a18)
+- [`0x2af30c93...`](https://sepolia.basescan.org/tx/0x2af30c931c076095e633aee489c62d9f84f6c3e7292b0f20ebf2801202b1008b)
+- [`0x1193ddc1...`](https://sepolia.basescan.org/tx/0x1193ddc1653849ff0cfd1b02cbb67cf0b06e750757032f8cc66ee60c4fb4dfd2)
+
+Security validation after remediation:
+- Cross-account `onboarding/status`, `attestation`, and `activate-session` requests now return `403`
+- Public `/api/v1/session/:address` access now returns `401`
+- Live E2E passed end-to-end on the current Railway deployment with two successful Base Sepolia swaps
 
 ---
 
