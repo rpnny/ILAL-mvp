@@ -6,41 +6,62 @@ const TOKEN_KEY = 'ilal_access_token';
 const REFRESH_TOKEN_KEY = 'ilal_refresh_token';
 const USER_KEY = 'ilal_user';
 
+function getStorage(): Storage | null {
+  if (typeof window === 'undefined') return null;
+  return window.sessionStorage;
+}
+
+function migrateLegacyLocalStorage(key: string): string | null {
+  if (typeof window === 'undefined') return null;
+  const legacy = window.localStorage.getItem(key);
+  if (!legacy) return null;
+  window.sessionStorage.setItem(key, legacy);
+  window.localStorage.removeItem(key);
+  return legacy;
+}
+
 export function setTokens(accessToken: string, refreshToken: string) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(TOKEN_KEY, accessToken);
-  localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  const storage = getStorage();
+  if (!storage) return;
+  storage.setItem(TOKEN_KEY, accessToken);
+  storage.setItem(REFRESH_TOKEN_KEY, refreshToken);
 }
 
 export function getAccessToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(TOKEN_KEY);
+  const storage = getStorage();
+  if (!storage) return null;
+  return storage.getItem(TOKEN_KEY) ?? migrateLegacyLocalStorage(TOKEN_KEY);
 }
 
 export function getRefreshToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(REFRESH_TOKEN_KEY);
+  const storage = getStorage();
+  if (!storage) return null;
+  return storage.getItem(REFRESH_TOKEN_KEY) ?? migrateLegacyLocalStorage(REFRESH_TOKEN_KEY);
 }
 
 export function clearTokens() {
   if (typeof window === 'undefined') return;
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
-  localStorage.removeItem(USER_KEY);
+  window.sessionStorage.removeItem(TOKEN_KEY);
+  window.sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+  window.sessionStorage.removeItem(USER_KEY);
+  window.localStorage.removeItem(TOKEN_KEY);
+  window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+  window.localStorage.removeItem(USER_KEY);
 }
 
 export function setUser(user: any) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
+  const storage = getStorage();
+  if (!storage) return;
+  storage.setItem(USER_KEY, JSON.stringify(user));
 }
 
 export function getUser(): any | null {
-  if (typeof window === 'undefined') return null;
-  const userStr = localStorage.getItem(USER_KEY);
+  const storage = getStorage();
+  if (!storage) return null;
+  const userStr = storage.getItem(USER_KEY) ?? migrateLegacyLocalStorage(USER_KEY);
   return userStr ? JSON.parse(userStr) : null;
 }
 
 export function isAuthenticated(): boolean {
-  if (typeof window === 'undefined') return false;
-  return !!localStorage.getItem(TOKEN_KEY);
+  return !!getAccessToken();
 }

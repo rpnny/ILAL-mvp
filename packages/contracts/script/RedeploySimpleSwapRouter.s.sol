@@ -23,6 +23,7 @@ contract RedeploySimpleSwapRouter is Script {
         
         // Approve router
         IRegistry(REGISTRY).approveRouter(address(router), true);
+        IRegistry(REGISTRY).approveIdentityRouter(address(router), true);
         console.log("Router approved in Registry");
         
         vm.stopBroadcast();
@@ -35,4 +36,5 @@ contract RedeploySimpleSwapRouter is Script {
 
 interface IRegistry {
     function approveRouter(address router, bool approved) external;
+    function approveIdentityRouter(address router, bool approved) external;
 }

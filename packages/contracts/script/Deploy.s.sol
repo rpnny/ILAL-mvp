@@ -174,6 +174,7 @@ contract DeployILAL is Script {
         if (UNISWAP_UNIVERSAL_ROUTER != address(0)) {
             // console.log removed for compilation
             registry.approveRouter(UNISWAP_UNIVERSAL_ROUTER, true);
+            registry.approveIdentityRouter(UNISWAP_UNIVERSAL_ROUTER, true);
         } else {
             // console.log removed for compilation
         }

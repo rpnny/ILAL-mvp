@@ -185,6 +185,7 @@ contract ComplianceHook is IComplianceHook, IHooks, EIP712Verifier {
     // ============ Router Validation ============
 
     error RouterNotApproved(address router);
+    error IdentityRouterRequired(address router);
 
     /**
      * @notice Verify that the sender (router) is approved, unless Mode 2 (EOA direct).
@@ -194,6 +195,10 @@ contract ComplianceHook is IComplianceHook, IHooks, EIP712Verifier {
     function _requireApprovedRouter(address sender, bytes calldata hookData) internal view {
         if (hookData.length > 0 && !registry.isRouterApproved(sender)) {
             revert RouterNotApproved(sender);
+        }
+
+        if (hookData.length == 32 && !registry.isIdentityRouter(sender)) {
+            revert IdentityRouterRequired(sender);
         }
     }
 

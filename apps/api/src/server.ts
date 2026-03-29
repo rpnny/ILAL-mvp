@@ -14,6 +14,7 @@ import verifyRoutes from './routes/verify.routes.js';
 import billingRoutes from './routes/billing.routes.js';
 import stripeRoutes from './routes/stripe.routes.js';
 import onboardingRoutes from './routes/onboarding.routes.js';
+import { hybridAuthMiddleware } from './middleware/hybrid.middleware.js';
 
 // Import controllers
 import * as verifyController from './controllers/verify.controller.js';
@@ -24,6 +25,17 @@ import * as merkleService from './services/merkle.service.js';
 
 export async function createServer(): Promise<express.Application> {
   const app = express();
+  const trustProxyConfig = process.env.TRUST_PROXY ?? (process.env.NODE_ENV === 'production' ? '1' : 'false');
+
+  if (trustProxyConfig === 'true') {
+    app.set('trust proxy', true);
+  } else if (trustProxyConfig === 'false') {
+    app.set('trust proxy', false);
+  } else if (/^\d+$/.test(trustProxyConfig)) {
+    app.set('trust proxy', Number(trustProxyConfig));
+  } else {
+    app.set('trust proxy', trustProxyConfig);
+  }
 
   // ============ Middleware ============
 
@@ -51,13 +63,13 @@ export async function createServer(): Promise<express.Application> {
 
   // CORS
   // CORS_ORIGIN can be a comma-separated list of allowed origins.
-  // Defaults to '*' in development; set explicitly in production.
+  // Defaults to '*' in development; production should set an explicit allowlist.
   const corsOrigins = process.env.CORS_ORIGIN
     ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
-    : '*';
+    : (process.env.NODE_ENV === 'production' ? false : '*');
   app.use(cors({
     origin: corsOrigins,
-    credentials: true,
+    credentials: corsOrigins !== '*',
   }));
 
   // JSON body parser
@@ -96,7 +108,7 @@ export async function createServer(): Promise<express.Application> {
   app.use('/api/v1/verify', verifyRoutes);
 
   // Session query route (mounted separately)
-  app.get('/api/v1/session/:address', verifyController.getSessionStatus);
+  app.get('/api/v1/session/:address', hybridAuthMiddleware, verifyController.getSessionStatus);
 
   // Usage statistics routes
   app.use('/api/v1/usage', billingRoutes);

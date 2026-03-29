@@ -93,6 +93,7 @@ contract FullFlowTest is Test {
 
         // 批准 Router
         registry.approveRouter(router, true);
+        registry.approveIdentityRouter(router, true);
 
         vm.stopPrank();
     }

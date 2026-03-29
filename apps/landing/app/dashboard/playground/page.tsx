@@ -8,11 +8,11 @@ import { getAccessToken } from '../../../lib/auth';
 import toast from 'react-hot-toast';
 import type { ApiKey } from '../../../lib/types';
 
-const RAILWAY_API = 'https://ilal-mvp-production.up.railway.app';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 const endpoints = [
     { method: 'GET' as const, path: '/api/v1/health', description: 'API health check (no auth required)', requiresAuth: false, defaultBody: '' },
-    { method: 'GET' as const, path: '/api/v1/session/0x1b869CaC69Df23Ad9D727932496AEb3605538c8D', description: 'Query on-chain session status', requiresAuth: false, defaultBody: '' },
+    { method: 'GET' as const, path: '/api/v1/session/0x1b869CaC69Df23Ad9D727932496AEb3605538c8D', description: 'Query on-chain session status', requiresAuth: true, defaultBody: '' },
     { method: 'POST' as const, path: '/api/v1/defi/swap', description: 'Build unsigned swap TX (mUSD -> mTBILL)', requiresAuth: true, defaultBody: JSON.stringify({ tokenIn: '0xdd3d112a48906807c4b73c94ed884552427e4cf9', tokenOut: '0xfb080423cedd4ca56da3f60a4b901f51846459ae', amount: '1000000000000000', zeroForOne: true, userAddress: '0x1b869CaC69Df23Ad9D727932496AEb3605538c8D' }, null, 2) },
     { method: 'GET' as const, path: '/api/v1/onboarding/status/0x1b869CaC69Df23Ad9D727932496AEb3605538c8D', description: 'Check institution onboarding status', requiresAuth: true, defaultBody: '' },
 ];
@@ -45,7 +45,7 @@ export default function PlaygroundPage() {
     const [loadingKeys, setLoadingKeys] = useState(true);
 
     const endpoint = endpoints[selectedEndpoint];
-    const fullUrl = `${RAILWAY_API}${endpoint.path}`;
+    const fullUrl = `${API_BASE}${endpoint.path}`;
 
     useEffect(() => { loadApiKeys(); }, []);
     useEffect(() => {
@@ -71,7 +71,7 @@ export default function PlaygroundPage() {
             const headers: Record<string, string> = { 'Content-Type': 'application/json' };
             const selectedKey = apiKeys[selectedKeyIndex];
             if (endpoint.requiresAuth && selectedKey) {
-                headers['x-api-key'] = selectedKey.key || `${selectedKey.keyPrefix || selectedKey.prefix}...`;
+                headers['x-api-key'] = selectedKey.key || `${selectedKey.keyPrefix}...`;
             }
 
             const fetchOptions: RequestInit = {
@@ -100,7 +100,7 @@ export default function PlaygroundPage() {
     }
 
     const selectedKey = apiKeys[selectedKeyIndex];
-    const keyDisplay = selectedKey ? (selectedKey.key || `${selectedKey.keyPrefix || selectedKey.prefix}...`) : 'YOUR_API_KEY';
+    const keyDisplay = selectedKey ? (selectedKey.key || `${selectedKey.keyPrefix}...`) : 'YOUR_API_KEY';
 
     const curlCode = `curl -X ${endpoint.method} '${fullUrl}' \\
   -H "x-api-key: ${keyDisplay}" \\
@@ -148,8 +148,8 @@ print(response.json())`;
                     API Playground
                 </h1>
                 <p className="text-gray-400">
-                    Test ILAL API endpoints with live requests to{' '}
-                    <code className="text-[#00F0FF]/70 text-xs">{RAILWAY_API}</code>
+                    Test ILAL API endpoints with the configured backend base{' '}
+                    <code className="text-[#00F0FF]/70 text-xs">{API_BASE || 'same-origin /api proxy'}</code>
                 </p>
             </motion.div>
 
@@ -169,7 +169,7 @@ print(response.json())`;
                             <select value={selectedKeyIndex} onChange={(e) => setSelectedKeyIndex(Number(e.target.value))}
                                 className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#00F0FF]/50 transition-all appearance-none cursor-pointer"
                             >
-                                {apiKeys.map((key, i) => <option key={key.id} value={i} className="bg-[#1A1A1A]">{key.name} ({key.keyPrefix || key.prefix}...)</option>)}
+                                {apiKeys.map((key, i) => <option key={key.id} value={i} className="bg-[#1A1A1A]">{key.name} ({key.keyPrefix}...)</option>)}
                             </select>
                         )}
                     </div>

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Home, Key, BarChart3, Settings, FileText, ArrowLeft, Play, ScrollText, LogOut, Flame, ShieldCheck } from 'lucide-react';
+import { Home, Key, BarChart3, Settings, FileText, ArrowLeft, Play, LogOut, Flame, ShieldCheck } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -15,7 +15,6 @@ const navigation = [
   { name: 'Compliance Demo', href: '/dashboard/compliance-demo', icon: ShieldCheck },
   { name: 'Usage', href: '/dashboard/usage', icon: BarChart3 },
   { name: 'Playground', href: '/dashboard/playground', icon: Play },
-  { name: 'Activity Logs', href: '/dashboard/logs', icon: ScrollText },
   { name: 'API Docs', href: '/docs', icon: FileText },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ];

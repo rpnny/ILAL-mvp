@@ -325,6 +325,7 @@ contract BattleInvariantTest is StdInvariant, Test {
         vm.startPrank(governance);
         registry.registerIssuer(keccak256("Coinbase"), makeAddr("attester"), address(verifier));
         registry.approveRouter(approvedRouter, true);
+        registry.approveIdentityRouter(approvedRouter, true);
         vm.stopPrank();
 
         handler = new AttackHandler(

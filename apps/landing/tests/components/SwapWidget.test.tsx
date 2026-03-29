@@ -4,6 +4,7 @@ import SwapWidget from '../../components/SwapWidget';
 
 vi.mock('../../lib/api', () => ({
   executeSwap: vi.fn(),
+  getSessionStatus: vi.fn(),
 }));
 
 vi.mock('../../lib/auth', () => ({
@@ -47,11 +48,11 @@ describe('SwapWidget', () => {
     vi.clearAllMocks();
   });
 
-  it('renders with default tokens (USDC/WETH)', () => {
+  it('renders with default tokens (mUSD/mTBILL)', () => {
     render(<SwapWidget />);
     expect(screen.getByText('Swap')).toBeInTheDocument();
-    expect(screen.getByText('USDC')).toBeInTheDocument();
-    expect(screen.getByText('WETH')).toBeInTheDocument();
+    expect(screen.getByText('mUSD')).toBeInTheDocument();
+    expect(screen.getByText('mTBILL')).toBeInTheDocument();
   });
 
   it('shows "Enter Amount" when no amount entered', () => {
@@ -89,8 +90,8 @@ describe('SwapWidget', () => {
   it('toggles direction on arrow button click', () => {
     render(<SwapWidget />);
     expect(screen.getByText('You pay').parentElement?.parentElement).toBeTruthy();
-    const usdcElements = screen.getAllByText('USDC');
-    expect(usdcElements.length).toBeGreaterThan(0);
+    const musdElements = screen.getAllByText('mUSD');
+    expect(musdElements.length).toBeGreaterThan(0);
   });
 
   it('shows estimated output when amount is typed', () => {

@@ -23,22 +23,61 @@ const registerSchema = z.object({
   countryCode: z.number().int().min(1).max(999).optional().default(840),
 });
 
+function requireAuthenticatedUserId(req: Request, res: Response): string | null {
+  const userId = req.apiKey?.userId ?? req.user?.userId;
+  if (!userId) {
+    res.status(401).json({
+      success: false,
+      error: 'Unauthorized',
+      message: 'Authenticated user context is required',
+    });
+    return null;
+  }
+  return userId;
+}
+
+function ensureInstitutionOwner(
+  institution: { userId: string | null; walletAddress: string },
+  userId: string,
+  res: Response,
+): boolean {
+  if (institution.userId && institution.userId !== userId) {
+    res.status(403).json({
+      success: false,
+      error: 'Forbidden',
+      message: 'This institution is owned by another account',
+    });
+    return false;
+  }
+
+  return true;
+}
+
 /**
  * POST /api/v1/onboarding/register
  */
 export async function register(req: Request, res: Response): Promise<void> {
   try {
+    const userId = requireAuthenticatedUserId(req, res);
+    if (!userId) return;
+
     const body = registerSchema.parse(req.body);
     const walletAddress = getAddress(body.walletAddress);
 
     const existing = await prisma.institution.findUnique({ where: { walletAddress } });
     if (existing) {
+      if (!ensureInstitutionOwner(existing, userId, res)) {
+        return;
+      }
+
       if (existing.kycStatus === 1) {
-        res.status(409).json({
-          success: false,
-          error: 'Already registered',
-          message: 'This wallet is already onboarded. Use GET /onboarding/attestation/:address to retrieve your attestation.',
+        res.status(200).json({
+          success: true,
           institutionId: existing.id,
+          status: 'approved',
+          walletAddress,
+          merkleIndex: existing.merkleIndex,
+          message: 'This wallet is already onboarded under your account. Use GET /onboarding/attestation/:address to retrieve your attestation.',
         });
         return;
       }
@@ -74,6 +113,7 @@ export async function register(req: Request, res: Response): Promise<void> {
       await prisma.institution.update({
         where: { walletAddress },
         data: {
+          userId,
           name: body.name,
           countryCode: body.countryCode,
           kycStatus: 1,
@@ -85,6 +125,7 @@ export async function register(req: Request, res: Response): Promise<void> {
     } else {
       await prisma.institution.create({
         data: {
+          userId,
           name: body.name,
           walletAddress,
           countryCode: body.countryCode,
@@ -132,6 +173,9 @@ export async function register(req: Request, res: Response): Promise<void> {
 export async function activateSession(req: Request, res: Response): Promise<void> {
   const startTime = Date.now();
   try {
+    const userId = requireAuthenticatedUserId(req, res);
+    if (!userId) return;
+
     const { walletAddress: rawAddress, expiry = 86400 } = req.body as { walletAddress?: string; expiry?: number };
     if (!rawAddress || !/^0x[a-fA-F0-9]{40}$/.test(rawAddress)) {
       res.status(400).json({ success: false, error: 'Invalid or missing walletAddress' });
@@ -161,6 +205,10 @@ export async function activateSession(req: Request, res: Response): Promise<void
         error: 'Not registered',
         message: 'Call POST /onboarding/register first',
       });
+      return;
+    }
+
+    if (!ensureInstitutionOwner(institution, userId, res)) {
       return;
     }
 
@@ -239,6 +287,9 @@ export async function activateSession(req: Request, res: Response): Promise<void
  */
 export async function getStatus(req: Request, res: Response): Promise<void> {
   try {
+    const userId = requireAuthenticatedUserId(req, res);
+    if (!userId) return;
+
     const address = req.params.address as string;
     if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address)) {
       res.status(400).json({ success: false, error: 'Invalid address' });
@@ -254,6 +305,10 @@ export async function getStatus(req: Request, res: Response): Promise<void> {
         status: 'not_registered',
         walletAddress,
       });
+      return;
+    }
+
+    if (!ensureInstitutionOwner(institution, userId, res)) {
       return;
     }
 
@@ -282,6 +337,9 @@ export async function getStatus(req: Request, res: Response): Promise<void> {
  */
 export async function getAttestation(req: Request, res: Response): Promise<void> {
   try {
+    const userId = requireAuthenticatedUserId(req, res);
+    if (!userId) return;
+
     const address = req.params.address as string;
     if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address)) {
       res.status(400).json({ success: false, error: 'Invalid address' });
@@ -297,6 +355,10 @@ export async function getAttestation(req: Request, res: Response): Promise<void>
         error: 'Not found',
         message: 'Institution not registered or not yet approved. Call POST /onboarding/register first.',
       });
+      return;
+    }
+
+    if (!ensureInstitutionOwner(institution, userId, res)) {
       return;
     }
 

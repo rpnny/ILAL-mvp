@@ -26,6 +26,32 @@ type LiveExerciseConfig = {
     notes: string[];
 };
 
+const DEFAULT_CONFIG: LiveExerciseConfig = {
+    generatedAt: '2026-03-12T00:00:00.000Z',
+    network: 'Base Sepolia (84532)',
+    mode: 'permit',
+    pool: {
+        fee: 500,
+        tickSpacing: 10,
+        hook: '0xe633220f15932428FcA60A1A2C2C48797A180A80',
+    },
+    tokenA: {
+        symbol: 'mUSD',
+        address: '0xdd3d112a48906807c4b73c94ed884552427e4cf9',
+        decimals: 18,
+    },
+    tokenB: {
+        symbol: 'mTBILL',
+        address: '0xfb080423cedd4ca56da3f60a4b901f51846459ae',
+        decimals: 18,
+    },
+    notes: [
+        'This pool has the ComplianceHook attached — only wallets with an active ZK session can swap.',
+        'mUSD and mTBILL are mock tokens deployed on Base Sepolia for demonstration.',
+        'Use the Compliance Demo page to check your session status before swapping.',
+    ],
+};
+
 export default function LiveExercisePage() {
     const [config, setConfig] = useState<LiveExerciseConfig | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -33,11 +59,11 @@ export default function LiveExercisePage() {
     useEffect(() => {
         fetch('/live-exercise.json', { cache: 'no-store' })
             .then(async (res) => {
-                if (!res.ok) throw new Error('Live exercise config not generated yet');
+                if (!res.ok) throw new Error('Using default mUSD/mTBILL pool config');
                 return res.json();
             })
             .then((data) => setConfig(data))
-            .catch((err: Error) => setError(err.message));
+            .catch(() => setConfig(DEFAULT_CONFIG));
     }, []);
 
     return (

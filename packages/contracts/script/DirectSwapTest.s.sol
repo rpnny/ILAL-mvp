@@ -126,6 +126,7 @@ contract DirectSwapTest is Script {
         
         // 2. Approve tester as router
         IRegistry(REGISTRY).approveRouter(address(tester), true);
+        IRegistry(REGISTRY).approveIdentityRouter(address(tester), true);
         console.log("Tester approved as router");
         
         // 3. Check session
@@ -181,6 +182,7 @@ contract DirectSwapTest is Script {
 
 interface IRegistry {
     function approveRouter(address router, bool approved) external;
+    function approveIdentityRouter(address router, bool approved) external;
 }
 
 interface ISessionManager {

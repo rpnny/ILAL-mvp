@@ -53,10 +53,10 @@ async function zkSessionExample() {
   console.log('\n2. No active session. Activating via API (server-side ZK proof)...');
   console.log('   API URL:', API_URL);
 
-  // POST /api/v1/zk/activate-session
+  // POST /api/v1/onboarding/activate-session
   // The API generates the ZK proof server-side using the issuer key,
   // then submits an on-chain transaction (as relayer) to activate your session.
-  const res = await fetch(`${API_URL}/api/v1/zk/activate-session`, {
+  const res = await fetch(`${API_URL}/api/v1/onboarding/activate-session`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

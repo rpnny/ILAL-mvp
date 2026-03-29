@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings2, ShieldCheck, ShieldOff, ArrowDownUp, Loader2, Clock } from 'lucide-react';
-import { executeSwap } from '../lib/api';
+import { executeSwap, getSessionStatus } from '../lib/api';
 import { getAccessToken } from '../lib/auth';
 import { ADDRESSES } from '../lib/contracts';
 import toast from 'react-hot-toast';
@@ -76,14 +76,14 @@ interface SwapWidgetProps {
 }
 
 const DEFAULT_TOKEN_A: TokenConfig = {
-    symbol: 'USDC',
-    address: ADDRESSES.USDC,
-    decimals: 6,
+    symbol: 'mUSD',
+    address: ADDRESSES.mUSD,
+    decimals: 18,
 };
 
 const DEFAULT_TOKEN_B: TokenConfig = {
-    symbol: 'WETH',
-    address: ADDRESSES.WETH,
+    symbol: 'mTBILL',
+    address: ADDRESSES.mTBILL,
     decimals: 18,
 };
 
@@ -103,22 +103,20 @@ export default function SwapWidget({
     const [sessionRemaining, setSessionRemaining] = useState<number>(0);
     const [sessionLoading, setSessionLoading] = useState(false);
 
-    const RAILWAY_API = 'https://ilal-mvp-production.up.railway.app';
-
     const checkSession = useCallback(async (address?: string) => {
         const addr = address || walletAddress;
         if (!addr) { setSessionActive(null); return; }
+        const token = getAccessToken();
+        if (!token) {
+            setSessionActive(null);
+            setSessionRemaining(0);
+            return;
+        }
         setSessionLoading(true);
         try {
-            const res = await fetch(`${RAILWAY_API}/api/v1/session/${addr}`);
-            if (res.ok) {
-                const data = await res.json();
-                setSessionActive(!!data.isActive);
-                setSessionRemaining(data.remainingSeconds || 0);
-            } else {
-                setSessionActive(false);
-                setSessionRemaining(0);
-            }
+            const data = await getSessionStatus(token, addr);
+            setSessionActive(!!data.active);
+            setSessionRemaining(data.remainingSeconds || 0);
         } catch {
             setSessionActive(null);
         } finally {

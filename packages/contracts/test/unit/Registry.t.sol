@@ -152,6 +152,21 @@ contract RegistryTest is Test {
         assertTrue(registry.isRouterApproved(universalRouter));
     }
 
+    function test_ApproveIdentityRouter() public {
+        vm.startPrank(owner);
+        registry.approveRouter(universalRouter, true);
+        registry.approveIdentityRouter(universalRouter, true);
+        vm.stopPrank();
+
+        assertTrue(registry.isIdentityRouter(universalRouter));
+    }
+
+    function test_RevertWhen_ApproveIdentityRouter_WithoutRouterApproval() public {
+        vm.prank(owner);
+        vm.expectRevert(Registry.RouterNotApproved.selector);
+        registry.approveIdentityRouter(universalRouter, true);
+    }
+
     function test_ApproveRouter_Event() public {
         vm.expectEmit(true, true, true, true);
         emit IRegistry.RouterApproved(universalRouter, true);
@@ -163,10 +178,12 @@ contract RegistryTest is Test {
     function test_DisapproveRouter() public {
         vm.startPrank(owner);
         registry.approveRouter(universalRouter, true);
+        registry.approveIdentityRouter(universalRouter, true);
         registry.approveRouter(universalRouter, false);
         vm.stopPrank();
 
         assertFalse(registry.isRouterApproved(universalRouter));
+        assertFalse(registry.isIdentityRouter(universalRouter));
     }
 
     // ============ 参数管理测试 ============

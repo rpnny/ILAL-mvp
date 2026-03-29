@@ -99,6 +99,7 @@ contract E2ETest is Test {
 
         // 批准 Universal Router
         registry.approveRouter(router, true);
+        registry.approveIdentityRouter(router, true);
 
         vm.stopPrank();
 

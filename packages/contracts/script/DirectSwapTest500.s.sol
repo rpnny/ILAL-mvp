@@ -85,6 +85,7 @@ contract DirectSwapTest500 is Script {
 
         SwapTester500 tester = new SwapTester500(POOL_MANAGER, trader);
         IRegistry(REGISTRY).approveRouter(address(tester), true);
+        IRegistry(REGISTRY).approveIdentityRouter(address(tester), true);
 
         require(ISessionManager(SESSION_MANAGER).isSessionActive(trader), "session inactive");
 
@@ -119,6 +120,7 @@ contract DirectSwapTest500 is Script {
 
 interface IRegistry {
     function approveRouter(address router, bool approved) external;
+    function approveIdentityRouter(address router, bool approved) external;
 }
 
 interface ISessionManager {

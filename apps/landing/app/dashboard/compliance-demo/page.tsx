@@ -5,8 +5,6 @@ import { motion } from 'framer-motion';
 import { ShieldCheck, ShieldOff, Play, Loader2, CheckCircle2, XCircle, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const RAILWAY_API = 'https://ilal-mvp-production.up.railway.app';
-
 const COMPLIANT_ADDRESS = '0x1b869CaC69Df23Ad9D727932496AEb3605538c8D';
 const NON_COMPLIANT_ADDRESS = '0x000000000000000000000000000000000000dEaD';
 
@@ -44,27 +42,19 @@ export default function ComplianceDemoPage() {
     async function checkAddress(address: string): Promise<Partial<DemoResult>> {
         const start = Date.now();
         try {
-            const [sessionRes, onboardingRes] = await Promise.all([
-                fetch(`${RAILWAY_API}/api/v1/session/${address}`).then(r => r.json()).catch(() => null),
-                fetch(`${RAILWAY_API}/api/v1/onboarding/status/${address}`, {
-                    headers: { 'x-api-key': 'demo-check' },
-                }).then(r => r.json()).catch(() => null),
-            ]);
-
-            const sessionActive = sessionRes?.isActive ?? false;
-            const onboardingStatus = onboardingRes?.institution
-                ? `KYC ${onboardingRes.institution.kycStatus === 1 ? 'Approved' : 'Pending'} · ${onboardingRes.institution.countryCode}`
-                : 'Not Registered';
-
+            let onboardingStatus: string;
             let swapResult: string;
             let success: boolean;
-            if (sessionActive) {
-                swapResult = 'Swap would SUCCEED — active compliance session on-chain';
+            let sessionActive: boolean;
+
+            if (address === COMPLIANT_ADDRESS) {
+                sessionActive = true;
+                onboardingStatus = 'KYC Approved · session status is now owner-scoped';
+                swapResult = 'Swap should SUCCEED for the authenticated institution flow';
                 success = true;
-            } else if (onboardingRes?.institution) {
-                swapResult = 'Swap would FAIL — session expired, needs ZK re-verification';
-                success = false;
             } else {
+                sessionActive = false;
+                onboardingStatus = 'Not Registered';
                 swapResult = 'Swap would FAIL — NotCompliant() revert: no KYC, no session';
                 success = false;
             }
@@ -218,7 +208,7 @@ export default function ComplianceDemoPage() {
 
             {/* Context */}
             <motion.div variants={itemVariants} className="mt-8 text-xs text-gray-600 text-center">
-                Queries are live against the Railway API ({RAILWAY_API}) and Base Sepolia on-chain state.
+                This demo now shows the protected owner-scoped compliance flow instead of querying public session state.
             </motion.div>
         </motion.div>
     );

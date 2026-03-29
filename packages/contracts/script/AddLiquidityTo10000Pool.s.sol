@@ -127,6 +127,7 @@ contract AddLiquidityTo10000Pool is Script {
         
         // 2. Approve helper as router
         IRegistry(REGISTRY).approveRouter(address(helper), true);
+        IRegistry(REGISTRY).approveIdentityRouter(address(helper), true);
         console.log("Helper approved as router");
         
         // 3. Check session
@@ -180,6 +181,7 @@ contract AddLiquidityTo10000Pool is Script {
 
 interface IRegistry {
     function approveRouter(address router, bool approved) external;
+    function approveIdentityRouter(address router, bool approved) external;
     function isRouterApproved(address router) external view returns (bool);
 }
 

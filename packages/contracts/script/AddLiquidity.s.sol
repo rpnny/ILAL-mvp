@@ -129,6 +129,10 @@ contract AddLiquidity is Script {
             abi.encodeWithSignature("approveRouter(address,bool)", address(helper), true)
         );
         require(s1, "Failed to approve router");
+        (bool s2, ) = REGISTRY.call(
+            abi.encodeWithSignature("approveIdentityRouter(address,bool)", address(helper), true)
+        );
+        require(s2, "Failed to approve identity router");
         console.log("Helper approved as router");
 
         // 3. Activate session for helper (sender in beforeAddLiquidity is helper, not deployer)

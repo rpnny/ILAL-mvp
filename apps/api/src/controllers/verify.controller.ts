@@ -4,7 +4,7 @@
 
 import type { Request, Response } from 'express';
 import { z } from 'zod';
-import { type Address, type Hex, keccak256, toHex, concat } from 'viem';
+import { type Address, type Hex, keccak256, toHex, getAddress } from 'viem';
 import { blockchainService } from '../services/blockchain.service.js';
 import { prisma } from '../config/database.js';
 import { logger } from '../config/logger.js';
@@ -29,6 +29,15 @@ function computeProofHash(proof: string, publicInputs: string[]): string {
   return keccak256(toHex(payload));
 }
 
+async function assertInstitutionAccess(userId: string, userAddress: Address): Promise<boolean> {
+  const institution = await prisma.institution.findUnique({
+    where: { walletAddress: userAddress },
+    select: { userId: true },
+  });
+
+  return !!institution && institution.userId === userId;
+}
+
 /**
  * Verify ZK Proof and activate session
  * POST /api/v1/verify
@@ -47,6 +56,16 @@ export async function verifyAndActivate(req: Request, res: Response): Promise<vo
         success: false,
         error: 'Unauthorized',
         message: 'Authenticated user context is required',
+      });
+      return;
+    }
+
+    const ownsInstitution = await assertInstitutionAccess(userId, userAddress);
+    if (!ownsInstitution) {
+      res.status(403).json({
+        success: false,
+        error: 'Forbidden',
+        message: 'You can only verify proofs for institutions owned by your account',
       });
       return;
     }
@@ -382,14 +401,29 @@ export async function renewSession(req: Request, res: Response): Promise<void> {
  */
 export async function getSessionStatus(req: Request, res: Response): Promise<void> {
   try {
-    const address = req.params.address;
+    const userId = req.apiKey?.userId ?? req.user?.userId;
+    if (!userId) {
+      res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
+      return;
+    }
+
+    const rawAddress = req.params.address;
+    const address = Array.isArray(rawAddress) ? rawAddress[0] : rawAddress;
 
     if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address as string)) {
       res.status(400).json({ error: 'Bad Request', message: 'Invalid Ethereum address' });
       return;
     }
 
-    const userAddress = address as Address;
+    const userAddress = getAddress(address) as Address;
+    const ownsInstitution = await assertInstitutionAccess(userId, userAddress);
+    if (!ownsInstitution) {
+      res.status(403).json({
+        error: 'Forbidden',
+        message: 'You can only query session status for institutions owned by your account',
+      });
+      return;
+    }
 
     const [isActive, remaining] = await Promise.all([
       blockchainService.isSessionActive(userAddress),
@@ -399,6 +433,7 @@ export async function getSessionStatus(req: Request, res: Response): Promise<voi
     res.json({
       address: userAddress,
       isActive,
+      active: isActive,
       remainingSeconds: remaining,
       expiresAt: isActive ? new Date(Date.now() + remaining * 1000).toISOString() : null,
     });

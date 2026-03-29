@@ -30,6 +30,7 @@ interface IRegistry {
     event IssuerRevoked(bytes32 indexed issuerId);
 
     event RouterApproved(address indexed router, bool approved);
+    event IdentityRouterApproved(address indexed router, bool approved);
 
     event SessionTTLUpdated(uint256 oldTTL, uint256 newTTL);
 
@@ -63,6 +64,8 @@ interface IRegistry {
     function approveRouter(address router, bool approved) external;
 
     function isRouterApproved(address router) external view returns (bool);
+    function approveIdentityRouter(address router, bool approved) external;
+    function isIdentityRouter(address router) external view returns (bool);
 
     // ============ 参数管理 ============
 

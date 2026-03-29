@@ -66,6 +66,7 @@ contract AttackVectors is Test {
         vm.startPrank(governance);
         registry.registerIssuer(keccak256("CB"), makeAddr("att"), address(verifier));
         registry.approveRouter(router, true);
+        registry.approveIdentityRouter(router, true);
         vm.stopPrank();
 
         verifier.setUserAllowed(alice, true);
@@ -199,6 +200,20 @@ contract AttackVectors is Test {
         vm.prank(mockPM);
         vm.expectRevert();
         hook.beforeSwap(router, _pk(), _sp(), hd);
+    }
+
+    function test_S4_Mode2RejectedForGenericApprovedRouter() public {
+        address genericRouter = makeAddr("genericRouter");
+
+        vm.startPrank(governance);
+        registry.approveRouter(genericRouter, true);
+        vm.stopPrank();
+
+        _activate(alice);
+
+        vm.prank(mockPM);
+        vm.expectRevert(abi.encodeWithSelector(ComplianceHook.IdentityRouterRequired.selector, genericRouter));
+        hook.beforeSwap(genericRouter, _pk(), _sp(), abi.encode(alice));
     }
 
     // ════════════════════════════════════════════

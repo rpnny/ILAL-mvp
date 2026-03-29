@@ -74,6 +74,8 @@ contract ComplianceInvariantTest is StdInvariant, Test {
 
         vm.prank(governance);
         registry.approveRouter(router, true);
+        vm.prank(governance);
+        registry.approveIdentityRouter(router, true);
 
         // 设置 Fuzz 目标
         targetContract(address(hook));

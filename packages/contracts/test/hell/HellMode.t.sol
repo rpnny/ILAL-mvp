@@ -105,6 +105,7 @@ contract HellModeTest is Test {
         vm.startPrank(governance);
         registry.registerIssuer(COINBASE_ID, makeAddr("coinbaseAttester"), address(verifier));
         registry.approveRouter(router, true);
+        registry.approveIdentityRouter(router, true);
         vm.stopPrank();
 
         // 允许 Alice

@@ -28,6 +28,9 @@ contract Registry is IRegistry, UUPSUpgradeable, OwnableUpgradeable {
     /// @notice 受信路由器白名单
     mapping(address => bool) private _routerWhitelist;
 
+    /// @notice 允许使用 Mode 2 身份转发的严格路由白名单
+    mapping(address => bool) private _identityRouterWhitelist;
+
     /// @notice 会话有效期 (默认 24 小时)
     uint256 private _sessionTTL;
 
@@ -48,6 +51,7 @@ contract Registry is IRegistry, UUPSUpgradeable, OwnableUpgradeable {
     error InvalidTTL();
     error ZeroAddress();
     error VerifierAlreadyAssigned();
+    error RouterNotApproved();
 
     // ============ 初始化 ============
 
@@ -164,6 +168,10 @@ contract Registry is IRegistry, UUPSUpgradeable, OwnableUpgradeable {
         if (router == address(0)) revert ZeroAddress();
 
         _routerWhitelist[router] = approved;
+        if (!approved && _identityRouterWhitelist[router]) {
+            _identityRouterWhitelist[router] = false;
+            emit IdentityRouterApproved(router, false);
+        }
 
         emit RouterApproved(router, approved);
     }
@@ -171,6 +179,20 @@ contract Registry is IRegistry, UUPSUpgradeable, OwnableUpgradeable {
     /// @inheritdoc IRegistry
     function isRouterApproved(address router) external view override returns (bool) {
         return _routerWhitelist[router];
+    }
+
+    /// @inheritdoc IRegistry
+    function approveIdentityRouter(address router, bool approved) external override onlyOwner {
+        if (router == address(0)) revert ZeroAddress();
+        if (approved && !_routerWhitelist[router]) revert RouterNotApproved();
+
+        _identityRouterWhitelist[router] = approved;
+        emit IdentityRouterApproved(router, approved);
+    }
+
+    /// @inheritdoc IRegistry
+    function isIdentityRouter(address router) external view override returns (bool) {
+        return _identityRouterWhitelist[router];
     }
 
     // ============ 参数管理 ============
@@ -226,5 +248,5 @@ contract Registry is IRegistry, UUPSUpgradeable, OwnableUpgradeable {
         return "1.0.0";
     }
 
-    uint256[45] private __gap;
+    uint256[44] private __gap;
 }

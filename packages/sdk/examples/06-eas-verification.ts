@@ -1,98 +1,69 @@
 /**
  * Example 6: EAS Verification
  * 展示如何检查用户的合规验证状态
+ *
+ * 运行:
+ *   PRIVATE_KEY=0x... npx tsx packages/sdk/examples/06-eas-verification.ts
  */
 
 import { ILALClient } from '@ilal/sdk';
+import { createPublicClient, createWalletClient, http, type Hex } from 'viem';
+import { baseSepolia } from 'viem/chains';
+import { privateKeyToAccount } from 'viem/accounts';
 
-declare const client: ILALClient;
+const PRIVATE_KEY = process.env.PRIVATE_KEY as Hex;
+if (!PRIVATE_KEY) { console.error('❌ Set PRIVATE_KEY env var'); process.exit(1); }
+
+const account      = privateKeyToAccount(PRIVATE_KEY);
+const walletClient = createWalletClient({ account, chain: baseSepolia, transport: http('https://sepolia.base.org') });
+const publicClient = createPublicClient({ chain: baseSepolia, transport: http('https://sepolia.base.org') });
+
+const client = new ILALClient({ walletClient, publicClient, chainId: 84532 });
 
 async function easVerificationExample() {
   const userAddress = client.getUserAddress()!;
+  console.log('Wallet:', userAddress);
 
-  // 1. 检查 Coinbase 验证状态
-  console.log('Checking Coinbase verification...');
-  
+  // 1. Check Coinbase verification status
+  console.log('\n1. Checking Coinbase verification...');
   const coinbaseVerification = await client.eas.checkCoinbaseVerification(userAddress);
 
   if (coinbaseVerification.isVerified) {
     console.log('✅ User is verified by Coinbase');
-    console.log('Attestation ID:', coinbaseVerification.attestationId);
-    console.log('Attestation data:', coinbaseVerification.attestationData);
+    console.log('   Attestation ID:', coinbaseVerification.attestationId);
   } else {
-    console.log('❌ User not verified by Coinbase');
+    console.log('❌ User not verified by Coinbase (expected on testnet)');
   }
 
-  // 2. 查询所有 Provider（Coinbase + 自定义）
+  // 2. Query all providers (Coinbase + custom)
+  console.log('\n2. Checking all providers...');
   const allVerification = await client.eas.checkAllProviders(userAddress);
+  console.log('   Any provider verified:', allVerification.isVerified);
 
-  if (allVerification.isVerified) {
-    console.log('✅ User has valid compliance attestation');
-  } else {
-    console.log('❌ No valid attestation found');
-  }
-
-  // 3. 确保用户已验证（否则抛出错误）
-  try {
-    await client.eas.ensureVerified(userAddress);
-    console.log('Verification passed, can proceed with swap/liquidity');
-  } catch (error) {
-    console.error('Verification failed, cannot proceed');
-  }
-
-  // 4. 获取简单验证结果
+  // 3. Get simple verification result
+  console.log('\n3. Getting verification summary...');
   const verification = await client.eas.getVerification(userAddress);
-  console.log('Verification result:', verification);
-}
+  console.log('   Result:', JSON.stringify(verification, null, 2));
 
-// 注册自定义 KYC Provider
-function customProviderExample() {
-  // 示例：Ondo Finance KYC Provider
+  // 4. Register a custom KYC provider (example — does not call external API)
+  console.log('\n4. Registering custom KYC provider (mock)...');
   client.eas.registerProvider({
-    name: 'Ondo KYB',
-    attesterAddress: '0x...' as `0x${string}`,
-    schemaUID: '0x...' as `0x${string}`,
-    verify: async (userAddress, publicClient) => {
-      // 从 Ondo 的合约/API 查询 KYC 状态
-      const isVerified = await checkOndoKYC(userAddress);
-      
-      if (isVerified) {
-        // 返回 attestation 数据
-        return {
-          uid: '0x...',
-          schema: '0x...',
-          // ... 其他字段
-        };
-      }
-      
-      return null;
-    },
+    name: 'Demo KYC Provider',
+    attesterAddress: '0x0000000000000000000000000000000000000001' as `0x${string}`,
+    schemaUID: '0x0000000000000000000000000000000000000000000000000000000000000001' as `0x${string}`,
+    verify: async () => null,
   });
+  console.log('   Custom provider registered');
 
-  // 查询时会自动包含自定义 Provider
-  return client.eas.checkAllProviders('0x...' as `0x${string}`);
-}
-
-// 模拟 attestation（仅用于测试）
-function mockAttestationExample() {
-  const userAddress = '0x...' as `0x${string}`;
-
-  // 正常有效凭证
+  // 5. Create mock attestations for testing
+  console.log('\n5. Creating mock attestations...');
   const normalAttestation = client.eas.createMockAttestation(userAddress, 'normal');
+  console.log('   Normal attestation:', normalAttestation ? 'created' : 'failed');
 
-  // 已过期凭证（用于测试拒绝逻辑）
   const expiredAttestation = client.eas.createMockAttestation(userAddress, 'expired');
+  console.log('   Expired attestation:', expiredAttestation ? 'created' : 'failed');
 
-  // 已撤销凭证（用于测试拒绝逻辑）
-  const revokedAttestation = client.eas.createMockAttestation(userAddress, 'revoked');
-
-  console.log('Mock attestations created for testing');
+  console.log('\n✅ EAS verification example complete');
 }
 
-// 辅助函数示例
-async function checkOndoKYC(userAddress: string): Promise<boolean> {
-  // 实际实现应该查询 Ondo 的合约或 API
-  return false;
-}
-
-easVerificationExample().catch(console.error);
+easVerificationExample().catch((err) => { console.error(err); process.exit(1); });

@@ -8,8 +8,6 @@ import { apiKeyMiddleware, requirePermission } from '../middleware/apikey.middle
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { dynamicRateLimiter, preAuthVerifyRateLimiter } from '../middleware/ratelimit.middleware.js';
 import { usageTrackingMiddleware, quotaCheckMiddleware } from '../middleware/usage.middleware.js';
-import { blockchainService } from '../services/blockchain.service.js';
-import { getAddress } from 'viem';
 
 const router: Router = Router();
 
@@ -20,26 +18,13 @@ const router: Router = Router();
  */
 router.get('/session', authMiddleware, async (req: Request, res: Response) => {
     const { address } = req.query as { address?: string };
-
     if (!address) {
-        return res.status(400).json({ error: 'Missing required query param: address' });
+        res.status(400).json({ error: 'Missing required query param: address' });
+        return;
     }
 
-    try {
-        const checksummed = getAddress(address);
-        const [active, remainingSeconds] = await Promise.all([
-            blockchainService.isSessionActive(checksummed),
-            blockchainService.getRemainingTime(checksummed),
-        ]);
-
-        const expiresAt = active
-            ? Math.floor(Date.now() / 1000) + remainingSeconds
-            : null;
-
-        return res.json({ active, remainingSeconds, expiresAt });
-    } catch (err: any) {
-        return res.status(400).json({ error: err.message });
-    }
+    req.params.address = address;
+    await verifyController.getSessionStatus(req, res);
 });
 
 router.post('/renew', authMiddleware, verifyController.renewSession);

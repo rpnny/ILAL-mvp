@@ -37,7 +37,7 @@ interface TradingConfig {
   rpcUrl: string;
   apiBaseUrl: string;
   apiKey: string;
-  maxPositionUSDC: bigint;
+  maxPositionMUSD: bigint;
   maxSlippage: number;
   sessionAutoRenewThreshold: number;
 }
@@ -47,7 +47,7 @@ const CONFIG: TradingConfig = {
   rpcUrl: process.env.RPC_URL || 'https://sepolia.base.org',
   apiBaseUrl: process.env.ILAL_API_URL || 'https://ilal-mvp-production.up.railway.app',
   apiKey: process.env.ILAL_API_KEY!,
-  maxPositionUSDC: parseUnits('1000', 6),
+  maxPositionMUSD: parseEther('1000'),
   maxSlippage: 0.5,
   sessionAutoRenewThreshold: 3600,
 };
@@ -165,7 +165,7 @@ class InstitutionalTradingSystem {
   // ─── 3. 交易执行 ───
 
   async swap(params: {
-    direction: 'buy_weth' | 'sell_weth';
+    direction: 'buy_mTBILL' | 'sell_mTBILL';
     amount: bigint;
     reason: string;
   }): Promise<SwapResult> {
@@ -174,20 +174,20 @@ class InstitutionalTradingSystem {
     }
     await this.ensureSession();
 
-    const { USDC, WETH } = BASE_SEPOLIA_TOKENS;
-    const isBuy = params.direction === 'buy_weth';
+    const { mUSD, mTBILL } = BASE_SEPOLIA_TOKENS;
+    const isBuy = params.direction === 'buy_mTBILL';
 
-    const tokenIn = isBuy ? USDC : WETH;
-    const tokenOut = isBuy ? WETH : USDC;
+    const tokenIn = isBuy ? mUSD : mTBILL;
+    const tokenOut = isBuy ? mTBILL : mUSD;
 
-    if (isBuy && params.amount > CONFIG.maxPositionUSDC) {
+    if (isBuy && params.amount > CONFIG.maxPositionMUSD) {
       throw new Error(
-        `Buy amount ${formatUnits(params.amount, 6)} USDC exceeds configured maxPositionUSDC`
+        `Buy amount ${formatEther(params.amount)} mUSD exceeds configured maxPositionMUSD`
       );
     }
     const label = isBuy
-      ? `Buy WETH (${formatUnits(params.amount, 6)} USDC)`
-      : `Sell WETH (${formatEther(params.amount)} WETH)`;
+      ? `Buy mTBILL (${formatEther(params.amount)} mUSD)`
+      : `Sell mTBILL (${formatEther(params.amount)} mTBILL)`;
 
     console.log(`\n📊 Executing: ${label}`);
     console.log(`   Reason: ${params.reason}`);
@@ -231,17 +231,17 @@ class InstitutionalTradingSystem {
   }) {
     await this.ensureSession();
 
-    const { USDC, WETH } = BASE_SEPOLIA_TOKENS;
+    const { mUSD, mTBILL } = BASE_SEPOLIA_TOKENS;
 
     console.log(`\n💧 Adding liquidity:`);
-    console.log(`   USDC: ${formatUnits(params.usdcAmount, 6)}`);
-    console.log(`   WETH: ${formatEther(params.wethAmount)}`);
+    console.log(`   mUSD:   ${formatEther(params.usdcAmount)}`);
+    console.log(`   mTBILL: ${formatEther(params.wethAmount)}`);
     console.log(`   Range: [${params.tickLower}, ${params.tickUpper}]`);
 
     const result = await this.client.liquidity.add({
       poolKey: {
-        currency0: USDC,
-        currency1: WETH,
+        currency0: mUSD,
+        currency1: mTBILL,
         fee: 500,
         tickSpacing: 10,
         hooks: this.client.addresses.complianceHook,
@@ -270,23 +270,23 @@ class InstitutionalTradingSystem {
   // ─── 5. 风控 & 监控 ───
 
   async getBalances() {
-    const { USDC, WETH } = BASE_SEPOLIA_TOKENS;
-    const [usdcBal, wethBal] = await Promise.all([
-      this.client.swap.getBalance(USDC),
-      this.client.swap.getBalance(WETH),
+    const { mUSD, mTBILL } = BASE_SEPOLIA_TOKENS;
+    const [musdBal, mtbillBal] = await Promise.all([
+      this.client.swap.getBalance(mUSD),
+      this.client.swap.getBalance(mTBILL),
     ]);
     return {
-      usdc: formatUnits(usdcBal, 6),
-      weth: formatEther(wethBal),
+      mUSD: formatEther(musdBal),
+      mTBILL: formatEther(mtbillBal),
     };
   }
 
   async riskCheck(): Promise<boolean> {
-    const { USDC, WETH } = BASE_SEPOLIA_TOKENS;
-    const usdcBal = await this.client.swap.getBalance(USDC);
+    const { mUSD } = BASE_SEPOLIA_TOKENS;
+    const musdBal = await this.client.swap.getBalance(mUSD);
 
-    if (usdcBal > CONFIG.maxPositionUSDC) {
-      console.log(`⚠️  USDC balance (${formatUnits(usdcBal, 6)}) exceeds max position`);
+    if (musdBal > CONFIG.maxPositionMUSD) {
+      console.log(`⚠️  mUSD balance (${formatEther(musdBal)}) exceeds max position`);
     }
 
     const sessionInfo = await this.client.session.getInfo();
@@ -339,27 +339,27 @@ async function main() {
 
   // 2. 检查余额
   const bal = await system.getBalances();
-  console.log(`\n💰 Balances: USDC=${bal.usdc} | WETH=${bal.weth}`);
+  console.log(`\n💰 Balances: mUSD=${bal.mUSD} | mTBILL=${bal.mTBILL}`);
 
   // 3. 确保 session
   await system.ensureSession();
 
   // 4. 执行交易序列（模拟做市商操作）
   await system.swap({
-    direction: 'buy_weth',
-    amount: parseUnits('0.02', 6),
+    direction: 'buy_mTBILL',
+    amount: parseEther('0.02'),
     reason: 'Opening long position',
   });
 
   await system.swap({
-    direction: 'buy_weth',
-    amount: parseUnits('0.01', 6),
+    direction: 'buy_mTBILL',
+    amount: parseEther('0.01'),
     reason: 'DCA — price dip',
   });
 
   await system.swap({
-    direction: 'buy_weth',
-    amount: parseUnits('0.03', 6),
+    direction: 'buy_mTBILL',
+    amount: parseEther('0.03'),
     reason: 'Rebalance portfolio',
   });
 
@@ -371,7 +371,7 @@ async function main() {
 
   // 7. 最终余额
   const finalBal = await system.getBalances();
-  console.log(`\n💰 Final: USDC=${finalBal.usdc} | WETH=${finalBal.weth}`);
+  console.log(`\n💰 Final: mUSD=${finalBal.mUSD} | mTBILL=${finalBal.mTBILL}`);
 
   // 8. 打印总结
   system.printSummary();

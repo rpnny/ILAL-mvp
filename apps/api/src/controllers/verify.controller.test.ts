@@ -9,7 +9,7 @@ const verifyControllerModule = await import('./verify.controller.ts');
 const databaseModule = await import('../config/database.js');
 const blockchainModule = await import('../services/blockchain.service.js');
 
-const { verifyAndActivate, renewSession } = verifyControllerModule;
+const { verifyAndActivate, renewSession, getSessionStatus } = verifyControllerModule;
 const { prisma } = databaseModule;
 const { blockchainService } = blockchainModule;
 
@@ -24,6 +24,7 @@ const originalProofRecordCreate = prisma.proofRecord.create.bind(prisma.proofRec
 const originalProofRecordDelete = prisma.proofRecord.delete.bind(prisma.proofRecord);
 const originalUserUpdate = prisma.user.update.bind(prisma.user);
 const originalUserFindUnique = prisma.user.findUnique.bind(prisma.user);
+const originalInstitutionFindUnique = prisma.institution.findUnique.bind(prisma.institution);
 const originalIsSessionActive = blockchainService.isSessionActive.bind(blockchainService);
 const originalGetRemainingTime = blockchainService.getRemainingTime.bind(blockchainService);
 const originalVerifyProof = blockchainService.verifyProof.bind(blockchainService);
@@ -74,6 +75,7 @@ function restoreMocks() {
   prisma.proofRecord.delete = originalProofRecordDelete;
   prisma.user.update = originalUserUpdate;
   prisma.user.findUnique = originalUserFindUnique;
+  prisma.institution.findUnique = originalInstitutionFindUnique;
   blockchainService.isSessionActive = originalIsSessionActive;
   blockchainService.getRemainingTime = originalGetRemainingTime;
   blockchainService.verifyProof = originalVerifyProof;
@@ -88,6 +90,7 @@ test('verifyAndActivate rejects duplicate proofHash before expensive verificatio
   const req = makeVerifyRequest();
   const res = createMockResponse();
 
+  prisma.institution.findUnique = async () => ({ userId: 'user-1' } as any);
   blockchainService.isSessionActive = async () => false;
   prisma.proofRecord.create = async () => {
     const error: any = new Error('duplicate');
@@ -117,6 +120,7 @@ test('verifyAndActivate rolls back reserved proof when verifier rejects proof', 
   const res = createMockResponse();
   let deletedProofHash: string | undefined;
 
+  prisma.institution.findUnique = async () => ({ userId: 'user-1' } as any);
   blockchainService.isSessionActive = async () => false;
   prisma.proofRecord.create = async () => ({ id: 'proof-1' } as any);
   prisma.proofRecord.delete = async ({ where }: any) => {
@@ -141,6 +145,7 @@ test('verifyAndActivate rolls back reserved proof when startSession fails', asyn
   const res = createMockResponse();
   let deletedProofHash: string | undefined;
 
+  prisma.institution.findUnique = async () => ({ userId: 'user-1' } as any);
   blockchainService.isSessionActive = async () => false;
   prisma.proofRecord.create = async () => ({ id: 'proof-1' } as any);
   prisma.proofRecord.delete = async ({ where }: any) => {
@@ -162,6 +167,28 @@ test('verifyAndActivate rolls back reserved proof when startSession fails', asyn
     message: 'relay failed',
   });
   assert.ok(deletedProofHash);
+});
+
+test('verifyAndActivate rejects proofs for institutions owned by another account', async () => {
+  const req = makeVerifyRequest();
+  const res = createMockResponse();
+  let verifyProofCalled = false;
+
+  prisma.institution.findUnique = async () => ({ userId: 'user-2' } as any);
+  blockchainService.verifyProof = async () => {
+    verifyProofCalled = true;
+    return true;
+  };
+
+  await verifyAndActivate(req, res as any);
+
+  assert.equal(res.statusCode, 403);
+  assert.deepEqual(res.body, {
+    success: false,
+    error: 'Forbidden',
+    message: 'You can only verify proofs for institutions owned by your account',
+  });
+  assert.equal(verifyProofCalled, false);
 });
 
 test('renewSession increments renewalCount when prior verification metadata exists', async () => {
@@ -225,5 +252,23 @@ test('renewSession rejects accounts without prior ZK verification metadata', asy
   assert.equal(res.statusCode, 403);
   assert.deepEqual(res.body, {
     error: 'No prior ZK verification found. Submit a proof via POST /api/v1/verify first.',
+  });
+});
+
+test('getSessionStatus rejects querying institutions owned by another account', async () => {
+  const req = {
+    params: { address: '0x1111111111111111111111111111111111111111' },
+    user: { userId: 'user-1' },
+  } as any;
+  const res = createMockResponse();
+
+  prisma.institution.findUnique = async () => ({ userId: 'user-2' } as any);
+
+  await getSessionStatus(req, res as any);
+
+  assert.equal(res.statusCode, 403);
+  assert.deepEqual(res.body, {
+    error: 'Forbidden',
+    message: 'You can only query session status for institutions owned by your account',
   });
 });

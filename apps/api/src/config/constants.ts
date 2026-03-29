@@ -99,9 +99,11 @@ export function validateConfig() {
   ];
 
   const requiredInProduction = [
+    'CORS_ORIGIN',
     'EXPECTED_MERKLE_ROOT',
     'EXPECTED_ISSUER_AX',
     'EXPECTED_ISSUER_AY',
+    'JWT_REFRESH_SECRET',
     'VERIFIER_PRIVATE_KEY',
   ];
 

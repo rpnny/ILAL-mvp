@@ -67,6 +67,7 @@ contract ComplianceHookTest is Test {
 
         // 批准路由器
         registry.approveRouter(router, true);
+        registry.approveIdentityRouter(router, true);
         vm.stopPrank();
     }
     
@@ -242,6 +243,24 @@ contract ComplianceHookTest is Test {
         PoolKey memory key = _createPoolKey();
         IPoolManager.SwapParams memory params = _createSwapParams();
         hook.beforeSwap(alice, key, params, hookData);
+    }
+
+    function test_RevertWhen_Mode2RouterIsNotIdentityApproved() public {
+        address genericRouter = makeAddr("genericRouter");
+
+        vm.startPrank(admin);
+        registry.approveRouter(genericRouter, true);
+        vm.stopPrank();
+
+        vm.prank(address(verifier));
+        sessionManager.startSession(alice, block.timestamp + 24 hours);
+
+        bytes memory hookData = abi.encode(alice);
+        vm.prank(POOL_MANAGER);
+        vm.expectRevert(abi.encodeWithSelector(ComplianceHook.IdentityRouterRequired.selector, genericRouter));
+        PoolKey memory key = _createPoolKey();
+        IPoolManager.SwapParams memory params = _createSwapParams();
+        hook.beforeSwap(genericRouter, key, params, hookData);
     }
 
     // ============ 查询函数测试 ============
