@@ -39,7 +39,7 @@ export async function register(
   name?: string,
   inviteCode?: string
 ): Promise<{ accessToken: string; refreshToken: string; user: User }> {
-  return apiFetch(`${API_URL}/api/v1/auth/register`, {
+  return apiFetch(`/api/v1/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password, name, inviteCode }),
