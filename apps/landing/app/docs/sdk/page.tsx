@@ -3,7 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Copy, Check, ArrowRight, Zap } from 'lucide-react';
 
-const BASE = 'https://ilalapi-production.up.railway.app/api/v1';
+const BASE = 'https://ilal-mvp-production.up.railway.app/api/v1';
 
 function Code({ children, lang }: { children: string; lang?: string }) {
     const [copied, setCopied] = useState(false);

@@ -11,7 +11,7 @@ import { logger } from '../config/logger.js';
 // Request validation schemas
 const createApiKeySchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
-  permissions: z.array(z.string()).default(['verify', 'session']),
+  permissions: z.array(z.string()).default(['verify', 'session', 'defi:swap', 'defi:liquidity', 'usage:read']),
   rateLimit: z.number().int().min(1).max(10000).optional(),
   expiresIn: z.number().int().positive().optional(), // Expiration period (days)
 });

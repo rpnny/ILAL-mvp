@@ -54,7 +54,7 @@ export default function ApiKeysPage() {
   async function handleCreateKey(name: string) {
     const token = getAccessToken();
     if (!token) throw new Error('Not logged in');
-    const response = await createApiKey(token, name);
+    const response = await createApiKey(token, name, ['verify', 'session', 'defi:swap', 'defi:liquidity', 'usage:read']);
     await loadApiKeys();
     return { key: response.apiKey || '', prefix: response.keyPrefix };
   }

@@ -19,7 +19,7 @@ export default function DocsPage() {
       <div className="bg-white/[0.03] border border-white/10 rounded-xl p-5 mb-10 flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="flex-1">
           <div className="text-xs text-gray-500 uppercase tracking-widest mb-1">API Base URL</div>
-          <code className="text-[#00F0FF] font-mono text-sm">https://ilalapi-production.up.railway.app/api/v1</code>
+          <code className="text-[#00F0FF] font-mono text-sm">https://ilal-mvp-production.up.railway.app/api/v1</code>
         </div>
         <div className="text-xs text-gray-500 bg-white/[0.04] px-3 py-1.5 rounded-lg">
           Authentication: <span className="text-gray-300">X-API-Key header</span>
