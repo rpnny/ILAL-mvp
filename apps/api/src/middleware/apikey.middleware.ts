@@ -104,7 +104,7 @@ export async function apiKeyMiddleware(
     // Fire-and-forget last used update
     prisma.apiKey.update({
       where: { id: matchedKey.id },
-      data: { lastUsedAt: new Date() },
+      data: { lastUsedAt: new Date().toISOString() },
     }).catch((err: any) => {
       logger.error('Failed to update API Key lastUsedAt', { error: err.message });
     });
