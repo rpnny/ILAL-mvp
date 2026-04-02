@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { CheckCircle2, XCircle, ArrowRight } from 'lucide-react';
 
-const BASE = 'https://ilalapi-production.up.railway.app/api/v1';
+const BASE = 'https://ilal-mvp-production.up.railway.app/api/v1';
 
 type Endpoint = {
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
@@ -74,28 +74,30 @@ const sections: { title: string; endpoints: Endpoint[] }[] = [
     title: 'DeFi — Transaction Builder',
     endpoints: [
       {
-        method: 'POST', path: '/defi/swap', description: 'Build an unsigned Uniswap V4 swap transaction. Returns calldata for the caller to sign and broadcast with their own wallet.', auth: 'api-key',
+        method: 'POST', path: '/defi/swap', description: 'Build an unsigned Uniswap V4 swap transaction. Returns calldata + preflight session check. Use ?requireActiveSession=true to get 412 if session is inactive.', auth: 'both',
         body: {
           tokenIn: 'address — token to sell',
-          tokenOut: 'address — token to buy',
-          amount: 'string — amount in wei (exact input)',
-          zeroForOne: 'boolean — true if tokenIn < tokenOut by address',
+          tokenOut: 'address — token to buy (must differ from tokenIn)',
+          amount: 'string — positive integer in wei (exact input)',
+          zeroForOne: 'boolean — must match tokenIn < tokenOut',
           userAddress: 'address — caller\'s wallet address (for ComplianceHook)'
         },
-        response: '{ success, transaction: { to, data, value, chainId, gas }, instructions, params }'
+        params: { requireActiveSession: 'boolean (optional) — if true, returns 412 when session inactive' },
+        response: '{ success, transaction: { to, data, value, chainId, gas }, preflight: { sessionActive, canBroadcastSafely, warning? }, authMethod }'
       },
       {
-        method: 'POST', path: '/defi/liquidity', description: 'Build an unsigned Uniswap V4 liquidity mint transaction. Returns calldata for the caller to sign and broadcast.', auth: 'api-key',
+        method: 'POST', path: '/defi/liquidity', description: 'Build an unsigned Uniswap V4 liquidity mint transaction. Returns calldata + preflight session check.', auth: 'both',
         body: {
           token0: 'address (must be < token1)',
           token1: 'address (must be > token0)',
-          amount0: 'string — liquidity amount (uint128)',
-          amount1: 'string — secondary amount (informational)',
-          tickLower: 'number — optional, default -600',
-          tickUpper: 'number — optional, default 600',
+          amount0: 'string — non-negative integer (at least one must be > 0)',
+          amount1: 'string — non-negative integer (at least one must be > 0)',
+          tickLower: 'number — optional, must be < tickUpper',
+          tickUpper: 'number — optional, must be > tickLower',
           userAddress: 'address — caller\'s wallet address'
         },
-        response: '{ success, transaction: { to, data, value, chainId, gas }, instructions, params }'
+        params: { requireActiveSession: 'boolean (optional) — if true, returns 412 when session inactive' },
+        response: '{ success, transaction: { to, data, value, chainId, gas }, preflight: { sessionActive, canBroadcastSafely, warning? }, authMethod }'
       }
     ]
   },
@@ -103,8 +105,8 @@ const sections: { title: string; endpoints: Endpoint[] }[] = [
     title: 'Usage & Billing',
     endpoints: [
       {
-        method: 'GET', path: '/usage/stats', description: 'Get API usage statistics for the current period.', auth: 'both',
-        response: '{ totalCalls, successRate, callsThisMonth, limit }'
+        method: 'GET', path: '/usage/stats', description: 'Get API usage statistics for the current billing period.', auth: 'both',
+        response: '{ usage: { totalCalls, successfulCalls, failedCalls, totalCost, byEndpoint }, quota: { limit, remaining, resetDate }, plan: { current, limits } }  Note: limit = -1 means unlimited.'
       },
       {
         method: 'GET', path: '/billing/plans', description: 'List available subscription plans and their limits.', auth: 'none',
@@ -139,9 +141,15 @@ export default function EndpointsPage() {
           <div className="text-xs text-gray-500 uppercase tracking-widest mb-1">Base URL</div>
           <code className="text-[#00F0FF] font-mono">{BASE}</code>
         </div>
-        <div className="sm:ml-auto flex gap-3 text-xs font-mono">
-          <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded">Authorization: Bearer TOKEN</span>
-          <span className="px-2 py-1 bg-[#00F0FF]/20 text-[#00F0FF] rounded">X-API-Key: YOUR_KEY</span>
+        <div className="sm:ml-auto flex flex-col gap-2 text-xs font-mono">
+          <div className="flex gap-3">
+            <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded">Authorization: Bearer TOKEN</span>
+            <span className="text-gray-500 font-sans">JWT (frontend)</span>
+          </div>
+          <div className="flex gap-3">
+            <span className="px-2 py-1 bg-[#00F0FF]/20 text-[#00F0FF] rounded">X-API-Key: YOUR_KEY</span>
+            <span className="text-gray-500 font-sans">API Key (server-to-server)</span>
+          </div>
         </div>
       </div>
 
@@ -205,9 +213,10 @@ export default function EndpointsPage() {
             { code: '200 OK', desc: 'Request succeeded', color: 'text-green-400', ok: true },
             { code: '201 Created', desc: 'Resource created successfully', color: 'text-green-400', ok: true },
             { code: '400 Bad Request', desc: 'Invalid or missing parameters', color: 'text-yellow-400', ok: false },
-            { code: '401 Unauthorized', desc: 'Missing or invalid API key / JWT', color: 'text-red-400', ok: false },
+            { code: '401 Unauthorized', desc: 'Missing or invalid API key / JWT — check the "code" field', color: 'text-red-400', ok: false },
             { code: '403 Forbidden', desc: 'Insufficient permissions or plan limit', color: 'text-red-400', ok: false },
             { code: '404 Not Found', desc: 'Resource does not exist', color: 'text-orange-400', ok: false },
+            { code: '412 Precondition Failed', desc: 'Compliance session not active (when requireActiveSession=true)', color: 'text-orange-400', ok: false },
             { code: '429 Too Many Requests', desc: 'Rate limit exceeded', color: 'text-orange-400', ok: false },
             { code: '500 Internal Server Error', desc: 'Unexpected server error', color: 'text-red-400', ok: false },
           ].map(({ code, desc, color, ok }) => (

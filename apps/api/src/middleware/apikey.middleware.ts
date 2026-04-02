@@ -1,5 +1,13 @@
 /**
  * API Key Authentication Middleware
+ *
+ * Returns machine-readable error codes so developers can pinpoint failures:
+ *   API_KEY_MISSING          – no X-API-Key header
+ *   API_KEY_FORMAT_INVALID   – regex mismatch
+ *   API_KEY_PREFIX_NOT_FOUND – no active keys with this prefix in DB
+ *   API_KEY_HASH_MISMATCH    – bcrypt compare failed for all candidates
+ *   API_KEY_EXPIRED          – key found but past expiresAt
+ *   API_KEY_SCOPE_MISSING    – reserved for future permission checks
  */
 
 import type { Request, Response, NextFunction } from 'express';
@@ -7,7 +15,6 @@ import { prisma } from '../config/database.js';
 import { verifyApiKey, extractApiKeyPrefix, isValidApiKeyFormat } from '../utils/apiKey.js';
 import { logger } from '../config/logger.js';
 
-// Extend Express Request type
 declare global {
   namespace Express {
     interface Request {
@@ -22,10 +29,10 @@ declare global {
   }
 }
 
-/**
- * API Key Authentication Middleware
- * Extracts and validates API Key from X-API-Key header
- */
+function apiKeyError(res: Response, code: string, message: string, hint: string) {
+  res.status(401).json({ error: 'Unauthorized', code, message, hint });
+}
+
 export async function apiKeyMiddleware(
   req: Request,
   res: Response,
@@ -35,43 +42,34 @@ export async function apiKeyMiddleware(
     const apiKeyHeader = req.headers['x-api-key'] as string;
 
     if (!apiKeyHeader) {
-      res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Missing X-API-Key header',
-      });
+      apiKeyError(res, 'API_KEY_MISSING', 'Missing X-API-Key header',
+        'Include the X-API-Key header with your API key');
       return;
     }
 
-    // Validate format
     if (!isValidApiKeyFormat(apiKeyHeader)) {
-      res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Invalid API Key format',
-      });
+      apiKeyError(res, 'API_KEY_FORMAT_INVALID', 'API Key format is invalid',
+        'Expected format: ilal_{test|live}_{48 hex characters}');
       return;
     }
 
-    // Extract prefix for fast lookup
     const prefix = extractApiKeyPrefix(apiKeyHeader);
 
-    // Query API Key (filter by prefix)
+    // Include inactive keys so we can give a specific "inactive" error
     const apiKeys = await prisma.apiKey.findMany({
-      where: {
-        keyPrefix: prefix,
-        isActive: true,
-      },
+      where: { keyPrefix: prefix },
       include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            plan: true,
-          },
-        },
+        user: { select: { id: true, email: true, plan: true } },
       },
     });
 
-    // Verify API Key (compare hashes one by one)
+    if (apiKeys.length === 0) {
+      apiKeyError(res, 'API_KEY_PREFIX_NOT_FOUND',
+        'No API Key found with this prefix',
+        'Verify the key is correct, or check your API Keys dashboard');
+      return;
+    }
+
     let matchedKey: typeof apiKeys[0] | null = null;
 
     for (const key of apiKeys) {
@@ -83,31 +81,34 @@ export async function apiKeyMiddleware(
     }
 
     if (!matchedKey) {
-      res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Invalid or inactive API Key',
-      });
+      apiKeyError(res, 'API_KEY_HASH_MISMATCH',
+        'API Key hash verification failed',
+        'Ensure you are using the exact key returned at creation time');
       return;
     }
 
-    // Check expiration
+    if (!matchedKey.isActive) {
+      apiKeyError(res, 'API_KEY_INACTIVE',
+        'This API Key has been deactivated',
+        'Reactivate or create a new key in the API Keys dashboard');
+      return;
+    }
+
     if (matchedKey.expiresAt && new Date(matchedKey.expiresAt) < new Date()) {
-      res.status(401).json({
-        error: 'Unauthorized',
-        message: 'API Key has expired',
-      });
+      apiKeyError(res, 'API_KEY_EXPIRED',
+        `API Key expired at ${new Date(matchedKey.expiresAt).toISOString()}`,
+        'Generate a new API key in the dashboard');
       return;
     }
 
-    // Update last used time (async, non-blocking)
+    // Fire-and-forget last used update
     prisma.apiKey.update({
       where: { id: matchedKey.id },
-      data: { lastUsedAt: new Date().toISOString() },
+      data: { lastUsedAt: new Date() },
     }).catch((err: any) => {
       logger.error('Failed to update API Key lastUsedAt', { error: err.message });
     });
 
-    // Attach API Key and user info to request
     req.apiKey = {
       id: matchedKey.id,
       userId: matchedKey.userId,
@@ -131,7 +132,8 @@ export async function apiKeyMiddleware(
     logger.error('API Key middleware failed', { error: error.message });
     res.status(500).json({
       error: 'Internal Server Error',
-      message: 'API Key verification failed',
+      code: 'API_KEY_INTERNAL_ERROR',
+      message: 'API Key verification failed unexpectedly',
     });
   }
 }
@@ -144,7 +146,8 @@ export function requirePermission(permission: string) {
     if (!req.apiKey) {
       res.status(401).json({
         error: 'Unauthorized',
-        message: 'API Key required',
+        code: 'API_KEY_MISSING',
+        message: 'API Key required for this endpoint',
       });
       return;
     }
@@ -152,7 +155,9 @@ export function requirePermission(permission: string) {
     if (!req.apiKey.permissions.includes(permission)) {
       res.status(403).json({
         error: 'Forbidden',
+        code: 'API_KEY_SCOPE_MISSING',
         message: `Missing required permission: ${permission}`,
+        hint: `Your key has permissions: [${req.apiKey.permissions.join(', ')}]. Add '${permission}' when creating a new key.`,
       });
       return;
     }

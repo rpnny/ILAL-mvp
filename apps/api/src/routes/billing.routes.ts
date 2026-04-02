@@ -1,23 +1,17 @@
 /**
  * Billing Routes
+ * All protected endpoints use hybridAuthMiddleware (API Key or JWT).
  */
 
 import { Router } from 'express';
 import * as billingController from '../controllers/billing.controller.js';
-import { authMiddleware } from '../middleware/auth.middleware.js';
+import { hybridAuthMiddleware } from '../middleware/hybrid.middleware.js';
 
 const router: Router = Router();
 
-// GET /api/v1/usage/stats - Get usage statistics (requires auth)
-router.get('/stats', authMiddleware, billingController.getUsageStats);
-
-// GET /api/v1/billing/plans - Get plans list (public)
+router.get('/stats', hybridAuthMiddleware, billingController.getUsageStats);
 router.get('/plans', billingController.getPlans);
-
-// POST /api/v1/billing/upgrade - Upgrade plan (requires auth)
-router.post('/upgrade', authMiddleware, billingController.upgradePlan);
-
-// GET /api/v1/billing/invoices - Get billing history (requires auth)
-router.get('/invoices', authMiddleware, billingController.getInvoices);
+router.post('/upgrade', hybridAuthMiddleware, billingController.upgradePlan);
+router.get('/invoices', hybridAuthMiddleware, billingController.getInvoices);
 
 export default router;

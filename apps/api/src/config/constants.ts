@@ -79,7 +79,7 @@ export const RATE_LIMITS = {
   ENTERPRISE: {
     windowMs: 60000,
     max: Number(process.env.RATE_LIMIT_MAX_REQUESTS_ENTERPRISE) || 1000,
-    monthlyQuota: Infinity,
+    monthlyQuota: -1, // -1 = unlimited
   },
 };
 

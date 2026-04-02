@@ -65,13 +65,14 @@ class BillingService {
 
     const rateLimits = RATE_LIMITS[(plan as Plan) in RATE_LIMITS ? (plan as Plan) : 'FREE'];
     const limit = rateLimits.monthlyQuota;
-    const remaining = Math.max(0, limit - usageCount);
-    const allowed = remaining > 0 || limit === Infinity;
+    const isUnlimited = limit === -1;
+    const remaining = isUnlimited ? -1 : Math.max(0, limit - usageCount);
+    const allowed = isUnlimited || remaining > 0;
 
     return {
       allowed,
-      remaining,
-      limit,
+      remaining,  // -1 = unlimited
+      limit,      // -1 = unlimited
       resetDate: new Date(now.getFullYear(), now.getMonth() + 1, 1),
     };
   }

@@ -40,7 +40,7 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
   );
 }
 
-const BASE_URL = 'https://ilalapi-production.up.railway.app/api/v1';
+const BASE_URL = 'https://ilal-mvp-production.up.railway.app/api/v1';
 
 export default function QuickstartPage() {
   return (
@@ -63,7 +63,7 @@ export default function QuickstartPage() {
             <Key className="w-5 h-5 text-[#00F0FF] shrink-0" />
             <div>
               <div className="text-xs text-gray-500 mb-1">Your key will look like:</div>
-              <code className="text-[#00F0FF] font-mono text-sm">ilal_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</code>
+              <code className="text-[#00F0FF] font-mono text-sm">ilal_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</code>
             </div>
           </div>
           <div className="mt-3 text-sm text-yellow-400/70 flex items-start gap-2">
@@ -85,10 +85,45 @@ export default function QuickstartPage() {
           </div>
         </Step>
 
-        <Step n={3} title="Build a Swap Transaction">
+        <Step n={3} title="Verify Your Authentication">
+          <p className="text-gray-400 mb-4">
+            Test that your API Key works by calling a protected endpoint:
+          </p>
+          <CodeBlock lang="curl" code={`curl ${BASE_URL}/usage/stats \\
+  -H "X-API-Key: YOUR_API_KEY"`} />
+          <div className="mt-3">
+            <div className="text-xs text-gray-500 mb-2">Expected: 200 with usage data. If you get 401, check the <code className="bg-white/5 px-1 rounded">code</code> field:</div>
+            <div className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-3 space-y-1 text-xs font-mono">
+              <div><span className="text-red-400">API_KEY_FORMAT_INVALID</span> <span className="text-gray-500">→ key doesn&apos;t match ilal_&#123;test|live&#125;_&#123;48 hex&#125;</span></div>
+              <div><span className="text-red-400">API_KEY_PREFIX_NOT_FOUND</span> <span className="text-gray-500">→ key prefix not in database</span></div>
+              <div><span className="text-red-400">API_KEY_HASH_MISMATCH</span> <span className="text-gray-500">→ key text doesn&apos;t match stored hash</span></div>
+            </div>
+          </div>
+        </Step>
+
+        <Step n={4} title="Activate a Compliance Session (Required for On-Chain)">
+          <p className="text-gray-400 mb-4">
+            <strong className="text-yellow-400">This step is required before any on-chain transaction will succeed.</strong>{' '}
+            ILAL&apos;s ComplianceHook verifies that the caller has an active compliance session. Without one, swap and liquidity transactions will <strong className="text-white">revert on-chain</strong>.
+          </p>
+          <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-xl p-4 mb-4">
+            <div className="text-yellow-400 text-sm font-semibold mb-2">Session Activation Flow</div>
+            <ol className="text-gray-300 text-sm space-y-1 list-decimal list-inside">
+              <li>Complete KYC/onboarding via <code className="bg-white/5 px-1 rounded">POST /onboarding/submit</code></li>
+              <li>Generate a ZK proof (EdDSA-Poseidon + Merkle membership)</li>
+              <li>Submit the proof via <code className="bg-white/5 px-1 rounded">POST /verify</code> to activate on-chain session</li>
+            </ol>
+            <p className="text-gray-500 text-xs mt-2">Sessions last 24 hours with up to 6 renewals per proof.</p>
+          </div>
+          <p className="text-gray-400 mb-4">Check your session status any time:</p>
+          <CodeBlock lang="curl" code={`curl ${BASE_URL}/session/YOUR_WALLET_ADDRESS \\
+  -H "X-API-Key: YOUR_API_KEY"`} />
+        </Step>
+
+        <Step n={5} title="Build a Swap Transaction">
           <p className="text-gray-400 mb-4">
             Call <code className="text-[#00F0FF] bg-white/5 px-1.5 py-0.5 rounded text-sm">POST /defi/swap</code> with your API key.
-            The API returns <strong className="text-white">unsigned calldata</strong> — you sign and broadcast it with your own wallet.
+            The API returns <strong className="text-white">unsigned calldata</strong> plus a <code className="text-[#00F0FF] bg-white/5 px-1.5 py-0.5 rounded text-sm">preflight</code> check telling you whether broadcasting will succeed.
           </p>
 
           <CodeBlock lang="curl" code={`curl -X POST ${BASE_URL}/defi/swap \\
@@ -103,7 +138,7 @@ export default function QuickstartPage() {
   }'`} />
 
           <div className="mt-4">
-            <div className="text-xs text-gray-500 mb-2">Response — ready to sign:</div>
+            <div className="text-xs text-gray-500 mb-2">Response — includes preflight status:</div>
             <CodeBlock lang="json" code={`{
   "success": true,
   "transaction": {
@@ -113,49 +148,27 @@ export default function QuickstartPage() {
     "chainId": 84532,
     "gas":     "0x1E8480"
   },
-  "instructions": {
-    "network": "Base Sepolia (chainId: 84532)",
-    "rpcUrl":  "https://sepolia.base.org"
-  }
+  "preflight": {
+    "sessionActive": true,
+    "canBroadcastSafely": true
+  },
+  "authMethod": "api_key"
 }`} />
+          </div>
+
+          <div className="mt-3 text-sm text-yellow-400/70 flex items-start gap-2">
+            <span>⚠</span>
+            <span>If <code className="bg-white/5 px-1 rounded">preflight.sessionActive</code> is <code className="bg-white/5 px-1 rounded">false</code>, do not broadcast — the transaction will revert. Complete Step 4 first.</span>
           </div>
         </Step>
 
-        <Step n={4} title="Sign & Broadcast with Your Wallet">
+        <Step n={6} title="Sign & Broadcast with Your Wallet">
           <p className="text-gray-400 mb-4">
             Take <code className="text-[#00F0FF] bg-white/5 px-1.5 py-0.5 rounded text-sm">result.transaction</code> and send it with your own signer — ethers.js, viem, or wagmi.
           </p>
 
           <div className="space-y-4">
-            <CodeBlock lang="TypeScript (ethers.js)" code={`import { ethers } from 'ethers';
-
-const provider = new ethers.JsonRpcProvider('https://sepolia.base.org');
-const signer = new ethers.Wallet(YOUR_PRIVATE_KEY, provider);
-
-// 1. Build the tx via ILAL API
-const res = await fetch('${BASE_URL}/defi/swap', {
-  method: 'POST',
-  headers: {
-    'X-API-Key': 'YOUR_API_KEY',
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    tokenIn:     '0x4200000000000000000000000000000000000006',
-    tokenOut:    '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
-    amount:      '1000000000000000',
-    zeroForOne:  true,
-    userAddress: await signer.getAddress(),
-  }),
-});
-const { transaction } = await res.json();
-
-// 2. Sign and broadcast — your key, your transaction
-const tx = await signer.sendTransaction(transaction);
-console.log('Tx hash:', tx.hash);
-await tx.wait();
-console.log('Swap confirmed ✓');`} />
-
-            <CodeBlock lang="TypeScript (viem)" code={`import { createWalletClient, createPublicClient, http } from 'viem';
+            <CodeBlock lang="TypeScript (viem)" code={`import { createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { baseSepolia } from 'viem/chains';
 
@@ -174,9 +187,15 @@ const res = await fetch('${BASE_URL}/defi/swap', {
     userAddress: account.address,
   }),
 });
-const { transaction } = await res.json();
+const { transaction, preflight } = await res.json();
 
-// 2. Send — your key, your transaction
+// 2. Check preflight before broadcasting
+if (!preflight.canBroadcastSafely) {
+  console.error('Session not active:', preflight.warning);
+  process.exit(1);
+}
+
+// 3. Send — your key, your transaction
 const hash = await walletClient.sendTransaction({
   to:    transaction.to,
   data:  transaction.data,
@@ -186,16 +205,46 @@ console.log('Tx hash:', hash);`} />
           </div>
         </Step>
 
+        {/* Integration Checklist */}
+        <div className="bg-white/[0.02] border border-white/[0.08] rounded-xl p-6 mb-8">
+          <h3 className="font-heading text-lg font-semibold mb-4 flex items-center gap-2">
+            <Terminal className="w-5 h-5 text-[#00F0FF]" />
+            Integration Troubleshooting Checklist
+          </h3>
+          <p className="text-gray-400 text-sm mb-4">
+            If something isn&apos;t working, follow this sequence to isolate the problem:
+          </p>
+          <div className="space-y-2">
+            {[
+              { step: '1', endpoint: 'GET /health', pass: 'API reachable', fail: 'Network / URL issue' },
+              { step: '2', endpoint: 'POST /auth/login', pass: 'JWT token received', fail: 'Bad credentials' },
+              { step: '3', endpoint: 'POST /apikeys', pass: 'API Key created', fail: 'Auth or plan limit' },
+              { step: '4', endpoint: 'GET /usage/stats', pass: 'Auth works (JWT or API Key)', fail: 'Check error code in response' },
+              { step: '5', endpoint: 'GET /session/:address', pass: 'Session status retrieved', fail: 'Auth issue or invalid address' },
+              { step: '6', endpoint: 'POST /verify', pass: 'Session activated on-chain', fail: 'ZK proof invalid or onboarding incomplete' },
+              { step: '7', endpoint: 'POST /defi/swap', pass: 'Unsigned TX + preflight', fail: 'Param validation (check details array)' },
+              { step: '8', endpoint: 'Sign + Broadcast', pass: 'On-chain confirmed', fail: 'preflight.sessionActive was false, or insufficient gas/balance' },
+            ].map(({ step, endpoint, pass, fail }) => (
+              <div key={step} className="grid grid-cols-[2rem_1fr_1fr_1fr] gap-2 text-xs items-center">
+                <span className="text-[#00F0FF] font-bold font-mono text-center">{step}</span>
+                <code className="text-gray-300 font-mono truncate">{endpoint}</code>
+                <span className="text-green-400 truncate">{pass}</span>
+                <span className="text-red-400 truncate">{fail}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Done */}
         <div className="bg-[#00F0FF]/5 border border-[#00F0FF]/20 rounded-xl p-6">
           <div className="flex items-center gap-2 mb-4">
             <CheckCircle2 className="w-5 h-5 text-[#00F0FF]" />
-            <span className="font-heading font-semibold text-lg">You're live!</span>
+            <span className="font-heading font-semibold text-lg">You&apos;re live!</span>
           </div>
           <div className="space-y-2 text-sm">
             {[
               { href: '/docs/endpoints', label: 'Explore all API endpoints →' },
-              { href: '/docs/authentication', label: 'Learn about authentication & JWT tokens →' },
+              { href: '/docs/authentication', label: 'Learn about authentication methods →' },
               { href: '/docs/sdk', label: 'Add liquidity positions →' },
               { href: '/dashboard/usage', label: 'Monitor your usage →' },
             ].map(({ href, label }) => (
