@@ -126,36 +126,94 @@ ilal/
 
 ## API Reference
 
-The live API is hosted at `https://ilal-mvp-production.up.railway.app`.
+### ⚠️ Integration Quick-Start (Read First)
 
-### Authentication
+> **Note:** The docs site at `ilal.tech/docs` may show a stale base URL. Always use the addresses below.
 
+| Endpoint type | Base URL |
+|---|---|
+| Auth / API Key management | `https://www.ilal.tech/api/v1` |
+| DeFi (swap / liquidity / session) | `https://ilal-mvp-production.up.railway.app/api/v1` |
+
+**Step 1 — Register**
 ```bash
-# Register
-curl -X POST https://ilal-mvp-production.up.railway.app/api/v1/auth/register \
+curl -X POST https://www.ilal.tech/api/v1/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"email": "fund@institution.com", "password": "SecurePass123!", "name": "Hedge Fund Alpha"}'
-
-# Login
-curl -X POST https://ilal-mvp-production.up.railway.app/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email": "fund@institution.com", "password": "SecurePass123!"}'
+  -d '{"email":"you@institution.com","password":"SecurePass123!","name":"Fund Name"}'
+# → { "accessToken": "eyJ...", "user": { ... } }
 ```
+
+**Step 2 — Create an API Key** (save it — shown only once)
+```bash
+curl -X POST https://www.ilal.tech/api/v1/apikeys \
+  -H "Authorization: Bearer <accessToken>" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"production-key"}'
+# → { "apiKey": "ilal_live_xxx", "permissions": "verify,session,defi:swap,defi:liquidity,usage:read" }
+```
+
+**Step 3 — Build a Swap Transaction**
+```bash
+curl -X POST https://ilal-mvp-production.up.railway.app/api/v1/defi/swap \
+  -H "X-API-Key: ilal_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tokenIn":     "0x4200000000000000000000000000000000000006",
+    "tokenOut":    "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "amount":      "1000000000000000",
+    "zeroForOne":  false,
+    "userAddress": "0xYOUR_WALLET"
+  }'
+# → { "success": true, "transaction": { "to": "0x...", "data": "0x..." },
+#     "preflight": { "sessionActive": false, "canBroadcastSafely": false,
+#                    "warning": "No active compliance session..." } }
+```
+
+**Step 4 — Add Liquidity**
+```bash
+curl -X POST https://ilal-mvp-production.up.railway.app/api/v1/defi/liquidity \
+  -H "X-API-Key: ilal_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "token0":      "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "token1":      "0x4200000000000000000000000000000000000006",
+    "amount0":     "100000",
+    "amount1":     "1000000000000000",
+    "tickLower":   -600,
+    "tickUpper":   600,
+    "userAddress": "0xYOUR_WALLET"
+  }'
+```
+
+### Key Notes
+
+- **Authentication:** Use `X-API-Key: ilal_live_xxx` for server-to-server calls. Use `Authorization: Bearer <token>` for dashboard/JWT flows. All protected endpoints accept both.
+- **`zeroForOne` direction:** USDC address (`0x036...`) sorts before WETH (`0x420...`). WETH→USDC = `zeroForOne: false`. USDC→WETH = `zeroForOne: true`.
+- **Compliance session:** `preflight.sessionActive: false` means on-chain broadcast will revert. Call `/api/v1/verify` first to activate a 24-hour session.
+- **Error codes:** API Key errors return machine-readable `code` field: `API_KEY_FORMAT_INVALID`, `API_KEY_PREFIX_NOT_FOUND`, `API_KEY_HASH_MISMATCH`, `API_KEY_INACTIVE`, `API_KEY_EXPIRED`, `API_KEY_SCOPE_MISSING`.
+- **Preflight enforcement:** Add `?requireActiveSession=true` to force a `412 Precondition Failed` instead of a warning when session is inactive.
+- **Network:** Base Sepolia testnet (chainId: 84532). RPC: `https://sepolia.base.org`.
+
+### Tokens (Base Sepolia)
+
+| Token | Address |
+|---|---|
+| WETH | `0x4200000000000000000000000000000000000006` |
+| USDC | `0x036CbD53842c5426634e7929541eC2318f3dCF7e` |
 
 ### ZK Session Flow
 
 ```bash
 # Submit ZK proof — activates on-chain session via relayer
 curl -X POST https://ilal-mvp-production.up.railway.app/api/v1/verify \
-  -H "Authorization: Bearer <access_token>" \
+  -H "X-API-Key: ilal_live_xxx" \
   -H "Content-Type: application/json" \
   -d '{"proof": {...}, "publicInputs": ["..."], "userAddress": "0x..."}'
 
-# Build compliant swap payload (EIP-712 signed by relayer)
-curl -X POST https://ilal-mvp-production.up.railway.app/api/v1/defi/swap \
-  -H "Authorization: Bearer <access_token>" \
-  -H "Content-Type: application/json" \
-  -d '{"tokenIn": "0x...", "tokenOut": "0x...", "amountIn": "1000000", "userAddress": "0x..."}'
+# Check session status
+curl https://ilal-mvp-production.up.railway.app/api/v1/verify/session?address=0xYOUR_WALLET \
+  -H "X-API-Key: ilal_live_xxx"
+# → { "isActive": true, "remainingSeconds": 86400, "expiresAt": "..." }
 ```
 
 Full API reference: [`docs/guides/saas/API_REFERENCE.md`](docs/guides/saas/API_REFERENCE.md)
