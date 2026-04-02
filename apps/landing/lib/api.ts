@@ -5,8 +5,9 @@
 
 import type { ApiKeysResponse, CreateApiKeyResponse, UsageStats, User, Plan } from './types';
 
-// Empty string = same origin (works for both local Next.js dev and Vercel production).
-// Set NEXT_PUBLIC_API_URL to override (e.g. if using a separate API server).
+// All API calls are proxied through the Next.js catch-all route (/api/v1/[...path]).
+// The proxy forwards to the Railway backend (BACKEND_URL env var on server side).
+// No need to set NEXT_PUBLIC_API_URL — the proxy handles routing.
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 // ── Helper ────────────────────────────────────────────────────
@@ -39,7 +40,7 @@ export async function register(
   name?: string,
   inviteCode?: string
 ): Promise<{ accessToken: string; refreshToken: string; user: User }> {
-  return apiFetch(`/api/v1/auth/register`, {
+  return apiFetch(`${API_URL}/api/v1/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password, name, inviteCode }),
