@@ -283,6 +283,88 @@ export async function activateSession(req: Request, res: Response): Promise<void
 }
 
 /**
+ * POST /api/v1/onboarding/activate-session-demo
+ *
+ * Demo / sandbox shortcut: skips ZK proof generation and directly calls
+ * SessionManager.startSession() on-chain via the relayer wallet.
+ *
+ * Requires the institution to be registered (POST /onboarding/register first).
+ * The caller must own the institution (same userId).
+ * NOT for production — for demo and integration testing only.
+ */
+export async function activateSessionDemo(req: Request, res: Response): Promise<void> {
+  const startTime = Date.now();
+  try {
+    const userId = requireAuthenticatedUserId(req, res);
+    if (!userId) return;
+
+    const { walletAddress: rawAddress, durationHours = 24 } = req.body as {
+      walletAddress?: string;
+      durationHours?: number;
+    };
+
+    if (!rawAddress || !/^0x[a-fA-F0-9]{40}$/.test(rawAddress)) {
+      res.status(400).json({ success: false, error: 'Invalid or missing walletAddress' });
+      return;
+    }
+    const walletAddress = getAddress(rawAddress) as Address;
+
+    // Check if session already active
+    const isActive = await blockchainService.isSessionActive(walletAddress);
+    if (isActive) {
+      const remaining = await blockchainService.getRemainingTime(walletAddress);
+      res.json({
+        success: true,
+        alreadyActive: true,
+        message: 'Session is already active — no action needed',
+        remainingSeconds: remaining,
+        expiresAt: new Date(Date.now() + remaining * 1000).toISOString(),
+      });
+      return;
+    }
+
+    // Institution must be registered (mock KYC approved)
+    const institution = await prisma.institution.findUnique({ where: { walletAddress } });
+    if (!institution || institution.kycStatus !== 1) {
+      res.status(404).json({
+        success: false,
+        error: 'Not registered',
+        message: 'Call POST /onboarding/register first to complete mock KYC, then retry.',
+      });
+      return;
+    }
+
+    if (!ensureInstitutionOwner(institution, userId, res)) return;
+
+    const durationSeconds = Math.min(Math.max(durationHours, 1), 720) * 3600; // clamp 1h–720h
+    const result = await blockchainService.startSession(walletAddress, durationSeconds);
+    const elapsed = Date.now() - startTime;
+
+    logger.info('Demo session activated (ZK-bypass)', {
+      walletAddress,
+      txHash: result.txHash,
+      durationSeconds,
+      elapsed,
+    });
+
+    res.json({
+      success: true,
+      mode: 'demo',
+      walletAddress,
+      txHash: result.txHash,
+      sessionExpiry: result.sessionExpiry.toString(),
+      expiresAt: new Date(Number(result.sessionExpiry) * 1000).toISOString(),
+      gasUsed: result.gasUsed.toString(),
+      elapsedMs: elapsed,
+      note: 'Demo mode: ZK proof was bypassed. Not for production use.',
+    });
+  } catch (error: any) {
+    logger.error('activate-session-demo error', { error: error.message });
+    res.status(500).json({ success: false, error: 'Internal Server Error', message: error.message });
+  }
+}
+
+/**
  * GET /api/v1/onboarding/status/:address
  */
 export async function getStatus(req: Request, res: Response): Promise<void> {

@@ -270,8 +270,7 @@ export default function App() {
     }
   }, [address, apiKey, update, markDone]);
 
-  // ─── Step 5: Activate Session ───
-  // ZK proof generation takes ~15–30s — show in progress
+  // ─── Step 5: Activate Session (Demo — no ZK proof, instant on-chain relay) ───
   const activateSession = useCallback(async () => {
     if (!address) {
       update(4, { status: 'error', error: 'Connect your wallet first (Step 1).' });
@@ -283,15 +282,14 @@ export default function App() {
     }
     update(4, { status: 'running', error: undefined, request: undefined, response: undefined, txHash: undefined });
     const t = Date.now();
-    const body = { walletAddress: address, expiry: 86400 };
+    const body = { walletAddress: address, durationHours: 24 };
     try {
-      update(4, { request: { method: 'POST', url: '/api/v1/onboarding/activate-session', body, note: 'Generating ZK-SNARK proof server-side (~15–30s)...' } });
-      const res = await fetch(`${API_URL}/api/v1/onboarding/activate-session`, {
+      update(4, { request: { method: 'POST', url: '/api/v1/onboarding/activate-session-demo', body } });
+      const res = await fetch(`${API_URL}/api/v1/onboarding/activate-session-demo`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
         body: JSON.stringify(body),
-        // ZK proof can take up to 60s
-        signal: AbortSignal.timeout(120_000),
+        signal: AbortSignal.timeout(30_000),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || data.message || `HTTP ${res.status}`);

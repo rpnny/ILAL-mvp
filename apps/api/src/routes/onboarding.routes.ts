@@ -14,6 +14,7 @@ router.use(hybridAuthMiddleware);
 
 router.post('/register', onboardingController.register);
 router.post('/activate-session', onboardingController.activateSession);
+router.post('/activate-session-demo', onboardingController.activateSessionDemo);
 router.get('/status/:address', onboardingController.getStatus);
 router.get('/attestation/:address', onboardingController.getAttestation);
 

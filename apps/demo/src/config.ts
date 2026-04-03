@@ -29,7 +29,7 @@ export const STEP_INFO = [
   { title: 'API Health Check',        subtitle: 'GET /api/v1/health' },
   { title: 'Register Institution',    subtitle: 'POST /onboarding/register' },
   { title: 'Check KYC Status',        subtitle: 'GET /onboarding/status/:addr' },
-  { title: 'Activate ZK Session',     subtitle: 'POST /onboarding/activate-session' },
+  { title: 'Activate Session (Demo)',  subtitle: 'POST /onboarding/activate-session-demo' },
   { title: 'Verify Session',          subtitle: 'GET /session/:addr' },
   { title: 'Compliant Swap',          subtitle: 'mUSD → mTBILL via SwapRouter' },
   { title: 'Rejection Demo',          subtitle: '0xdead → NotCompliant revert' },

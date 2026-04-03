@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: process.env.DEMO_API_TARGET || 'http://localhost:3001',
+        target: process.env.DEMO_API_TARGET || 'https://ilal-mvp-production.up.railway.app',
         changeOrigin: true,
         secure: false,
       },
