@@ -61,6 +61,7 @@ test('buildSwapTx uses default slippage when not specified', async () => {
 
   assert.equal(result.success, true);
   assert.ok(result.params.swapParams);
+  assert.equal(result.params.swapParams.minAmountOut, '0');
 });
 
 // ── buildAddLiquidityTx ──

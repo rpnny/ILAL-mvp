@@ -35,8 +35,10 @@ export const CONTRACTS = {
   verifier: (process.env.VERIFIER_ADDRESS || '0x8e093aC51921fe2be9bd0910092a01200AAd6560') as Address,
   simpleSwapRouter: (process.env.SIMPLE_SWAP_ROUTER_ADDRESS || '0xd46D84Dc2D098c767451675C9BcB85bf3f8a2891') as Address,
   poolManager: (process.env.POOL_MANAGER_ADDRESS || '0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408') as Address,
-  positionManager: (process.env.POSITION_MANAGER_ADDRESS || '0x14468AE1D52406FfA9B2b45f06F5d8d2134eCc2A') as Address,
-  complianceHook: (process.env.COMPLIANCE_HOOK_ADDRESS || '0xe633220f15932428FcA60A1A2C2C48797A180A80') as Address,
+  // Pin these demo-critical contracts so stale Railway env vars cannot point
+  // the API back to an incompatible spender / drained hook pool.
+  positionManager: '0x692548a6E1797d2762b9d04f29112C172E5Cea32' as Address,
+  complianceHook: '0xdD37A28e15A9592eAAd3f7Df0Ad36e374Af68A80' as Address,
 };
 
 // ============ ZK Verification Config ============

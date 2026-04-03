@@ -4,7 +4,7 @@
  */
 
 import { type Address, encodeFunctionData, type Hex } from 'viem';
-import { CONTRACTS, CHAIN_ID } from '../config/constants.js';
+import { CHAIN_ID, CONTRACTS } from '../config/constants.js';
 import { logger } from '../config/logger.js';
 
 // Contract ABIs
@@ -109,15 +109,11 @@ class DeFiService {
 
         const hookData = encodeEmptyHookData();
 
-        // Compute minAmountOut from slippage tolerance (default 0.5%).
-        // For exact-input swaps we don't know the exact output upfront, so we
-        // use the input amount as a rough upper-bound proxy and apply slippage.
-        // Passing 0n disables the check entirely (opt-out).
-        const slippageBps = Math.round((params.slippage ?? 0.5) * 100); // e.g. 0.5% → 50 bps
-        const amountIn = BigInt(params.amount);
-        const minAmountOut = slippageBps > 0
-            ? (amountIn * BigInt(10_000 - slippageBps)) / 10_000n
-            : 0n;
+        // Build-only mode cannot safely derive a minAmountOut from the input
+        // amount alone across different token decimals / prices. Returning a
+        // made-up bound causes false reverts (e.g. WETH→USDC). We therefore
+        // default to 0 and leave price protection to callers that have a quote.
+        const minAmountOut = 0n;
 
         const calldata: Hex = encodeFunctionData({
             abi: routerABI,
@@ -155,6 +151,7 @@ class DeFiService {
                     zeroForOne: params.zeroForOne,
                     amountSpecified: `-${params.amount}`,
                     sqrtPriceLimitX96: sqrtPriceLimitX96.toString(),
+                    minAmountOut: minAmountOut.toString(),
                 },
                 userAddress: params.userAddress,
             }
