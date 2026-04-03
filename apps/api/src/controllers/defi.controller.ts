@@ -14,6 +14,7 @@ import { type Address } from 'viem';
 import { defiService } from '../services/defi.service.js';
 import { blockchainService } from '../services/blockchain.service.js';
 import { logger } from '../config/logger.js';
+import { prisma } from '../config/database.js';
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -101,6 +102,15 @@ interface PreflightResult {
   hint?: string;
 }
 
+async function getInstitutionOwner(userAddress: string): Promise<string | null> {
+  const institution = await prisma.institution.findUnique({
+    where: { walletAddress: userAddress },
+    select: { userId: true },
+  });
+
+  return institution?.userId ?? null;
+}
+
 async function checkPreflight(userAddress: string): Promise<PreflightResult> {
   try {
     const active = await blockchainService.isSessionActive(userAddress as Address);
@@ -129,12 +139,28 @@ async function checkPreflight(userAddress: string): Promise<PreflightResult> {
 export async function executeSwap(req: Request, res: Response): Promise<void> {
   try {
     const params = swapSchema.parse(req.body);
+    const userId = req.apiKey?.userId ?? req.user?.userId;
+    const requireActiveSession = req.query?.requireActiveSession === 'true';
 
     logger.info('Swap request received', { user: params.userAddress, authMethod: req.authMethod });
 
+    if (userId) {
+      const ownerUserId = await getInstitutionOwner(params.userAddress);
+      if (ownerUserId && ownerUserId !== userId) {
+        res.status(403).json({
+          error: 'Forbidden',
+          code: 'INSTITUTION_OWNERSHIP_MISMATCH',
+          message: `The wallet ${params.userAddress} is linked to another ILAL account`,
+          hint: 'In mock/demo mode, call POST /api/v1/onboarding/register again with the same wallet to rebind it to the current account.',
+          signerRequirement: 'The unsigned transaction must be signed by the same wallet address as userAddress.',
+        });
+        return;
+      }
+    }
+
     const preflight = await checkPreflight(params.userAddress);
 
-    if (req.query.requireActiveSession === 'true' && !preflight.sessionActive) {
+    if (requireActiveSession && !preflight.sessionActive) {
       res.status(412).json({
         error: 'Precondition Failed',
         code: 'SESSION_NOT_ACTIVE',
@@ -157,7 +183,16 @@ export async function executeSwap(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    res.json({ ...result, preflight, authMethod: req.authMethod });
+    res.json({
+      ...result,
+      preflight,
+      authMethod: req.authMethod,
+      signerRequirement: {
+        mode: 'msg.sender',
+        userAddress: params.userAddress,
+        message: 'Sign and broadcast this transaction with the same wallet address as userAddress. Build-only preflight does not override on-chain msg.sender checks.',
+      },
+    });
 
   } catch (error: any) {
     if (error instanceof z.ZodError) {
@@ -178,12 +213,28 @@ export async function executeSwap(req: Request, res: Response): Promise<void> {
 export async function addLiquidity(req: Request, res: Response): Promise<void> {
   try {
     const params = liquiditySchema.parse(req.body);
+    const userId = req.apiKey?.userId ?? req.user?.userId;
+    const requireActiveSession = req.query?.requireActiveSession === 'true';
 
     logger.info('Add Liquidity request received', { user: params.userAddress, authMethod: req.authMethod });
 
+    if (userId) {
+      const ownerUserId = await getInstitutionOwner(params.userAddress);
+      if (ownerUserId && ownerUserId !== userId) {
+        res.status(403).json({
+          error: 'Forbidden',
+          code: 'INSTITUTION_OWNERSHIP_MISMATCH',
+          message: `The wallet ${params.userAddress} is linked to another ILAL account`,
+          hint: 'In mock/demo mode, call POST /api/v1/onboarding/register again with the same wallet to rebind it to the current account.',
+          signerRequirement: 'The unsigned transaction must be signed by the same wallet address as userAddress.',
+        });
+        return;
+      }
+    }
+
     const preflight = await checkPreflight(params.userAddress);
 
-    if (req.query.requireActiveSession === 'true' && !preflight.sessionActive) {
+    if (requireActiveSession && !preflight.sessionActive) {
       res.status(412).json({
         error: 'Precondition Failed',
         code: 'SESSION_NOT_ACTIVE',
@@ -208,7 +259,16 @@ export async function addLiquidity(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    res.json({ ...result, preflight, authMethod: req.authMethod });
+    res.json({
+      ...result,
+      preflight,
+      authMethod: req.authMethod,
+      signerRequirement: {
+        mode: 'msg.sender',
+        userAddress: params.userAddress,
+        message: 'Sign and broadcast this transaction with the same wallet address as userAddress. Liquidity permissioning is enforced against the submitting wallet.',
+      },
+    });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
       res.status(400).json({

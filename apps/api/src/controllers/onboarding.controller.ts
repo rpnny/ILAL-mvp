@@ -66,6 +66,55 @@ export async function register(req: Request, res: Response): Promise<void> {
 
     const existing = await prisma.institution.findUnique({ where: { walletAddress } });
     if (existing) {
+      const ownedByAnotherAccount = !!existing.userId && existing.userId !== userId;
+
+      // Mock KYC is demo-only. Allow reclaiming an existing wallet so stale demo
+      // accounts do not permanently block the current integrator from checking
+      // status or activating/querying its session.
+      if (ownedByAnotherAccount && existing.kycStatus === 1 && existing.merkleIndex != null) {
+        const timestamp = Math.floor(Date.now() / 1000);
+        const attestationData = await issuerService.signAttestation(
+          walletAddress,
+          1,
+          body.countryCode,
+          timestamp,
+        );
+        const proof = merkleService.getProof(existing.merkleIndex);
+        const fullAttestation = {
+          ...attestationData,
+          merkleRoot: proof.root,
+          merkleProof: proof.siblings,
+          merkleIndex: existing.merkleIndex.toString(),
+        };
+
+        await prisma.institution.update({
+          where: { walletAddress },
+          data: {
+            userId,
+            name: body.name,
+            countryCode: body.countryCode,
+            attestation: JSON.stringify(fullAttestation),
+            approvedAt: new Date().toISOString(),
+          },
+        });
+
+        logger.warn('Institution ownership transferred in mock KYC mode', {
+          walletAddress,
+          previousUserId: existing.userId,
+          nextUserId: userId,
+        });
+
+        res.status(200).json({
+          success: true,
+          institutionId: existing.id,
+          status: 'approved',
+          walletAddress,
+          merkleIndex: existing.merkleIndex,
+          message: 'This demo wallet was previously linked to another account and has now been rebound to your account.',
+        });
+        return;
+      }
+
       if (!ensureInstitutionOwner(existing, userId, res)) {
         return;
       }

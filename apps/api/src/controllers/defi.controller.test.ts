@@ -7,13 +7,16 @@ process.env.DATABASE_URL = process.env.DATABASE_URL || 'file:./test.db';
 
 const { executeSwap, addLiquidity } = await import('./defi.controller.ts');
 const { defiService } = await import('../services/defi.service.js');
+const { prisma } = await import('../config/database.js');
 
 const origSwap = defiService.swap.bind(defiService);
 const origBuildAddLiquidityTx = defiService.buildAddLiquidityTx.bind(defiService);
+const origInstitutionFindUnique = prisma.institution.findUnique.bind(prisma.institution);
 
 afterEach(() => {
   defiService.swap = origSwap;
   defiService.buildAddLiquidityTx = origBuildAddLiquidityTx;
+  prisma.institution.findUnique = origInstitutionFindUnique;
 });
 
 type MockResponse = {
@@ -52,6 +55,7 @@ const validLiquidityBody = {
 
 test('executeSwap returns unsigned transaction on success', async () => {
   const res = createMockResponse();
+  prisma.institution.findUnique = async () => ({ userId: 'user-1' } as any);
   defiService.swap = async () => ({
     success: true,
     transaction: { to: '0xrouter', data: '0xcalldata', value: '0x0', chainId: 84532, gas: '0x1E8480' },
@@ -59,19 +63,30 @@ test('executeSwap returns unsigned transaction on success', async () => {
     params: {},
   } as any);
 
-  await executeSwap({ body: validSwapBody } as any, res as any);
+  await executeSwap({ body: validSwapBody, apiKey: { userId: 'user-1' } } as any, res as any);
   assert.equal(res.statusCode, 200);
   assert.equal((res.body as any).success, true);
   assert.ok((res.body as any).transaction);
+  assert.equal((res.body as any).signerRequirement.mode, 'msg.sender');
 });
 
 test('executeSwap returns 400 when service returns failure', async () => {
   const res = createMockResponse();
+  prisma.institution.findUnique = async () => ({ userId: 'user-1' } as any);
   defiService.swap = async () => ({ success: false, error: 'Pool not found' } as any);
 
-  await executeSwap({ body: validSwapBody } as any, res as any);
+  await executeSwap({ body: validSwapBody, apiKey: { userId: 'user-1' } } as any, res as any);
   assert.equal(res.statusCode, 400);
   assert.equal((res.body as any).success, false);
+});
+
+test('executeSwap returns 403 when userAddress belongs to another account', async () => {
+  const res = createMockResponse();
+  prisma.institution.findUnique = async () => ({ userId: 'user-2' } as any);
+
+  await executeSwap({ body: validSwapBody, apiKey: { userId: 'user-1' } } as any, res as any);
+  assert.equal(res.statusCode, 403);
+  assert.equal((res.body as any).code, 'INSTITUTION_OWNERSHIP_MISMATCH');
 });
 
 test('executeSwap rejects invalid tokenIn address', async () => {
@@ -99,6 +114,7 @@ test('executeSwap rejects missing zeroForOne', async () => {
 
 test('addLiquidity returns unsigned transaction on success', async () => {
   const res = createMockResponse();
+  prisma.institution.findUnique = async () => ({ userId: 'user-1' } as any);
   defiService.buildAddLiquidityTx = async () => ({
     success: true,
     transaction: { to: '0xpm', data: '0x', value: '0x0', chainId: 84532, gas: '0x4C4B40' },
@@ -106,7 +122,7 @@ test('addLiquidity returns unsigned transaction on success', async () => {
     params: {},
   } as any);
 
-  await addLiquidity({ body: validLiquidityBody } as any, res as any);
+  await addLiquidity({ body: validLiquidityBody, apiKey: { userId: 'user-1' } } as any, res as any);
   assert.equal(res.statusCode, 200);
   assert.equal((res.body as any).success, true);
 });

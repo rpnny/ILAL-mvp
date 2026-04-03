@@ -273,12 +273,17 @@ export default function SwapWidget({
                     ],
                 });
             } else {
+                if (walletAddress && walletAddress.toLowerCase() !== account.toLowerCase()) {
+                    toast.error('Connected wallet does not match the institution wallet. Reconnect the session-active wallet before building the swap.', { id: 'swap-toast' });
+                    return;
+                }
+
                 const result = await executeSwap(token!, {
                     tokenIn: tokenInConfig.address,
                     tokenOut: tokenOutConfig.address,
                     amount: amountScaled,
                     zeroForOne,
-                    userAddress: walletAddress || account,
+                    userAddress: account,
                     slippage,
                 });
 
