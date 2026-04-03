@@ -416,14 +416,6 @@ export async function getSessionStatus(req: Request, res: Response): Promise<voi
     }
 
     const userAddress = getAddress(address) as Address;
-    const ownsInstitution = await assertInstitutionAccess(userId, userAddress);
-    if (!ownsInstitution) {
-      res.status(403).json({
-        error: 'Forbidden',
-        message: 'You can only query session status for institutions owned by your account',
-      });
-      return;
-    }
 
     const [isActive, remaining] = await Promise.all([
       blockchainService.isSessionActive(userAddress),

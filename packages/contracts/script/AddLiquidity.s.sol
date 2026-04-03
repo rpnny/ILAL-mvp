@@ -162,12 +162,12 @@ contract AddLiquidity is Script {
             hooks: IHooks(HOOK)
         });
 
-        // 重要: 要提供纯 WETH (token1)，需要 tickUpper <= currentTick
-        // currentTick = 196250，tickSpacing = 10
-        // 范围覆盖 WETH 价格约 1500-3000 USDC (tick ~190700 到 196250)
-        int24 tickLower = 190700;   // ~1500 USDC/WETH
-        int24 tickUpper = 196250;   // = current tick (整好覆盖到当前价格)
-        int256 liquidity = 2000000000000; // 2e12 — reasonable liquidity
+        // Two-sided liquidity spanning the current tick (196250) so both
+        // swap directions work: WETH→USDC (zeroForOne=false, price ↑)
+        // and USDC→WETH (zeroForOne=true, price ↓).
+        int24 tickLower = 195000;
+        int24 tickUpper = 197500;
+        int256 liquidity = 40000000000; // 4e10 — fits deployer USDC balance
 
         // hookData: empty = sender is user (helper has active session)
         bytes memory hookData = "";
