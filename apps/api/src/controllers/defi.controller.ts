@@ -498,56 +498,59 @@ export async function preflightCheck(req: Request, res: Response): Promise<void>
       }
     }
 
-    // Pool health probe — simulate a dust swap in each direction to check actual pool depth.
-    // Uses 1 wei dust amounts so this is read-only (eth_call never commits state).
+    // Pool health probe — simulate a dust swap in each direction using the relay wallet.
+    // The relay wallet always has tokens, max allowances, and an active session, so failures
+    // here reliably reflect actual pool depth — not user-side balance/allowance issues.
     let poolHealth: Record<string, unknown> = { probeStatus: 'skipped' };
-    if (sessionActive) {
+    try {
+      // Use relay wallet as probe sender; fall back to user address if relay not configured.
+      let probeFrom: Address;
       try {
-        const [dustSwapResult, defiSvc] = await Promise.all([
-          Promise.resolve(null), // placeholder
-          Promise.resolve(defiService),
-        ]);
-
-        const [wethToUsdcTx, usdcToWethTx] = await Promise.all([
-          defiSvc.buildSwapTx({
-            tokenIn: DEMO_TOKENS.WETH,
-            tokenOut: DEMO_TOKENS.tUSDC,
-            amount: '1000000000000', // 0.000001 WETH dust
-            userAddress: address,
-          }),
-          defiSvc.buildSwapTx({
-            tokenIn: DEMO_TOKENS.tUSDC,
-            tokenOut: DEMO_TOKENS.WETH,
-            amount: '1000', // 0.001 tUSDC dust (6 decimals)
-            userAddress: address,
-          }),
-        ]);
-
-        const [wethProbe, usdcProbe] = await Promise.all([
-          blockchainService.simulateCall({
-            from: address,
-            to: wethToUsdcTx.transaction.to as Address,
-            data: wethToUsdcTx.transaction.data as `0x${string}`,
-          }),
-          blockchainService.simulateCall({
-            from: address,
-            to: usdcToWethTx.transaction.to as Address,
-            data: usdcToWethTx.transaction.data as `0x${string}`,
-          }),
-        ]);
-
-        poolHealth = {
-          probeStatus: 'ok',
-          wethToTusdc: { canFill: wethProbe.success, ...(wethProbe.reason ? { revertReason: wethProbe.reason } : {}) },
-          tusdcToWeth: { canFill: usdcProbe.success, ...(usdcProbe.reason ? { revertReason: usdcProbe.reason } : {}) },
-          note: 'Dust-amount simulation using eth_call — reflects current on-chain pool state',
-        };
-
-        if (!wethProbe.success) issues.push(`Pool WETH→tUSDC direction not fillable: ${wethProbe.reason}`);
-        if (!usdcProbe.success) issues.push(`Pool tUSDC→WETH direction not fillable: ${usdcProbe.reason}`);
-      } catch (probeErr: any) {
-        poolHealth = { probeStatus: 'error', error: probeErr.message };
+        probeFrom = blockchainService.getRelayAddress();
+      } catch {
+        probeFrom = address;
       }
+
+      const [wethToUsdcTx, usdcToWethTx] = await Promise.all([
+        defiService.buildSwapTx({
+          tokenIn: DEMO_TOKENS.WETH,
+          tokenOut: DEMO_TOKENS.tUSDC,
+          amount: '1000000000000', // 0.000001 WETH dust
+          userAddress: probeFrom,
+        }),
+        defiService.buildSwapTx({
+          tokenIn: DEMO_TOKENS.tUSDC,
+          tokenOut: DEMO_TOKENS.WETH,
+          amount: '1000', // 0.001 tUSDC dust (6 decimals)
+          userAddress: probeFrom,
+        }),
+      ]);
+
+      const [wethProbe, usdcProbe] = await Promise.all([
+        blockchainService.simulateCall({
+          from: probeFrom,
+          to: wethToUsdcTx.transaction.to as Address,
+          data: wethToUsdcTx.transaction.data as `0x${string}`,
+        }),
+        blockchainService.simulateCall({
+          from: probeFrom,
+          to: usdcToWethTx.transaction.to as Address,
+          data: usdcToWethTx.transaction.data as `0x${string}`,
+        }),
+      ]);
+
+      poolHealth = {
+        probeStatus: 'ok',
+        probeSender: probeFrom,
+        wethToTusdc: { canFill: wethProbe.success, ...(wethProbe.reason ? { revertReason: wethProbe.reason } : {}) },
+        tusdcToWeth: { canFill: usdcProbe.success, ...(usdcProbe.reason ? { revertReason: usdcProbe.reason } : {}) },
+        note: 'Dust-amount eth_call using relay wallet — reflects pool liquidity, not user balances',
+      };
+
+      if (!wethProbe.success) issues.push(`Pool WETH→tUSDC direction not fillable: ${wethProbe.reason}`);
+      if (!usdcProbe.success) issues.push(`Pool tUSDC→WETH direction not fillable: ${usdcProbe.reason}`);
+    } catch (probeErr: any) {
+      poolHealth = { probeStatus: 'error', error: probeErr.message };
     }
 
     res.json({
