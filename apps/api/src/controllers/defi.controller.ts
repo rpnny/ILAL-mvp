@@ -36,7 +36,7 @@ const swapSchema = z.object({
   tokenIn:     z.string().regex(ETH_ADDRESS, 'Invalid tokenIn address'),
   tokenOut:    z.string().regex(ETH_ADDRESS, 'Invalid tokenOut address'),
   amount:      positiveIntString,
-  zeroForOne:  z.boolean(),
+  zeroForOne:  z.boolean().optional(),
   userAddress: z.string().regex(ETH_ADDRESS, 'Invalid userAddress'),
 }).superRefine((data, ctx) => {
   if (data.tokenIn.toLowerCase() === data.tokenOut.toLowerCase()) {
@@ -47,13 +47,15 @@ const swapSchema = z.object({
     });
   }
 
-  const expectedZeroForOne = data.tokenIn.toLowerCase() < data.tokenOut.toLowerCase();
-  if (data.zeroForOne !== expectedZeroForOne) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: `zeroForOne should be ${expectedZeroForOne} for the given token ordering (tokenIn ${expectedZeroForOne ? '<' : '>'} tokenOut)`,
-      path: ['zeroForOne'],
-    });
+  if (data.zeroForOne !== undefined) {
+    const expectedZeroForOne = data.tokenIn.toLowerCase() < data.tokenOut.toLowerCase();
+    if (data.zeroForOne !== expectedZeroForOne) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `zeroForOne should be ${expectedZeroForOne} for the given token ordering (tokenIn ${expectedZeroForOne ? '<' : '>'} tokenOut). You can omit this field to let the API derive it automatically.`,
+        path: ['zeroForOne'],
+      });
+    }
   }
 });
 

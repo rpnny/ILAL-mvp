@@ -100,19 +100,19 @@ contract LiquidityHelper is IUnlockCallback {
 
 /**
  * @title AddLiquidity
- * @notice 部署 LiquidityHelper 并添加 WETH 单边流动性到 USDC/WETH Pool (fee=500)
+ * @notice Deploy LiquidityHelper and seed the WETH/tUSDC pool on ComplianceHook 0x54b8
  */
 contract AddLiquidity is Script {
     address constant POOL_MANAGER = 0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408;
     address constant WETH = 0x4200000000000000000000000000000000000006;
-    address constant USDC = 0x036CbD53842c5426634e7929541eC2318f3dCF7e;
-    address constant HOOK = 0xe633220f15932428FcA60A1A2C2C48797A180A80;
+    address constant TUSDC = 0xa486Fb51ED09B970A23F7Fe910bc90089f78424D;
+    address constant HOOK = 0x54b88a4aAC9E73F6581C19a06a2DC280Eba78a80;
     address constant SESSION_MANAGER = 0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2;
     address constant REGISTRY = 0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD;
 
     function run() external {
         console.log("=======================================================");
-        console.log("Add WETH liquidity to USDC/WETH Pool (fee=500)");
+        console.log("Seed WETH/tUSDC Pool on ComplianceHook 0x54b8");
         console.log("=======================================================");
 
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
@@ -120,11 +120,9 @@ contract AddLiquidity is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        // 1. 部署 LiquidityHelper
         LiquidityHelper helper = new LiquidityHelper(POOL_MANAGER);
         console.log("LiquidityHelper deployed:", address(helper));
 
-        // 2. 注册 helper 为白名单路由 (ComplianceHook 需要)
         (bool s1, ) = REGISTRY.call(
             abi.encodeWithSignature("approveRouter(address,bool)", address(helper), true)
         );
@@ -135,7 +133,6 @@ contract AddLiquidity is Script {
         require(s2, "Failed to approve identity router");
         console.log("Helper approved as router");
 
-        // 3. Activate session for helper (sender in beforeAddLiquidity is helper, not deployer)
         {
             uint256 expiry = block.timestamp + 24 hours;
             (bool s3, ) = SESSION_MANAGER.call(
@@ -145,36 +142,29 @@ contract AddLiquidity is Script {
             console.log("Session activated for helper");
         }
 
-        // 4. Approve WETH 给 helper
         IERC20(WETH).approve(address(helper), type(uint256).max);
-        // 也 approve USDC 以防万一
-        IERC20(USDC).approve(address(helper), type(uint256).max);
+        IERC20(TUSDC).approve(address(helper), type(uint256).max);
         console.log("Tokens approved");
 
-        // 5. 添加流动性
-        // Pool 当前 tick = 196250
-        // 单边 WETH: tickLower > 196250
+        // Pool: WETH(token0) / tUSDC(token1), current tick = -196250
+        // Wide two-sided range so the pool can absorb ~0.005 WETH of swaps
         PoolKey memory key = PoolKey({
-            currency0: Currency.wrap(USDC),
-            currency1: Currency.wrap(WETH),
+            currency0: Currency.wrap(WETH),
+            currency1: Currency.wrap(TUSDC),
             fee: 500,
             tickSpacing: 10,
             hooks: IHooks(HOOK)
         });
 
-        // Two-sided liquidity spanning the current tick (196250) so both
-        // swap directions work: WETH→USDC (zeroForOne=false, price ↑)
-        // and USDC→WETH (zeroForOne=true, price ↓).
-        int24 tickLower = 195000;
-        int24 tickUpper = 197500;
-        int256 liquidity = 40000000000; // 4e10 — fits deployer USDC balance
+        int24 tickLower = -200000;
+        int24 tickUpper = -190000;
+        int256 liquidity = 1300000000000; // 1.3e12
 
-        // hookData: empty = sender is user (helper has active session)
         bytes memory hookData = "";
 
         console.log("");
         console.log("Adding liquidity...");
-        console.log("Tick range: [190700, 196250]");
+        console.log("Tick range: [-200000, -190000]");
         console.log("Liquidity:", vm.toString(liquidity));
 
         LiquidityHelper.AddLiqParams memory params = LiquidityHelper.AddLiqParams({
@@ -191,7 +181,7 @@ contract AddLiquidity is Script {
         vm.stopBroadcast();
 
         console.log("=======================================================");
-        console.log("SUCCESS! Liquidity added to Pool!");
+        console.log("SUCCESS! Liquidity added to WETH/tUSDC Pool!");
         console.log("=======================================================");
     }
 }

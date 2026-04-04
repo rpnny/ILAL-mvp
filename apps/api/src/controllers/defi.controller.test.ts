@@ -103,11 +103,18 @@ test('executeSwap rejects missing amount', async () => {
   assert.equal(res.statusCode, 400);
 });
 
-test('executeSwap rejects missing zeroForOne', async () => {
+test('executeSwap accepts missing zeroForOne (auto-derived)', async () => {
   const res = createMockResponse();
-  const { zeroForOne, ...incomplete } = validSwapBody;
-  await executeSwap({ body: incomplete } as any, res as any);
-  assert.equal(res.statusCode, 400);
+  prisma.institution.findUnique = async () => ({ userId: 'user-1' } as any);
+  defiService.swap = async () => ({
+    success: true,
+    transaction: { to: '0xrouter', data: '0xcalldata', value: '0x0', chainId: 84532, gas: '0x1E8480' },
+    instructions: { description: 'Sign this', network: 'Base Sepolia', rpcUrl: '', explorerBase: '' },
+    params: {},
+  } as any);
+  const { zeroForOne, ...body } = validSwapBody;
+  await executeSwap({ body, apiKey: { userId: 'user-1' } } as any, res as any);
+  assert.equal(res.statusCode, 200);
 });
 
 // ── addLiquidity ──

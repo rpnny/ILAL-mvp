@@ -83,7 +83,7 @@ class DeFiService {
         tokenIn: Address;
         tokenOut: Address;
         amount: string;
-        zeroForOne: boolean;
+        zeroForOne?: boolean;
         userAddress: Address;
         slippage?: number; // optional, default 0.5%
     }) {
@@ -92,6 +92,9 @@ class DeFiService {
         const [currency0, currency1] = params.tokenIn.toLowerCase() < params.tokenOut.toLowerCase()
             ? [params.tokenIn, params.tokenOut]
             : [params.tokenOut, params.tokenIn];
+
+        // Auto-derive from token ordering: selling token0 → zeroForOne=true
+        const zeroForOne = params.zeroForOne ?? (params.tokenIn.toLowerCase() < params.tokenOut.toLowerCase());
 
         const poolKey = {
             currency0,
@@ -103,7 +106,7 @@ class DeFiService {
 
         const MIN_SQRT_PRICE = 4295128739n;
         const MAX_SQRT_PRICE = 1461446703485210103287273052203988822378723970342n;
-        const sqrtPriceLimitX96 = params.zeroForOne
+        const sqrtPriceLimitX96 = zeroForOne
             ? MIN_SQRT_PRICE + 1n
             : MAX_SQRT_PRICE - 1n;
 
@@ -121,7 +124,7 @@ class DeFiService {
             args: [
                 poolKey,
                 {
-                    zeroForOne: params.zeroForOne,
+                    zeroForOne,
                     amountSpecified: -BigInt(params.amount), // exact input
                     sqrtPriceLimitX96,
                 },
@@ -148,7 +151,7 @@ class DeFiService {
             params: {
                 poolKey,
                 swapParams: {
-                    zeroForOne: params.zeroForOne,
+                    zeroForOne,
                     amountSpecified: `-${params.amount}`,
                     sqrtPriceLimitX96: sqrtPriceLimitX96.toString(),
                     minAmountOut: minAmountOut.toString(),
@@ -231,7 +234,7 @@ class DeFiService {
         tokenIn: Address;
         tokenOut: Address;
         amount: string;
-        zeroForOne: boolean;
+        zeroForOne?: boolean;
         userAddress: Address;
     }) {
         return this.buildSwapTx(params);

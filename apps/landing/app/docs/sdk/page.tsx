@@ -73,16 +73,16 @@ export default function SDKPage() {
                         <thead><tr className="border-b border-white/[0.06] text-gray-500"><th className="text-left p-3">Token</th><th className="text-left p-3">Address</th></tr></thead>
                         <tbody className="divide-y divide-white/[0.04]">
                             <tr><td className="p-3 text-gray-300">WETH (Wrapped Ether)</td><td className="p-3 text-[#00F0FF]">0x4200000000000000000000000000000000000006</td></tr>
-                            <tr><td className="p-3 text-gray-300">USDC (Circle)</td><td className="p-3 text-[#00F0FF]">0x036CbD53842c5426634e7929541eC2318f3dCF7e</td></tr>
+                            <tr><td className="p-3 text-gray-300">tUSDC (ILAL Test)</td><td className="p-3 text-[#00F0FF]">0xa486Fb51ED09B970A23F7Fe910bc90089f78424D</td></tr>
                         </tbody>
                     </table>
                 </div>
-                <p className="text-xs text-gray-600 mt-2">Note: token0 must be lexicographically less than token1. WETH &lt; USDC by address.</p>
+                <p className="text-xs text-gray-600 mt-2">Note: token0 must be lexicographically less than token1. WETH &lt; tUSDC by address. The <code className="bg-white/5 px-1 rounded">zeroForOne</code> parameter is auto-derived from token ordering if omitted.</p>
             </div>
 
             {/* Swap */}
             <h2 className="font-heading text-2xl font-bold mb-2">Execute a Swap</h2>
-            <p className="text-gray-400 mb-4 text-sm">Sell <code className="bg-white/5 px-1.5 py-0.5 rounded">0.001 ETH</code> for USDC — WETH → USDC (<code className="bg-white/5 px-1.5 py-0.5 rounded">zeroForOne: true</code>).</p>
+            <p className="text-gray-400 mb-4 text-sm">Sell <code className="bg-white/5 px-1.5 py-0.5 rounded">0.001 ETH</code> for tUSDC — WETH → tUSDC. The API auto-derives <code className="bg-white/5 px-1.5 py-0.5 rounded">zeroForOne</code> from the token ordering.</p>
 
             <h3 className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">1. Build the transaction</h3>
             <Code lang="curl">{`curl -X POST ${BASE}/defi/swap \\
@@ -90,9 +90,8 @@ export default function SDKPage() {
   -H "Content-Type: application/json" \\
   -d '{
     "tokenIn":     "0x4200000000000000000000000000000000000006",
-    "tokenOut":    "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "tokenOut":    "0xa486Fb51ED09B970A23F7Fe910bc90089f78424D",
     "amount":      "1000000000000000",
-    "zeroForOne":  true,
     "userAddress": "YOUR_WALLET_ADDRESS"
   }'`}</Code>
 
@@ -108,9 +107,8 @@ const res = await fetch('${BASE}/defi/swap', {
   headers: { 'X-API-Key': 'YOUR_API_KEY', 'Content-Type': 'application/json' },
   body: JSON.stringify({
     tokenIn:     '0x4200000000000000000000000000000000000006',
-    tokenOut:    '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
+    tokenOut:    '0xa486Fb51ED09B970A23F7Fe910bc90089f78424D',
     amount:      '1000000000000000',
-    zeroForOne:  true,
     userAddress: wallet.address,
   }),
 });
@@ -137,9 +135,8 @@ const res = await fetch('${BASE}/defi/swap', {
   headers: { 'X-API-Key': 'YOUR_API_KEY', 'Content-Type': 'application/json' },
   body: JSON.stringify({
     tokenIn:     '0x4200000000000000000000000000000000000006',
-    tokenOut:    '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
+    tokenOut:    '0xa486Fb51ED09B970A23F7Fe910bc90089f78424D',
     amount:      '1000000000000000',
-    zeroForOne:  true,
     userAddress: account.address,
   }),
 });
@@ -156,14 +153,14 @@ console.log('Swap hash:', hash);`}</Code>
 
             {/* Liquidity */}
             <h2 className="font-heading text-2xl font-bold mb-2 mt-12">Add Liquidity</h2>
-            <p className="text-gray-400 mb-4 text-sm">Provide liquidity to the WETH/USDC pool.</p>
+            <p className="text-gray-400 mb-4 text-sm">Provide liquidity to the WETH/tUSDC pool.</p>
 
             <Code lang="curl">{`curl -X POST ${BASE}/defi/liquidity \\
   -H "X-API-Key: YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
     "token0":      "0x4200000000000000000000000000000000000006",
-    "token1":      "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "token1":      "0xa486Fb51ED09B970A23F7Fe910bc90089f78424D",
     "amount0":     "1000000000000000",
     "amount1":     "1000000000000000",
     "tickLower":   -600,
@@ -173,7 +170,7 @@ console.log('Swap hash:', hash);`}</Code>
 
             <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-xl p-4 mt-2 text-sm text-yellow-300/70">
                 <strong>Note:</strong> <code className="bg-white/5 px-1 rounded">token0</code> must have a lower address value than <code className="bg-white/5 px-1 rounded">token1</code>.
-                For WETH/USDC on Base Sepolia, WETH is <code className="bg-white/5 px-1 rounded">token0</code>.
+                For WETH/tUSDC on Base Sepolia, WETH is <code className="bg-white/5 px-1 rounded">token0</code>.
             </div>
 
             {/* Next */}

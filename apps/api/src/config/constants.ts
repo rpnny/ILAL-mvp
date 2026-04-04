@@ -38,7 +38,15 @@ export const CONTRACTS = {
   // Pin these demo-critical contracts so stale Railway env vars cannot point
   // the API back to an incompatible spender / drained hook pool.
   positionManager: '0x692548a6E1797d2762b9d04f29112C172E5Cea32' as Address,
-  complianceHook: '0xdD37A28e15A9592eAAd3f7Df0Ad36e374Af68A80' as Address,
+  complianceHook: '0x54b88a4aAC9E73F6581C19a06a2DC280Eba78a80' as Address,
+};
+
+// Demo tokens — tUSDC is an ILAL-controlled mintable token used to ensure the
+// demo pool always has sufficient liquidity (the real Circle USDC faucet is
+// rate-limited and requires browser interaction).
+export const DEMO_TOKENS = {
+  WETH: '0x4200000000000000000000000000000000000006' as Address,
+  tUSDC: '0xa486Fb51ED09B970A23F7Fe910bc90089f78424D' as Address,
 };
 
 // ============ ZK Verification Config ============
@@ -70,7 +78,7 @@ export function getValidMerkleRoots(dynamicRoots?: { current: bigint; previous: 
 export const RATE_LIMITS = {
   FREE: {
     windowMs: 60000,
-    max: Number(process.env.RATE_LIMIT_MAX_REQUESTS_FREE) || 10,
+    max: Number(process.env.RATE_LIMIT_MAX_REQUESTS_FREE) || 60,
     monthlyQuota: 1000,
   },
   PRO: {

@@ -1,9 +1,20 @@
 {
   "network": "base-sepolia",
   "contracts": {
-    "complianceHook": "0xdD37A28e15A9592eAAd3f7Df0Ad36e374Af68A80",
+    "complianceHook": "0x54b88a4aAC9E73F6581C19a06a2DC280Eba78a80",
     "hookFactory": "0xF163cD763E49f6d28569CdCE5f0DcdB267499E75",
-    "positionManager": "0x8042ceEeA706119198747deA4901116CE02Fe69E",
-    "salt": "0x000000000000000000000000000000000000000000000000000000000000c29f"
+    "positionManager": "0x692548a6E1797d2762b9d04f29112C172E5Cea32",
+    "testUSDC": "0xa486Fb51ED09B970A23F7Fe910bc90089f78424D"
+  },
+  "demoPool": {
+    "description": "WETH/tUSDC pool seeded with deep liquidity for demo swaps",
+    "currency0": "0x4200000000000000000000000000000000000006",
+    "currency1": "0xa486Fb51ED09B970A23F7Fe910bc90089f78424D",
+    "fee": 500,
+    "tickSpacing": 10,
+    "hook": "0x54b88a4aAC9E73F6581C19a06a2DC280Eba78a80",
+    "initTick": -196250,
+    "liquidityRange": [-200000, -190000],
+    "liquidity": "1300000000000"
   }
 }

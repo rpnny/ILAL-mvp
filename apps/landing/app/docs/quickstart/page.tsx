@@ -131,9 +131,8 @@ export default function QuickstartPage() {
   -H "Content-Type: application/json" \\
   -d '{
     "tokenIn":  "0x4200000000000000000000000000000000000006",
-    "tokenOut": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "tokenOut": "0xa486Fb51ED09B970A23F7Fe910bc90089f78424D",
     "amount":   "1000000000000000",
-    "zeroForOne": true,
     "userAddress": "YOUR_WALLET_ADDRESS"
   }'`} />
 
@@ -181,9 +180,8 @@ const res = await fetch('${BASE_URL}/defi/swap', {
   headers: { 'X-API-Key': 'YOUR_API_KEY', 'Content-Type': 'application/json' },
   body: JSON.stringify({
     tokenIn:     '0x4200000000000000000000000000000000000006',
-    tokenOut:    '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
+    tokenOut:    '0xa486Fb51ED09B970A23F7Fe910bc90089f78424D',
     amount:      '1000000000000000',
-    zeroForOne:  true,
     userAddress: account.address,
   }),
 });
