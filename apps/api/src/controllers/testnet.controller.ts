@@ -37,11 +37,6 @@ const activateSchema = z.object({
  *   3. Activate session on-chain via relayer (no ZK proof).
  */
 export async function activate(req: Request, res: Response): Promise<void> {
-  if (process.env.NODE_ENV === 'production' && process.env.ALLOW_TESTNET_ACTIVATE !== 'true') {
-    res.status(404).json({ error: 'Not Found' });
-    return;
-  }
-
   try {
     const body = activateSchema.parse(req.body);
     const walletAddress = getAddress(body.walletAddress) as Address;
@@ -150,11 +145,6 @@ export async function activate(req: Request, res: Response): Promise<void> {
  * Returns per-wallet results (success/failure) even if some fail.
  */
 export async function activateBatch(req: Request, res: Response): Promise<void> {
-  if (process.env.NODE_ENV === 'production' && process.env.ALLOW_TESTNET_ACTIVATE !== 'true') {
-    res.status(404).json({ error: 'Not Found' });
-    return;
-  }
-
   try {
     const { wallets, durationHours = 24 } = req.body as { wallets?: string[]; durationHours?: number };
 
