@@ -15,16 +15,21 @@ ILAL is a Uniswap v4 Hook that enforces KYC/AML compliance at the protocol level
 
 **Core design principle:** Compliance belongs at session initiation, not at every swap. One ZK proof unlocks 24 hours of compliant, unlimited trading.
 
-**Current stage:** Security-hardened MVP on Base Sepolia testnet. Core ZK verification, session management, owner-scoped API authorization, and on-chain swap flows are functional. Billing enforcement and usage tracking are not yet implemented.
+**Current stage:** Developer-ready testnet product on Base Sepolia. Core ZK verification, session management, automated liquidity maintenance, preflight simulation, and on-chain swap/liquidity flows are all functional. Multi-wallet automated testing is supported via the testnet activation API.
 
 ### Latest Validation
 
-- Live API ownership protections are deployed on Railway: cross-account onboarding status, attestation, and session activation attempts now fail with `403`
-- Public session reads are no longer exposed anonymously: `/api/v1/session/:address` now returns `401` without auth
-- End-to-end live validation passed on the current deployment: register -> onboarding -> attestation -> proof -> session activation -> 2 real Base Sepolia swaps -> balance verification
-- Latest successful live swap transactions:
-  - [`0x2af30c93...`](https://sepolia.basescan.org/tx/0x2af30c931c076095e633aee489c62d9f84f6c3e7292b0f20ebf2801202b1008b)
-  - [`0x1193ddc1...`](https://sepolia.basescan.org/tx/0x1193ddc1653849ff0cfd1b02cbb67cf0b06e750757032f8cc66ee60c4fb4dfd2)
+- Multi-wallet institutional simulation (4 roles × parallel) passed with real on-chain execution
+- Automated liquidity keeper maintains WETH/tUSDC pool depth continuously — no manual intervention
+- `canBroadcastSafely` now backed by live `eth_call` simulation before returning — not just a session check
+- `POST /testnet/activate` makes single-call multi-wallet onboarding fully automated (no ZK proof, no manual steps)
+- Rate limits: FREE=60/min, PRO=300/min, ENTERPRISE=1000/min — suitable for concurrent institutional workloads
+
+**Verified on-chain transactions (live Base Sepolia):**
+- Swap WETH→tUSDC: [`0xd5afad58...`](https://sepolia.basescan.org/tx/0xd5afad581a685b4a20a5795c77565d4ac66a0bfe346e766669f7ada8fd23ee51)
+- Add Liquidity [-600,600]: [`0x709925b0...`](https://sepolia.basescan.org/tx/0x709925b0bc256678054af221643fc0c4dabcde4783b72551389e8e0d9f71b894)
+- Add Liquidity [-120,120]: [`0xecc8bf42...`](https://sepolia.basescan.org/tx/0xecc8bf42e04e2f9af61f269cbb068ebcde49914ffc249484d053a26370d54d73)
+- Earlier validation: [`0x2af30c93...`](https://sepolia.basescan.org/tx/0x2af30c931c076095e633aee489c62d9f84f6c3e7292b0f20ebf2801202b1008b), [`0x1193ddc1...`](https://sepolia.basescan.org/tx/0x1193ddc1653849ff0cfd1b02cbb67cf0b06e750757032f8cc66ee60c4fb4dfd2)
 
 ---
 
@@ -62,7 +67,7 @@ Institution
 **Key properties:**
 - Non-compliant addresses revert mathematically — no admin action needed
 - ZK proof reveals nothing about the institution's identity on-chain
-- API onboarding/session/attestation reads are owner-scoped — no public or cross-account session activation
+- API onboarding/session/attestation reads are owner-scoped — no cross-account access
 - Hook bitmask `0x0A80` covers `beforeSwap`, `beforeAddLiquidity`, `beforeRemoveLiquidity`
 
 ---
@@ -104,6 +109,7 @@ Institution
 | Per-swap Compliance Overhead | ~15,000 gas (~$0.0003) | Single `SLOAD` on session cache |
 | On-chain PLONK Verification | 683,986 gas (~$0.016) | One-time cost per session |
 | Session Duration | 24 hours | Max 6 renewals per ZK proof |
+| Preflight Simulation | `eth_call` before response | Catches reverts before broadcast |
 
 ---
 
@@ -114,12 +120,15 @@ ilal/
 ├── apps/
 │   ├── api/              # Express API — ZK verification, session relay, swap TX building
 │   ├── demo/             # Vite demo app for live onboarding / swap walkthroughs
-│   ├── landing/          # Institutional dashboard + Next.js API routes (Next.js 14)
+│   ├── landing/          # Institutional dashboard + docs (Next.js 14, Vercel)
 │   └── bot/              # Market-making bot prototype (WIP)
 ├── packages/
 │   ├── contracts/        # Solidity — ComplianceHook, SessionManager, Registry (Foundry)
 │   ├── sdk/              # TypeScript SDK for programmatic integration
 │   └── circuits/         # Circom ZK circuits (EdDSA-Poseidon + Merkle membership)
+├── examples/
+│   ├── minimal-swap/     # Minimal Node/TS end-to-end swap example (runnable)
+│   └── institutional-demo/ # Multi-role institutional simulation demo
 ├── scripts/              # E2E tests, system tests, deployment utilities
 ├── .github/workflows/    # CI pipeline (contracts, API, frontend)
 └── docs/                 # API reference, architecture notes, deployment guides
@@ -129,14 +138,13 @@ ilal/
 
 ## API Reference
 
-### ⚠️ Integration Quick-Start (Read First)
+### ⚠️ Integration Quick-Start (Read This First)
 
-> **Canonical configuration — this section is the single source of truth.**
+> **Canonical configuration — this is the single source of truth.**
 
 | Setting | Value |
-|---|---|
-| **DeFi Base URL** | `https://ilal-mvp-production.up.railway.app/api/v1` |
-| **Auth / API Key Base URL** | `https://www.ilal.tech/api/v1` |
+|---------|-------|
+| **API Base URL** | `https://ilal-mvp-production.up.railway.app/api/v1` |
 | **Auth Header** | `X-API-Key: ilal_live_xxx` |
 | **Network** | Base Sepolia (chainId: 84532) / RPC: `https://sepolia.base.org` |
 | **WETH** | `0x4200000000000000000000000000000000000006` |
@@ -146,26 +154,56 @@ ilal/
 | **PositionManager** | `0x692548a6E1797d2762b9d04f29112C172E5Cea32` |
 | **`zeroForOne`** | Optional — auto-derived from tokenIn/tokenOut ordering |
 
+> **Critical:** ILAL's ComplianceHook rejects every on-chain transaction from a wallet without an active compliance session. The API will build and return a valid unsigned TX — but when you broadcast it, the chain will revert. **Activate your session (Step 2) before calling any DeFi endpoint.**
+
 > **tUSDC** is an ILAL-controlled mintable ERC-20 (6 decimals) deployed to ensure the demo pool always has sufficient liquidity. The Circle testnet USDC (`0x036CbD...`) is **deprecated** — its pool has been drained.
 
-**Step 1 — Register**
+---
+
+### Integration Steps (Testnet)
+
+**Step 1 — Register & Get API Key**
 ```bash
-curl -X POST https://www.ilal.tech/api/v1/auth/register \
+# Create account
+curl -X POST https://ilal-mvp-production.up.railway.app/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email":"you@institution.com","password":"SecurePass123!","name":"Fund Name"}'
 # → { "accessToken": "eyJ...", "user": { ... } }
-```
 
-**Step 2 — Create an API Key** (save it — shown only once)
-```bash
-curl -X POST https://www.ilal.tech/api/v1/apikeys \
+# Create API key (save it — shown only once)
+curl -X POST https://ilal-mvp-production.up.railway.app/api/v1/apikeys \
   -H "Authorization: Bearer <accessToken>" \
   -H "Content-Type: application/json" \
-  -d '{"name":"production-key"}'
-# → { "apiKey": "ilal_live_xxx", "permissions": "verify,session,defi:swap,defi:liquidity,usage:read" }
+  -d '{"name":"my-key"}'
+# → { "apiKey": "ilal_live_xxx", ... }
 ```
 
-**Step 3 — Build a Swap Transaction**
+**Step 2 — Activate Your Wallet** ⭐ *Do this before any DeFi call*
+```bash
+# One call: register institution + activate session. No ZK proof required on testnet.
+# Idempotent — safe to call repeatedly; re-activates expired sessions.
+curl -X POST https://ilal-mvp-production.up.railway.app/api/v1/testnet/activate \
+  -H "X-API-Key: ilal_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{"walletAddress": "0xYOUR_WALLET"}'
+# → { "success": true, "txHash": "0x...", "expiresAt": "..." }
+
+# Multi-wallet (up to 20 at once):
+curl -X POST https://ilal-mvp-production.up.railway.app/api/v1/testnet/activate-batch \
+  -H "X-API-Key: ilal_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{"wallets": ["0xWALLET_A", "0xWALLET_B"]}'
+```
+
+**Step 3 — (Optional) Run Preflight Self-Check**
+```bash
+# Returns session status, token balances, allowances, and readiness in one call
+curl https://ilal-mvp-production.up.railway.app/api/v1/preflight/0xYOUR_WALLET \
+  -H "X-API-Key: ilal_live_xxx"
+# → { session: { active, remainingSeconds }, readiness: { canSwap, issues: [] }, ... }
+```
+
+**Step 4 — Build a Swap Transaction**
 ```bash
 curl -X POST https://ilal-mvp-production.up.railway.app/api/v1/defi/swap \
   -H "X-API-Key: ilal_live_xxx" \
@@ -176,11 +214,20 @@ curl -X POST https://ilal-mvp-production.up.railway.app/api/v1/defi/swap \
     "amount":      "1000000000000000",
     "userAddress": "0xYOUR_WALLET"
   }'
-# → { "success": true, "transaction": { "to": "0x...", "data": "0x..." },
-#     "preflight": { "sessionActive": true, "canBroadcastSafely": true } }
+# → {
+#     "success": true,
+#     "transaction": { "to": "0x...", "data": "0x...", "value": "0x0", "chainId": 84532 },
+#     "preflight": {
+#       "sessionActive": true,
+#       "canBroadcastSafely": true,        ← backed by live eth_call simulation
+#       "simulation": { "success": true }
+#     }
+#   }
 ```
 
-**Step 4 — Add Liquidity**
+> If `canBroadcastSafely` is `false`, do not broadcast. Check `preflight.simulation.revertReason` for the exact cause (session expired, insufficient allowance, pool depth, etc.). Most common fix: re-run Step 2.
+
+**Step 5 — Add Liquidity**
 ```bash
 curl -X POST https://ilal-mvp-production.up.railway.app/api/v1/defi/liquidity \
   -H "X-API-Key: ilal_live_xxx" \
@@ -196,37 +243,49 @@ curl -X POST https://ilal-mvp-production.up.railway.app/api/v1/defi/liquidity \
   }'
 ```
 
-### Key Notes
+---
+
+### Key Integration Notes
 
 - **Authentication:** Use `X-API-Key: ilal_live_xxx` for server-to-server calls. Use `Authorization: Bearer <token>` for dashboard/JWT flows. All protected endpoints accept both.
-- **`zeroForOne` is optional:** The API auto-derives swap direction from `tokenIn`/`tokenOut` address ordering. You can omit it entirely. If provided, the API validates it matches the expected direction.
-- **Token ordering:** WETH (`0x4200...`) < tUSDC (`0xa486...`), so WETH is always `token0`. For WETH→tUSDC swaps, `zeroForOne` = `true` (auto-derived).
-- **Compliance session:** `preflight.sessionActive: false` means on-chain broadcast will revert. Call `/api/v1/onboarding/activate-session-demo` (testnet) or `/api/v1/verify` (production ZK) to activate a 24-hour session.
-- **Preflight self-check:** Call `GET /api/v1/preflight/:walletAddress` to check session, balances, allowances, and readiness in a single call.
-- **Error codes:** All errors return machine-readable `code`, `message`, `hint`, and `phase` fields. See the [Error Codes](#error-codes) section below.
-- **Preflight enforcement:** Add `?requireActiveSession=true` to force a `412 Precondition Failed` instead of a warning when session is inactive.
+- **`zeroForOne` is optional:** Auto-derived from `tokenIn`/`tokenOut` address ordering. If provided, the API validates it matches the expected direction.
+- **Token ordering:** WETH (`0x4200...`) < tUSDC (`0xa486...`), so WETH is always `token0`. For WETH→tUSDC swaps, `zeroForOne = true` (auto-derived).
+- **Session enforcement:** `/defi/swap` and `/defi/liquidity` return `412 SESSION_NOT_ACTIVE` by default when session is inactive. Pass `?buildOnly=true` to bypass enforcement and get unsigned TX data regardless.
+- **`canBroadcastSafely`:** Now backed by a live `eth_call` simulation of the full transaction. `true` means both session is active AND the simulation passed against current chain state.
+- **Error format:** All errors return `{ error, code, message, hint, phase }`. The `code` field is machine-readable (e.g., `SESSION_NOT_ACTIVE`, `ALLOWANCE_INSUFFICIENT`, `UNSUPPORTED_TOKEN`).
+- **Rate limits:** FREE=60/min, PRO=300/min, ENTERPRISE=1000/min. Custom key-level limits via `PATCH /apikeys/:id`.
 
 ### Tokens (Base Sepolia)
 
 | Token | Address | Decimals | Status |
-|---|---|---|---|
+|-------|---------|----------|--------|
 | **WETH** | `0x4200000000000000000000000000000000000006` | 18 | Active |
 | **tUSDC** (ILAL Test) | `0xa486Fb51ED09B970A23F7Fe910bc90089f78424D` | 6 | **Active** |
 | ~~USDC (Circle)~~ | `0x036CbD53842c5426634e7929541eC2318f3dCF7e` | 6 | Deprecated |
 
-### ZK Session Flow
+### Production ZK Session Flow
+
+For production (non-testnet) environments, session activation requires a real ZK proof:
 
 ```bash
-# Submit ZK proof — activates on-chain session via relayer
-curl -X POST https://ilal-mvp-production.up.railway.app/api/v1/verify \
+# 1. Register wallet
+curl -X POST .../api/v1/onboarding/register \
   -H "X-API-Key: ilal_live_xxx" \
-  -H "Content-Type: application/json" \
-  -d '{"proof": {...}, "publicInputs": ["..."], "userAddress": "0x..."}'
+  -d '{"name": "My Institution", "walletAddress": "0x..."}'
 
-# Check session status
-curl https://ilal-mvp-production.up.railway.app/api/v1/verify/session?address=0xYOUR_WALLET \
+# 2. Get attestation (needed to generate proof)
+curl .../api/v1/onboarding/attestation/0xYOUR_WALLET \
   -H "X-API-Key: ilal_live_xxx"
-# → { "isActive": true, "remainingSeconds": 86400, "expiresAt": "..." }
+# → { attestation: { userAddress, merkleRoot, merkleProof, sigR8x, ... } }
+
+# 3. Generate PLONK proof client-side (~15s)
+#    Use packages/circuits or @ilal/sdk
+
+# 4. Submit proof — activates on-chain session via relayer
+curl -X POST .../api/v1/verify \
+  -H "X-API-Key: ilal_live_xxx" \
+  -d '{"proof": {...}, "publicInputs": ["..."], "userAddress": "0x..."}'
+# → { success: true, txHash: "0x...", expiresAt: "..." }
 ```
 
 Full API reference: [`docs/guides/saas/API_REFERENCE.md`](docs/guides/saas/API_REFERENCE.md)
@@ -240,10 +299,11 @@ Full API reference: [`docs/guides/saas/API_REFERENCE.md`](docs/guides/saas/API_R
 | **Identity** | ZK Proof (PLONK) | EdDSA-Poseidon signature + Merkle tree membership — reveals nothing on-chain |
 | **Session** | On-chain TTL | 24h sessions, max 6 renewals per ZK proof |
 | **Swap Gate** | ComplianceHook | `beforeSwap` checks `isSessionActive()` — single SLOAD, reverts if expired |
-| **Router ACL** | Two-tier router whitelist | Generic routers must be approved; Mode 2 identity forwarding requires a stricter identity-router allowlist |
+| **Router ACL** | Two-tier router whitelist | Generic routers must be approved; Mode 2 identity forwarding requires a stricter allowlist |
 | **Permit signing** | EIP-712 | Separate `SwapPermit` and `LiquidityPermit` typed data |
 | **Anti-replay** | Proof dedup | Each ZK proof hashed (keccak256) and rejected on reuse |
-| **API ownership** | Institution -> User binding | `/verify`, onboarding status, attestation, and session reads reject cross-account access |
+| **API ownership** | Institution → User binding | `/verify`, onboarding, attestation, and session reads reject cross-account access (403) |
+| **Preflight simulation** | `eth_call` before response | Catches on-chain reverts before the client broadcasts |
 | **Emergency** | Global pause | Registry owner can halt all operations instantly |
 | **Upgradability** | UUPS Proxy | Registry and SessionManager are upgradeable |
 
@@ -253,16 +313,41 @@ Full API reference: [`docs/guides/saas/API_REFERENCE.md`](docs/guides/saas/API_R
 
 The current deployment includes the following hardening work:
 
-- Cross-account API access is blocked by binding `Institution -> User` ownership in onboarding, verification, attestation, and session-query paths
+- Cross-account API access is blocked by binding `Institution → User` ownership in onboarding, verification, attestation, and session-query paths
 - `ComplianceHook` no longer treats generic approved routers as identity-forwarding routers; Mode 2 identity forwarding is restricted to a stricter allowlist
 - Frontend/API integration no longer relies on public session endpoints or hard-coded backend paths for protected flows
 - Production API config requires explicit refresh-secret and CORS/proxy controls rather than permissive defaults
+- `canBroadcastSafely` is now backed by live `eth_call` simulation — not just a session flag check
 
 Residual risk profile:
 
 - Mainnet deployment has not started and should still be gated on independent audit review
 - Billing/quota enforcement remains placeholder logic and should not be treated as a hardened abuse-control layer
 - Testnet/demo wallets and tokens should be treated as disposable operational assets
+
+---
+
+## New in This Release
+
+### Developer Experience (DX)
+
+| Feature | Description |
+|---------|-------------|
+| `POST /testnet/activate` | One-call register + session activation. No ZK proof, no pre-registration needed. Fully idempotent. |
+| `POST /testnet/activate-batch` | Activate up to 20 wallets in one request. Designed for multi-role automated tests. |
+| `GET /preflight/:address` | Full environment self-check: session, balances, allowances, readiness — one call. |
+| Unified error envelope | All errors return `{ code, message, hint, phase }`. Machine-readable error codes throughout. |
+| Simulation-backed preflight | `/defi/swap` and `/defi/liquidity` run `eth_call` before returning. `canBroadcastSafely: true` means the chain won't revert. |
+| `?buildOnly=true` | Skip session enforcement on DeFi endpoints — useful for build/test flows. |
+| Rate limit tiers | FREE: 60/min · PRO: 300/min · ENTERPRISE: 1,000/min. Custom key limits via `PATCH /apikeys/:id`. |
+| Quick Start redesign | Session activation is now **Step 2** (was Step 4). Prominent upfront callout about the ComplianceHook requirement. |
+
+### Infrastructure
+
+| Feature | Description |
+|---------|-------------|
+| `LiquidityKeeperService` | Background job that monitors WETH/tUSDC pool depth via `eth_call`. Auto-mints tUSDC and re-seeds LP positions when depth drops below threshold. |
+| Relay session auto-renewal | Keeper proactively renews the relay wallet's compliance session before expiry — prevents pool probe false-negatives. |
 
 ---
 
@@ -312,20 +397,16 @@ usage.middleware ........... 7
 SwapWidget ................ 9   SessionStatusCard .......... 6   UserMenu .................. 5
 ```
 
-### E2E — Base Sepolia Live Testnet (14 phases)
+### E2E — Base Sepolia Live Testnet
 
-Full flow: register → login → onboard institution → generate ZK proof → activate on-chain session → build & broadcast swap → verify balances.
+Full flow: register → activate session (testnet) → preflight self-check → build swap → sign & broadcast → verify on-chain balances.
 
 Verified on-chain transactions:
-- [`0xa78f45ea...`](https://sepolia.basescan.org/tx/0xa78f45ea060616c00451cee734b4a33d917e15002cde4b2469f9bbcb4cac74cd)
-- [`0xf2e363d1...`](https://sepolia.basescan.org/tx/0xf2e363d1e6b6979af46b56f42e0bee60c832f6024dbc10a3f544846d25a90a18)
-- [`0x2af30c93...`](https://sepolia.basescan.org/tx/0x2af30c931c076095e633aee489c62d9f84f6c3e7292b0f20ebf2801202b1008b)
-- [`0x1193ddc1...`](https://sepolia.basescan.org/tx/0x1193ddc1653849ff0cfd1b02cbb67cf0b06e750757032f8cc66ee60c4fb4dfd2)
-
-Security validation after remediation:
-- Cross-account `onboarding/status`, `attestation`, and `activate-session` requests now return `403`
-- Public `/api/v1/session/:address` access now returns `401`
-- Live E2E passed end-to-end on the current Railway deployment with two successful Base Sepolia swaps
+- [`0xd5afad58...`](https://sepolia.basescan.org/tx/0xd5afad581a685b4a20a5795c77565d4ac66a0bfe346e766669f7ada8fd23ee51) — Swap WETH→tUSDC
+- [`0x709925b0...`](https://sepolia.basescan.org/tx/0x709925b0bc256678054af221643fc0c4dabcde4783b72551389e8e0d9f71b894) — Add Liquidity [-600,600]
+- [`0xecc8bf42...`](https://sepolia.basescan.org/tx/0xecc8bf42e04e2f9af61f269cbb068ebcde49914ffc249484d053a26370d54d73) — Add Liquidity [-120,120]
+- [`0x2af30c93...`](https://sepolia.basescan.org/tx/0x2af30c931c076095e633aee489c62d9f84f6c3e7292b0f20ebf2801202b1008b) — Earlier validation swap
+- [`0x1193ddc1...`](https://sepolia.basescan.org/tx/0x1193ddc1653849ff0cfd1b02cbb67cf0b06e750757032f8cc66ee60c4fb4dfd2) — Earlier validation swap
 
 ---
 
@@ -333,17 +414,24 @@ Security validation after remediation:
 
 | Area | Status | Notes |
 |------|--------|-------|
-| Smart contracts | ✅ Deployed | Base Sepolia testnet |
+| Smart contracts | ✅ Deployed | Base Sepolia testnet, v3 ComplianceHook active |
 | ZK circuit (PLONK) | ✅ Working | 19,763 constraints, ~15s proof gen |
 | ZK verification (on-chain + off-chain) | ✅ Working | v2 PlonkVerifierAdapter |
 | Session relay (API → on-chain) | ✅ Working | EIP-712, relayer wallet |
+| Testnet session activation | ✅ Working | `POST /testnet/activate` — no ZK proof needed |
 | REST API (auth, sessions, DeFi) | ✅ Working | Railway deployment |
-| Frontend dashboard | ✅ Working | ilal.tech, Vercel |
-| API key management | ✅ Working | Create, list, revoke |
+| Frontend dashboard + docs | ✅ Working | ilal.tech, Vercel |
+| API key management | ✅ Working | Create, list, update, revoke; plan-based rate limits |
+| Preflight self-check | ✅ Working | `GET /preflight/:address` — session + balances + simulation |
+| `eth_call` simulation | ✅ Working | `canBroadcastSafely` backed by live simulation |
+| Pool liquidity keeper | ✅ Working | Auto-maintains WETH/tUSDC depth; auto-renews relay session |
+| Unified error envelope | ✅ Working | `code`, `message`, `hint`, `phase` on all errors |
 | Usage tracking | 🚧 Placeholder | Returns zeros; not yet wired to DB |
 | Billing / plan enforcement | 🚧 Placeholder | Plans defined; no payment or quota logic |
 | Market-making bot | 🚧 WIP | Prototype in `apps/bot`, not deployed |
+| Real KYC integration | ❌ Not started | Current: mock auto-approval (suitable for demos) |
 | Mainnet deployment | ❌ Not started | Awaiting audit + security review |
+| Multi-chain support | ❌ Not started | Architecture supports any EVM + Uniswap v4 chain |
 
 ---
 
@@ -357,7 +445,7 @@ Security validation after remediation:
 
 ```bash
 # Clone
-git clone https://github.com/<org>/ilal.git && cd ilal
+git clone https://github.com/rpnny/ILAL-mvp.git && cd ilal
 
 # Install dependencies
 pnpm install
@@ -367,10 +455,13 @@ cd apps/api && docker compose up -d
 
 # Copy and configure env
 cp apps/api/.env.example apps/api/.env
-# Set DATABASE_URL, JWT_SECRET, JWT_REFRESH_SECRET, API_KEY_SECRET
+# Set DATABASE_URL, JWT_SECRET, JWT_REFRESH_SECRET, API_KEY_SECRET, VERIFIER_PRIVATE_KEY
 
 # Run API in dev mode
 pnpm --filter @ilal/api dev
+
+# Run frontend
+pnpm --filter @ilal/landing dev
 ```
 
 ### Run Tests
@@ -385,8 +476,8 @@ pnpm --filter @ilal/api test
 # Frontend component tests
 pnpm --filter @ilal/landing test
 
-# Full local + testnet validation wrapper
-pnpm check:testnet
+# Minimal swap example (requires .env with funded wallet)
+cd examples/minimal-swap && npx tsx run.ts
 
 # Direct live E2E on Base Sepolia (requires funded wallet + circuit artifacts)
 npx tsx scripts/ilal-e2e-live.ts
