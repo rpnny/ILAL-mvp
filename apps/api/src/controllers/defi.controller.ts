@@ -227,12 +227,26 @@ export async function executeSwap(req: Request, res: Response): Promise<void> {
       return;
     }
 
+    // Simulate the swap via eth_call with current on-chain state.
+    // This catches pool exhaustion, PRICE_LIMIT, and stale-state failures
+    // before the developer broadcasts — making canBroadcastSafely trustworthy.
+    const simulation = await blockchainService.simulateCall({
+      from: params.userAddress as Address,
+      to: result.transaction.to as Address,
+      data: result.transaction.data as `0x${string}`,
+    });
+
     res.json({
       ...result,
       preflight: {
         ...preflight,
         tokenSupported: true,
         allowanceSufficient,
+        canBroadcastSafely: preflight.sessionActive && simulation.success,
+        simulation: {
+          success: simulation.success,
+          ...(simulation.reason ? { revertReason: simulation.reason } : {}),
+        },
         ...(!allowanceSufficient ? {
           allowanceWarning: {
             token: params.tokenIn,
@@ -247,7 +261,7 @@ export async function executeSwap(req: Request, res: Response): Promise<void> {
       signerRequirement: {
         mode: 'msg.sender',
         userAddress: params.userAddress,
-        message: 'Sign and broadcast this transaction with the same wallet address as userAddress. Build-only preflight does not override on-chain msg.sender checks.',
+        message: 'Sign and broadcast this transaction with the same wallet address as userAddress.',
       },
     });
 
@@ -348,6 +362,13 @@ export async function addLiquidity(req: Request, res: Response): Promise<void> {
       return;
     }
 
+    // Simulate the liquidity mint via eth_call with current on-chain state.
+    const simulation = await blockchainService.simulateCall({
+      from: params.userAddress as Address,
+      to: result.transaction.to as Address,
+      data: result.transaction.data as `0x${string}`,
+    });
+
     const allowanceWarnings: Record<string, unknown> = {};
     if (!allowance0Ok) {
       allowanceWarnings.token0 = {
@@ -370,13 +391,18 @@ export async function addLiquidity(req: Request, res: Response): Promise<void> {
         ...preflight,
         tokenSupported: true,
         allowanceSufficient: allowance0Ok && allowance1Ok,
+        canBroadcastSafely: preflight.sessionActive && simulation.success,
+        simulation: {
+          success: simulation.success,
+          ...(simulation.reason ? { revertReason: simulation.reason } : {}),
+        },
         ...(Object.keys(allowanceWarnings).length > 0 ? { allowanceWarnings } : {}),
       },
       authMethod: req.authMethod,
       signerRequirement: {
         mode: 'msg.sender',
         userAddress: params.userAddress,
-        message: 'Sign and broadcast this transaction with the same wallet address as userAddress. Liquidity permissioning is enforced against the submitting wallet.',
+        message: 'Sign and broadcast this transaction with the same wallet address as userAddress.',
       },
     });
   } catch (error: any) {
@@ -472,6 +498,58 @@ export async function preflightCheck(req: Request, res: Response): Promise<void>
       }
     }
 
+    // Pool health probe — simulate a dust swap in each direction to check actual pool depth.
+    // Uses 1 wei dust amounts so this is read-only (eth_call never commits state).
+    let poolHealth: Record<string, unknown> = { probeStatus: 'skipped' };
+    if (sessionActive) {
+      try {
+        const [dustSwapResult, defiSvc] = await Promise.all([
+          Promise.resolve(null), // placeholder
+          Promise.resolve(defiService),
+        ]);
+
+        const [wethToUsdcTx, usdcToWethTx] = await Promise.all([
+          defiSvc.buildSwapTx({
+            tokenIn: DEMO_TOKENS.WETH,
+            tokenOut: DEMO_TOKENS.tUSDC,
+            amount: '1000000000000', // 0.000001 WETH dust
+            userAddress: address,
+          }),
+          defiSvc.buildSwapTx({
+            tokenIn: DEMO_TOKENS.tUSDC,
+            tokenOut: DEMO_TOKENS.WETH,
+            amount: '1000', // 0.001 tUSDC dust (6 decimals)
+            userAddress: address,
+          }),
+        ]);
+
+        const [wethProbe, usdcProbe] = await Promise.all([
+          blockchainService.simulateCall({
+            from: address,
+            to: wethToUsdcTx.transaction.to as Address,
+            data: wethToUsdcTx.transaction.data as `0x${string}`,
+          }),
+          blockchainService.simulateCall({
+            from: address,
+            to: usdcToWethTx.transaction.to as Address,
+            data: usdcToWethTx.transaction.data as `0x${string}`,
+          }),
+        ]);
+
+        poolHealth = {
+          probeStatus: 'ok',
+          wethToTusdc: { canFill: wethProbe.success, ...(wethProbe.reason ? { revertReason: wethProbe.reason } : {}) },
+          tusdcToWeth: { canFill: usdcProbe.success, ...(usdcProbe.reason ? { revertReason: usdcProbe.reason } : {}) },
+          note: 'Dust-amount simulation using eth_call — reflects current on-chain pool state',
+        };
+
+        if (!wethProbe.success) issues.push(`Pool WETH→tUSDC direction not fillable: ${wethProbe.reason}`);
+        if (!usdcProbe.success) issues.push(`Pool tUSDC→WETH direction not fillable: ${usdcProbe.reason}`);
+      } catch (probeErr: any) {
+        poolHealth = { probeStatus: 'error', error: probeErr.message };
+      }
+    }
+
     res.json({
       address,
       network: 'base-sepolia',
@@ -489,6 +567,7 @@ export async function preflightCheck(req: Request, res: Response): Promise<void>
         poolManager: CONTRACTS.poolManager,
       },
       allowances,
+      pool: poolHealth,
       readiness: {
         canSwap: sessionActive && institutionBound && issues.filter(i => !i.includes('PositionManager')).length === 0,
         canAddLiquidity: sessionActive && institutionBound && issues.length === 0,

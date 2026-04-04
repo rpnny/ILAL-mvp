@@ -193,6 +193,41 @@ class BlockchainService {
   }
 
   /**
+   * Simulate a transaction via eth_call with the given sender.
+   * Returns { success: true } if the call succeeds, or { success: false, reason } if it reverts.
+   * This is the most reliable way to check if a TX will succeed given current on-chain state.
+   */
+  async simulateCall(params: {
+    from: Address;
+    to: Address;
+    data: Hex;
+    value?: bigint;
+  }): Promise<{ success: boolean; reason?: string }> {
+    try {
+      await this.publicClient.call({
+        account: params.from,
+        to: params.to,
+        data: params.data,
+        value: params.value ?? 0n,
+      });
+      return { success: true };
+    } catch (error: any) {
+      const raw = error?.cause?.reason ?? error?.shortMessage ?? error?.message ?? 'unknown';
+      // Extract 4-byte selector for known revert errors
+      const selector = typeof raw === 'string' && raw.includes('0x') ? raw.match(/0x[0-9a-fA-F]{8}/)?.[0] : undefined;
+      const KNOWN: Record<string, string> = {
+        '0xbb2875c3': 'InsufficientOutput — pool cannot fill this amount at current price',
+        '0x7c9c6e8f': 'PRICE_LIMIT — pool liquidity exhausted in this direction',
+        '0x2f6c6a6f': 'SESSION_NOT_ACTIVE — compliance session expired or not started',
+        '0x13be252b': 'ERC20: insufficient allowance',
+        '0xf4d678b8': 'ERC20: insufficient balance',
+      };
+      const reason = (selector && KNOWN[selector]) || raw;
+      return { success: false, reason };
+    }
+  }
+
+  /**
    * Read decimals of an ERC-20 token.
    */
   async getTokenDecimals(token: Address): Promise<number> {
