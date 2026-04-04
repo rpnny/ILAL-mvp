@@ -10,11 +10,23 @@
 
 import type { Request, Response } from 'express';
 import { z } from 'zod';
-import { type Address } from 'viem';
+import { type Address, getAddress } from 'viem';
 import { defiService } from '../services/defi.service.js';
 import { blockchainService } from '../services/blockchain.service.js';
 import { logger } from '../config/logger.js';
 import { prisma } from '../config/database.js';
+import { CONTRACTS, DEMO_TOKENS } from '../config/constants.js';
+import { sendError } from '../middleware/error-envelope.js';
+
+// ── Supported token whitelist (lowercase for comparison) ─────
+
+const SUPPORTED_TOKENS = new Set(
+  Object.values(DEMO_TOKENS).map(a => a.toLowerCase()),
+);
+
+function isTokenSupported(addr: string): boolean {
+  return SUPPORTED_TOKENS.has(addr.toLowerCase());
+}
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -160,17 +172,46 @@ export async function executeSwap(req: Request, res: Response): Promise<void> {
       }
     }
 
-    const preflight = await checkPreflight(params.userAddress);
-
-    if (requireActiveSession && !preflight.sessionActive) {
-      res.status(412).json({
-        error: 'Precondition Failed',
-        code: 'SESSION_NOT_ACTIVE',
-        message: `No active compliance session for ${params.userAddress}`,
-        hint: preflight.hint,
+    // Token whitelist check
+    if (!isTokenSupported(params.tokenIn)) {
+      sendError(res, 400, {
+        code: 'UNSUPPORTED_TOKEN',
+        message: `tokenIn ${params.tokenIn} is not a supported token on this network`,
+        hint: `Supported tokens: ${Object.entries(DEMO_TOKENS).map(([k, v]) => `${k} (${v})`).join(', ')}`,
+        phase: 'preflight',
       });
       return;
     }
+    if (!isTokenSupported(params.tokenOut)) {
+      sendError(res, 400, {
+        code: 'UNSUPPORTED_TOKEN',
+        message: `tokenOut ${params.tokenOut} is not a supported token on this network`,
+        hint: `Supported tokens: ${Object.entries(DEMO_TOKENS).map(([k, v]) => `${k} (${v})`).join(', ')}`,
+        phase: 'preflight',
+      });
+      return;
+    }
+
+    const preflight = await checkPreflight(params.userAddress);
+
+    if (requireActiveSession && !preflight.sessionActive) {
+      sendError(res, 412, {
+        code: 'SESSION_NOT_ACTIVE',
+        message: `No active compliance session for ${params.userAddress}`,
+        hint: preflight.hint,
+        phase: 'preflight',
+      });
+      return;
+    }
+
+    // Allowance check — warn if tokenIn allowance is insufficient for SwapRouter
+    const allowance = await blockchainService.getTokenAllowance(
+      params.tokenIn as Address,
+      params.userAddress as Address,
+      CONTRACTS.simpleSwapRouter,
+    );
+    const amountBig = BigInt(params.amount);
+    const allowanceSufficient = allowance >= amountBig;
 
     const result = await defiService.swap({
       tokenIn: params.tokenIn as Address,
@@ -181,13 +222,26 @@ export async function executeSwap(req: Request, res: Response): Promise<void> {
     });
 
     if (!result.success) {
-      res.status(400).json({ ...result, preflight });
+      res.status(400).json({ ...result, preflight, phase: 'build' });
       return;
     }
 
     res.json({
       ...result,
-      preflight,
+      preflight: {
+        ...preflight,
+        tokenSupported: true,
+        allowanceSufficient,
+        ...(!allowanceSufficient ? {
+          allowanceWarning: {
+            token: params.tokenIn,
+            required: params.amount,
+            current: allowance.toString(),
+            spender: CONTRACTS.simpleSwapRouter,
+            hint: `Approve at least ${params.amount} of ${params.tokenIn} to the SwapRouter (${CONTRACTS.simpleSwapRouter}) before broadcasting.`,
+          },
+        } : {}),
+      },
       authMethod: req.authMethod,
       signerRequirement: {
         mode: 'msg.sender',
@@ -198,15 +252,16 @@ export async function executeSwap(req: Request, res: Response): Promise<void> {
 
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({
-        error: 'Validation Error',
+      sendError(res, 400, {
         code: 'INVALID_PARAMS',
+        message: 'Request validation failed',
+        phase: 'validation',
         details: error.errors.map(e => ({ path: e.path.join('.'), message: e.message })),
       });
       return;
     }
     logger.error('Swap controller error', { error: error.message });
-    res.status(500).json({ error: 'Internal Server Error', message: error.message });
+    sendError(res, 500, { code: 'INTERNAL_ERROR', message: error.message, phase: 'build' });
   }
 }
 
@@ -234,17 +289,47 @@ export async function addLiquidity(req: Request, res: Response): Promise<void> {
       }
     }
 
-    const preflight = await checkPreflight(params.userAddress);
-
-    if (requireActiveSession && !preflight.sessionActive) {
-      res.status(412).json({
-        error: 'Precondition Failed',
-        code: 'SESSION_NOT_ACTIVE',
-        message: `No active compliance session for ${params.userAddress}`,
-        hint: preflight.hint,
+    // Token whitelist check
+    if (!isTokenSupported(params.token0)) {
+      sendError(res, 400, {
+        code: 'UNSUPPORTED_TOKEN',
+        message: `token0 ${params.token0} is not a supported token on this network`,
+        hint: `Supported tokens: ${Object.entries(DEMO_TOKENS).map(([k, v]) => `${k} (${v})`).join(', ')}`,
+        phase: 'preflight',
       });
       return;
     }
+    if (!isTokenSupported(params.token1)) {
+      sendError(res, 400, {
+        code: 'UNSUPPORTED_TOKEN',
+        message: `token1 ${params.token1} is not a supported token on this network`,
+        hint: `Supported tokens: ${Object.entries(DEMO_TOKENS).map(([k, v]) => `${k} (${v})`).join(', ')}`,
+        phase: 'preflight',
+      });
+      return;
+    }
+
+    const preflight = await checkPreflight(params.userAddress);
+
+    if (requireActiveSession && !preflight.sessionActive) {
+      sendError(res, 412, {
+        code: 'SESSION_NOT_ACTIVE',
+        message: `No active compliance session for ${params.userAddress}`,
+        hint: preflight.hint,
+        phase: 'preflight',
+      });
+      return;
+    }
+
+    // Allowance checks for PositionManager
+    const [allowance0, allowance1] = await Promise.all([
+      blockchainService.getTokenAllowance(params.token0 as Address, params.userAddress as Address, CONTRACTS.positionManager),
+      blockchainService.getTokenAllowance(params.token1 as Address, params.userAddress as Address, CONTRACTS.positionManager),
+    ]);
+    const amt0 = BigInt(params.amount0);
+    const amt1 = BigInt(params.amount1);
+    const allowance0Ok = amt0 === 0n || allowance0 >= amt0;
+    const allowance1Ok = amt1 === 0n || allowance1 >= amt1;
 
     const result = await defiService.buildAddLiquidityTx({
       token0: params.token0 as Address,
@@ -257,13 +342,34 @@ export async function addLiquidity(req: Request, res: Response): Promise<void> {
     });
 
     if (!result.success) {
-      res.status(400).json({ ...result, preflight });
+      res.status(400).json({ ...result, preflight, phase: 'build' });
       return;
+    }
+
+    const allowanceWarnings: Record<string, unknown> = {};
+    if (!allowance0Ok) {
+      allowanceWarnings.token0 = {
+        token: params.token0, required: params.amount0,
+        current: allowance0.toString(), spender: CONTRACTS.positionManager,
+        hint: `Approve token0 to PositionManager (${CONTRACTS.positionManager})`,
+      };
+    }
+    if (!allowance1Ok) {
+      allowanceWarnings.token1 = {
+        token: params.token1, required: params.amount1,
+        current: allowance1.toString(), spender: CONTRACTS.positionManager,
+        hint: `Approve token1 to PositionManager (${CONTRACTS.positionManager})`,
+      };
     }
 
     res.json({
       ...result,
-      preflight,
+      preflight: {
+        ...preflight,
+        tokenSupported: true,
+        allowanceSufficient: allowance0Ok && allowance1Ok,
+        ...(Object.keys(allowanceWarnings).length > 0 ? { allowanceWarnings } : {}),
+      },
       authMethod: req.authMethod,
       signerRequirement: {
         mode: 'msg.sender',
@@ -273,14 +379,122 @@ export async function addLiquidity(req: Request, res: Response): Promise<void> {
     });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({
-        error: 'Validation Error',
+      sendError(res, 400, {
         code: 'INVALID_PARAMS',
+        message: 'Request validation failed',
+        phase: 'validation',
         details: error.errors.map(e => ({ path: e.path.join('.'), message: e.message })),
       });
       return;
     }
     logger.error('Liquidity controller error', { error: error.message });
-    res.status(500).json({ error: 'Internal Server Error', message: error.message });
+    sendError(res, 500, { code: 'INTERNAL_ERROR', message: error.message, phase: 'build' });
+  }
+}
+
+// ── Preflight self-check endpoint ─────────────────────────────
+
+export async function preflightCheck(req: Request, res: Response): Promise<void> {
+  try {
+    const rawAddress = req.params.address;
+    if (!rawAddress || !ETH_ADDRESS.test(rawAddress)) {
+      sendError(res, 400, {
+        code: 'INVALID_ADDRESS',
+        message: 'Invalid Ethereum address',
+        phase: 'validation',
+      });
+      return;
+    }
+
+    const address = getAddress(rawAddress) as Address;
+    const userId = req.apiKey?.userId ?? req.user?.userId;
+
+    // API key info
+    const apiKeyInfo = req.apiKey
+      ? { valid: true, plan: req.user?.plan ?? 'FREE', rateLimit: req.apiKey.rateLimit }
+      : { valid: true, plan: req.user?.plan ?? 'FREE' };
+
+    // Institution binding
+    const institution = await prisma.institution.findUnique({
+      where: { walletAddress: address },
+      select: { id: true, userId: true, kycStatus: true, name: true },
+    });
+
+    const institutionBound = !!institution && institution.userId === userId;
+
+    // Session check
+    let sessionActive = false;
+    let remainingSeconds = 0;
+    let expiresAt: string | null = null;
+    try {
+      [sessionActive, remainingSeconds] = await Promise.all([
+        blockchainService.isSessionActive(address),
+        blockchainService.getRemainingTime(address),
+      ]);
+      if (sessionActive) {
+        expiresAt = new Date(Date.now() + remainingSeconds * 1000).toISOString();
+      }
+    } catch (err: any) {
+      logger.warn('Preflight session check failed', { error: err.message });
+    }
+
+    // Token balances and decimals
+    const tokenEntries = Object.entries(DEMO_TOKENS) as [string, Address][];
+    const tokens: Record<string, { address: string; balance: string; decimals: number }> = {};
+    for (const [name, tokenAddr] of tokenEntries) {
+      const [balance, decimals] = await Promise.all([
+        blockchainService.getTokenBalance(tokenAddr, address),
+        blockchainService.getTokenDecimals(tokenAddr),
+      ]);
+      tokens[name] = { address: tokenAddr, balance: balance.toString(), decimals };
+    }
+
+    // Allowances
+    const allowances: Record<string, string> = {};
+    for (const [name, tokenAddr] of tokenEntries) {
+      const swapAllowance = await blockchainService.getTokenAllowance(tokenAddr, address, CONTRACTS.simpleSwapRouter);
+      const pmAllowance = await blockchainService.getTokenAllowance(tokenAddr, address, CONTRACTS.positionManager);
+      allowances[`${name}_to_SwapRouter`] = swapAllowance.toString();
+      allowances[`${name}_to_PositionManager`] = pmAllowance.toString();
+    }
+
+    // Readiness assessment
+    const issues: string[] = [];
+    if (!institutionBound) issues.push('Wallet not registered under your account — call POST /onboarding/register');
+    if (!sessionActive) issues.push('No active compliance session — call POST /onboarding/activate-session-demo');
+
+    for (const [name, tokenAddr] of tokenEntries) {
+      const swapKey = `${name}_to_SwapRouter`;
+      if (BigInt(allowances[swapKey]) === 0n) {
+        issues.push(`${name} allowance to SwapRouter is 0 — approve ${tokenAddr} to ${CONTRACTS.simpleSwapRouter}`);
+      }
+    }
+
+    res.json({
+      address,
+      network: 'base-sepolia',
+      chainId: 84532,
+      apiKey: apiKeyInfo,
+      institution: institution
+        ? { bound: institutionBound, id: institution.id, name: institution.name, kycApproved: institution.kycStatus === 1 }
+        : { bound: false },
+      session: { active: sessionActive, remainingSeconds, expiresAt },
+      tokens,
+      contracts: {
+        swapRouter: CONTRACTS.simpleSwapRouter,
+        positionManager: CONTRACTS.positionManager,
+        complianceHook: CONTRACTS.complianceHook,
+        poolManager: CONTRACTS.poolManager,
+      },
+      allowances,
+      readiness: {
+        canSwap: sessionActive && institutionBound && issues.filter(i => !i.includes('PositionManager')).length === 0,
+        canAddLiquidity: sessionActive && institutionBound && issues.length === 0,
+        issues,
+      },
+    });
+  } catch (error: any) {
+    logger.error('Preflight check error', { error: error.message });
+    sendError(res, 500, { code: 'INTERNAL_ERROR', message: error.message });
   }
 }

@@ -148,6 +148,71 @@ class BlockchainService {
     return this.publicClient.getBlockNumber();
   }
 
+  /**
+   * Read an ERC-20 token's allowance for (owner, spender).
+   */
+  async getTokenAllowance(token: Address, owner: Address, spender: Address): Promise<bigint> {
+    try {
+      return (await this.publicClient.readContract({
+        address: token,
+        abi: [{
+          type: 'function', name: 'allowance',
+          inputs: [{ name: 'owner', type: 'address' }, { name: 'spender', type: 'address' }],
+          outputs: [{ name: '', type: 'uint256' }],
+          stateMutability: 'view',
+        }] as const,
+        functionName: 'allowance',
+        args: [owner, spender],
+      })) as bigint;
+    } catch (error: any) {
+      logger.warn('Token allowance check failed', { token, owner, spender, error: error.message });
+      return 0n;
+    }
+  }
+
+  /**
+   * Read an ERC-20 token balance for an address.
+   */
+  async getTokenBalance(token: Address, owner: Address): Promise<bigint> {
+    try {
+      return (await this.publicClient.readContract({
+        address: token,
+        abi: [{
+          type: 'function', name: 'balanceOf',
+          inputs: [{ name: 'account', type: 'address' }],
+          outputs: [{ name: '', type: 'uint256' }],
+          stateMutability: 'view',
+        }] as const,
+        functionName: 'balanceOf',
+        args: [owner],
+      })) as bigint;
+    } catch (error: any) {
+      logger.warn('Token balance check failed', { token, owner, error: error.message });
+      return 0n;
+    }
+  }
+
+  /**
+   * Read decimals of an ERC-20 token.
+   */
+  async getTokenDecimals(token: Address): Promise<number> {
+    try {
+      const decimals = await this.publicClient.readContract({
+        address: token,
+        abi: [{
+          type: 'function', name: 'decimals',
+          inputs: [],
+          outputs: [{ name: '', type: 'uint8' }],
+          stateMutability: 'view',
+        }] as const,
+        functionName: 'decimals',
+      });
+      return Number(decimals);
+    } catch {
+      return 18;
+    }
+  }
+
   // ── Write (requires VERIFIER_PRIVATE_KEY + VERIFIER_ROLE on SessionManager) ──
 
   /**

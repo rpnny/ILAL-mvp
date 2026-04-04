@@ -15,15 +15,51 @@ export default function DocsPage() {
         </p>
       </div>
 
-      {/* Base URL banner */}
-      <div className="bg-white/[0.03] border border-white/10 rounded-xl p-5 mb-10 flex flex-col sm:flex-row sm:items-center gap-3">
-        <div className="flex-1">
-          <div className="text-xs text-gray-500 uppercase tracking-widest mb-1">API Base URL</div>
-          <code className="text-[#00F0FF] font-mono text-sm">https://ilal-mvp-production.up.railway.app/api/v1</code>
+      {/* Current Configuration Card */}
+      <div className="bg-white/[0.03] border border-[#00F0FF]/30 rounded-xl p-6 mb-10">
+        <div className="flex items-center gap-2 mb-4">
+          <CheckCircle2 className="w-5 h-5 text-[#00F0FF]" />
+          <h2 className="font-heading text-lg font-semibold">Current Active Configuration</h2>
+          <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">Base Sepolia</span>
         </div>
-        <div className="text-xs text-gray-500 bg-white/[0.04] px-3 py-1.5 rounded-lg">
-          Authentication: <span className="text-gray-300">X-API-Key header</span>
+        <p className="text-xs text-gray-500 mb-4">This is the only supported testnet configuration. All addresses below are pinned and verified.</p>
+        <div className="grid sm:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+          <div className="flex justify-between py-1.5 border-b border-white/[0.04]">
+            <span className="text-gray-500">DeFi Base URL</span>
+            <code className="text-[#00F0FF] font-mono text-xs">ilal-mvp-production.up.railway.app/api/v1</code>
+          </div>
+          <div className="flex justify-between py-1.5 border-b border-white/[0.04]">
+            <span className="text-gray-500">Auth Header</span>
+            <code className="text-gray-300 font-mono text-xs">X-API-Key: ilal_live_xxx</code>
+          </div>
+          <div className="flex justify-between py-1.5 border-b border-white/[0.04]">
+            <span className="text-gray-500">WETH</span>
+            <code className="text-gray-300 font-mono text-xs">0x4200...0006</code>
+          </div>
+          <div className="flex justify-between py-1.5 border-b border-white/[0.04]">
+            <span className="text-gray-500">tUSDC (test stablecoin)</span>
+            <code className="text-gray-300 font-mono text-xs">0xa486...424D</code>
+          </div>
+          <div className="flex justify-between py-1.5 border-b border-white/[0.04]">
+            <span className="text-gray-500">ComplianceHook</span>
+            <code className="text-gray-300 font-mono text-xs">0x54b8...8a80</code>
+          </div>
+          <div className="flex justify-between py-1.5 border-b border-white/[0.04]">
+            <span className="text-gray-500">SwapRouter</span>
+            <code className="text-gray-300 font-mono text-xs">0xd46D...2891</code>
+          </div>
+          <div className="flex justify-between py-1.5 border-b border-white/[0.04]">
+            <span className="text-gray-500">PositionManager</span>
+            <code className="text-gray-300 font-mono text-xs">0x6925...Cea32</code>
+          </div>
+          <div className="flex justify-between py-1.5 border-b border-white/[0.04]">
+            <span className="text-gray-500">zeroForOne</span>
+            <span className="text-gray-300 text-xs">Optional (auto-derived)</span>
+          </div>
         </div>
+        <p className="text-xs text-gray-600 mt-3">
+          Circle USDC (<code className="text-gray-500">0x036CbD...</code>) is <span className="text-red-400">deprecated</span> — its demo pool has been drained. Use <strong className="text-gray-300">tUSDC</strong> instead.
+        </p>
       </div>
 
       {/* Quick Links */}

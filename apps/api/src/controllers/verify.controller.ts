@@ -11,6 +11,7 @@ import { logger } from '../config/logger.js';
 import { EXPECTED_MERKLE_ROOT, EXPECTED_ISSUER_AX, EXPECTED_ISSUER_AY, getValidMerkleRoots } from '../config/constants.js';
 import * as merkleService from '../services/merkle.service.js';
 import * as issuerService from '../services/issuer.service.js';
+import { sendError } from '../middleware/error-envelope.js';
 
 const MAX_PROOF_AGE_SECONDS = 3600;
 const MAX_FUTURE_DRIFT_SECONDS = 300;
@@ -52,20 +53,22 @@ export async function verifyAndActivate(req: Request, res: Response): Promise<vo
     const userId = req.apiKey?.userId ?? req.user?.userId;
 
     if (!userId) {
-      res.status(401).json({
-        success: false,
-        error: 'Unauthorized',
+      sendError(res, 401, {
+        code: 'AUTH_REQUIRED',
         message: 'Authenticated user context is required',
+        hint: 'Include X-API-Key or Authorization: Bearer header',
+        phase: 'auth',
       });
       return;
     }
 
     const ownsInstitution = await assertInstitutionAccess(userId, userAddress);
     if (!ownsInstitution) {
-      res.status(403).json({
-        success: false,
-        error: 'Forbidden',
+      sendError(res, 403, {
+        code: 'INSTITUTION_OWNERSHIP_MISMATCH',
         message: 'You can only verify proofs for institutions owned by your account',
+        hint: 'Call POST /onboarding/register with this walletAddress to bind it to your account',
+        phase: 'preflight',
       });
       return;
     }
@@ -403,7 +406,12 @@ export async function getSessionStatus(req: Request, res: Response): Promise<voi
   try {
     const userId = req.apiKey?.userId ?? req.user?.userId;
     if (!userId) {
-      res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
+      sendError(res, 401, {
+        code: 'AUTH_REQUIRED',
+        message: 'Authentication required',
+        hint: 'Include X-API-Key or Authorization: Bearer header',
+        phase: 'auth',
+      });
       return;
     }
 
@@ -411,7 +419,11 @@ export async function getSessionStatus(req: Request, res: Response): Promise<voi
     const address = Array.isArray(rawAddress) ? rawAddress[0] : rawAddress;
 
     if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address as string)) {
-      res.status(400).json({ error: 'Bad Request', message: 'Invalid Ethereum address' });
+      sendError(res, 400, {
+        code: 'INVALID_ADDRESS',
+        message: 'Invalid Ethereum address',
+        phase: 'validation',
+      });
       return;
     }
 

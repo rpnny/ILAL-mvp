@@ -35,17 +35,21 @@ function createMockResponse(): MockResponse {
   };
 }
 
+// Must use actual supported token addresses (whitelist is enforced)
+const WETH  = '0x4200000000000000000000000000000000000006';
+const tUSDC = '0xa486Fb51ED09B970A23F7Fe910bc90089f78424D';
+
 const validSwapBody = {
-  tokenIn: '0x' + '1'.repeat(40),
-  tokenOut: '0x' + '2'.repeat(40),
+  tokenIn: WETH,
+  tokenOut: tUSDC,
   amount: '1000000',
   zeroForOne: true,
   userAddress: '0x' + '3'.repeat(40),
 };
 
 const validLiquidityBody = {
-  token0: '0x' + '1'.repeat(40),
-  token1: '0x' + '2'.repeat(40),
+  token0: WETH,
+  token1: tUSDC,
   amount0: '1000000',
   amount1: '2000000',
   userAddress: '0x' + '3'.repeat(40),

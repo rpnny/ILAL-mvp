@@ -6,6 +6,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../utils/jwt.js';
 import { prisma } from '../config/database.js';
 import { logger } from '../config/logger.js';
+import { sendError } from './error-envelope.js';
 
 declare global {
   namespace Express {
@@ -31,9 +32,11 @@ export async function authMiddleware(
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    res.status(401).json({
-      error: 'Unauthorized',
+    sendError(res, 401, {
+      code: 'JWT_MISSING',
       message: 'Missing or malformed Authorization header',
+      hint: 'Include "Authorization: Bearer <accessToken>" in the request headers',
+      phase: 'auth',
     });
     return;
   }
@@ -48,9 +51,11 @@ export async function authMiddleware(
     });
 
     if (!user) {
-      res.status(401).json({
-        error: 'Unauthorized',
+      sendError(res, 401, {
+        code: 'USER_NOT_FOUND',
         message: 'User not found',
+        hint: 'The token references a deleted or non-existent account',
+        phase: 'auth',
       });
       return;
     }
@@ -64,9 +69,11 @@ export async function authMiddleware(
     next();
   } catch (error: any) {
     logger.warn('Auth failed', { error: error.message });
-    res.status(401).json({
-      error: 'Unauthorized',
+    sendError(res, 401, {
+      code: 'JWT_INVALID',
       message: 'Invalid or expired token',
+      hint: 'Obtain a new access token via POST /api/v1/auth/login or use a refresh token',
+      phase: 'auth',
     });
   }
 }

@@ -113,7 +113,7 @@ class ILALApiClient {
    */
   async buildSwapTx(params: {
     tokenIn: Address; tokenOut: Address;
-    amount: string; zeroForOne: boolean; userAddress: Address;
+    amount: string; zeroForOne?: boolean; userAddress: Address;
   }) {
     return this.request<{
       success: boolean;
@@ -180,9 +180,9 @@ class InstitutionalApiTradingSystem {
    */
   async swap(params: {
     tokenIn: Address; tokenOut: Address;
-    amount: string; zeroForOne: boolean;
+    amount: string; zeroForOne?: boolean;
   }) {
-    console.log(`\n📊 Swap: ${params.amount} (zeroForOne=${params.zeroForOne})`);
+    console.log(`\n📊 Swap: ${params.amount} (zeroForOne=${params.zeroForOne ?? 'auto'})`);
 
     // Step 1: 从 ILAL API 获取未签名交易
     console.log('   [1/3] Fetching unsigned TX from ILAL API...');
@@ -279,12 +279,11 @@ async function main() {
 
   // 3. 获取未签名交易 → 签名 → 广播
   console.log('\n── Step 3: Execute Swap (API → Sign → Broadcast) ──');
-  // mUSD/mTBILL — the initialized ILAL compliance pool on Base Sepolia (both 18 decimals)
+  // WETH/tUSDC — the current ILAL compliance pool on Base Sepolia
   const hash = await system.swap({
-    tokenIn:  '0xdd3d112a48906807c4b73c94ed884552427e4cf9' as Address, // mUSD
-    tokenOut: '0xfb080423cedd4ca56da3f60a4b901f51846459ae' as Address, // mTBILL
-    amount: '10000000000000000', // 0.01 mUSD (18 decimals)
-    zeroForOne: true,
+    tokenIn:  '0x4200000000000000000000000000000000000006' as Address, // WETH
+    tokenOut: '0xa486Fb51ED09B970A23F7Fe910bc90089f78424D' as Address, // tUSDC
+    amount: '1000000000000000', // 0.001 WETH
   });
   console.log(`\n   ✅ Swap completed: ${hash}`);
 }
@@ -309,13 +308,12 @@ Step 2: 身份验证 & Session
 
 Step 3: 交易（API 返回未签名交易，机构自行签名广播）
 
-  // 请求 (mUSD → mTBILL, Base Sepolia testnet pools)
+  // 请求 (WETH → tUSDC, Base Sepolia testnet pools)
   POST /api/v1/defi/swap
   {
-    "tokenIn":  "0xdd3d112a48906807c4b73c94ed884552427e4cf9",
-    "tokenOut": "0xfb080423cedd4ca56da3f60a4b901f51846459ae",
-    "amount":   "10000000000000000",
-    "zeroForOne": true,
+    "tokenIn":  "0x4200000000000000000000000000000000000006",
+    "tokenOut": "0xa486Fb51ED09B970A23F7Fe910bc90089f78424D",
+    "amount":   "1000000000000000",
     "userAddress": "0x..."
   }
 

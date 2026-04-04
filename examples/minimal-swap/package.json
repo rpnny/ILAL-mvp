@@ -1,0 +1,16 @@
+{
+  "name": "ilal-minimal-swap",
+  "version": "1.0.0",
+  "description": "Minimal end-to-end example: register → activate session → swap WETH→tUSDC on Base Sepolia via ILAL API",
+  "type": "module",
+  "scripts": {
+    "start": "npx tsx run.ts"
+  },
+  "dependencies": {
+    "viem": "^2.21.0",
+    "dotenv": "^16.4.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0"
+  }
+}

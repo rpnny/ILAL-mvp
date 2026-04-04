@@ -86,13 +86,15 @@ export const EAS_SCHEMA_IDS = {
 
 // ============ Token addresses ============
 
-// Tokens with initialized ILAL compliance pools on Base Sepolia (fee=500, tickSpacing=10)
+// Active tokens with initialized ILAL compliance pools on Base Sepolia (fee=500, tickSpacing=10)
 export const BASE_SEPOLIA_TOKENS = {
-  mUSD:   '0xdd3d112a48906807c4b73c94ed884552427e4cf9' as Address, // Mock USD (18 decimals)
-  mTBILL: '0xfb080423cedd4ca56da3f60a4b901f51846459ae' as Address, // Mock T-Bill (18 decimals)
-  // Standard tokens — no ILAL pool initialized on testnet yet
+  WETH:  '0x4200000000000000000000000000000000000006' as Address,
+  tUSDC: '0xa486Fb51ED09B970A23F7Fe910bc90089f78424D' as Address, // ILAL-controlled mintable test stablecoin (6 decimals)
+  // Legacy tokens — pools drained or inactive, kept for backward compatibility
+  mUSD:   '0xdd3d112a48906807c4b73c94ed884552427e4cf9' as Address, // Deprecated: Mock USD (18 decimals)
+  mTBILL: '0xfb080423cedd4ca56da3f60a4b901f51846459ae' as Address, // Deprecated: Mock T-Bill (18 decimals)
+  /** @deprecated Use tUSDC instead — Circle USDC pool has been drained */
   USDC: '0x036CbD53842c5426634e7929541eC2318f3dCF7e' as Address,
-  WETH: '0x4200000000000000000000000000000000000006' as Address,
 } as const;
 
 export const BASE_MAINNET_TOKENS = {

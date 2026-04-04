@@ -69,14 +69,17 @@ Institution
 
 ## Deployments (Base Sepolia Testnet)
 
-| Contract | Address | Explorer |
-|----------|---------|----------|
-| **ComplianceHook** | `0xe633220f15932428FcA60A1A2C2C48797A180A80` | [View](https://sepolia.basescan.org/address/0xe633220f15932428FcA60A1A2C2C48797A180A80) |
-| **SessionManager** (UUPS) | `0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2` | [View](https://sepolia.basescan.org/address/0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2) |
-| **Registry** (UUPS) | `0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD` | [View](https://sepolia.basescan.org/address/0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD) |
-| **SimpleSwapRouter** | `0xd46D84Dc2D098c767451675C9BcB85bf3f8a2891` | [View](https://sepolia.basescan.org/address/0xd46D84Dc2D098c767451675C9BcB85bf3f8a2891) |
-| **PlonkVerifier** (v2) | `0xa1FaF1d0858533820B48db578AaE8C31c9c1a37A` | [View](https://sepolia.basescan.org/address/0xa1FaF1d0858533820B48db578AaE8C31c9c1a37A) |
-| **PlonkVerifierAdapter** (v2) | `0x8e093aC51921fe2be9bd0910092a01200AAd6560` | [View](https://sepolia.basescan.org/address/0x8e093aC51921fe2be9bd0910092a01200AAd6560) |
+| Contract | Address | Status | Explorer |
+|----------|---------|--------|----------|
+| **ComplianceHook** (v3) | `0x54b88a4aAC9E73F6581C19a06a2DC280Eba78a80` | **Active** | [View](https://sepolia.basescan.org/address/0x54b88a4aAC9E73F6581C19a06a2DC280Eba78a80) |
+| **SimpleSwapRouter** | `0xd46D84Dc2D098c767451675C9BcB85bf3f8a2891` | Active | [View](https://sepolia.basescan.org/address/0xd46D84Dc2D098c767451675C9BcB85bf3f8a2891) |
+| **PositionManager** | `0x692548a6E1797d2762b9d04f29112C172E5Cea32` | Active | [View](https://sepolia.basescan.org/address/0x692548a6E1797d2762b9d04f29112C172E5Cea32) |
+| **SessionManager** (UUPS) | `0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2` | Active | [View](https://sepolia.basescan.org/address/0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2) |
+| **Registry** (UUPS) | `0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD` | Active | [View](https://sepolia.basescan.org/address/0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD) |
+| **PlonkVerifier** (v2) | `0xa1FaF1d0858533820B48db578AaE8C31c9c1a37A` | Active | [View](https://sepolia.basescan.org/address/0xa1FaF1d0858533820B48db578AaE8C31c9c1a37A) |
+| **PlonkVerifierAdapter** (v2) | `0x8e093aC51921fe2be9bd0910092a01200AAd6560` | Active | [View](https://sepolia.basescan.org/address/0x8e093aC51921fe2be9bd0910092a01200AAd6560) |
+| ~~ComplianceHook (v2)~~ | `0xdD37A28e15A9592eAAd3f7Df0Ad36e374Af68A80` | Deprecated | — |
+| ~~ComplianceHook (v1)~~ | `0xe633220f15932428FcA60A1A2C2C48797A180A80` | Deprecated | — |
 
 **External dependency:** Uniswap v4 PoolManager at `0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408`
 
@@ -128,12 +131,22 @@ ilal/
 
 ### ⚠️ Integration Quick-Start (Read First)
 
-> **Note:** The docs site at `ilal.tech/docs` may show a stale base URL. Always use the addresses below.
+> **Canonical configuration — this section is the single source of truth.**
 
-| Endpoint type | Base URL |
+| Setting | Value |
 |---|---|
-| Auth / API Key management | `https://www.ilal.tech/api/v1` |
-| DeFi (swap / liquidity / session) | `https://ilal-mvp-production.up.railway.app/api/v1` |
+| **DeFi Base URL** | `https://ilal-mvp-production.up.railway.app/api/v1` |
+| **Auth / API Key Base URL** | `https://www.ilal.tech/api/v1` |
+| **Auth Header** | `X-API-Key: ilal_live_xxx` |
+| **Network** | Base Sepolia (chainId: 84532) / RPC: `https://sepolia.base.org` |
+| **WETH** | `0x4200000000000000000000000000000000000006` |
+| **tUSDC** (test stablecoin) | `0xa486Fb51ED09B970A23F7Fe910bc90089f78424D` |
+| **ComplianceHook** | `0x54b88a4aAC9E73F6581C19a06a2DC280Eba78a80` |
+| **SwapRouter** | `0xd46D84Dc2D098c767451675C9BcB85bf3f8a2891` |
+| **PositionManager** | `0x692548a6E1797d2762b9d04f29112C172E5Cea32` |
+| **`zeroForOne`** | Optional — auto-derived from tokenIn/tokenOut ordering |
+
+> **tUSDC** is an ILAL-controlled mintable ERC-20 (6 decimals) deployed to ensure the demo pool always has sufficient liquidity. The Circle testnet USDC (`0x036CbD...`) is **deprecated** — its pool has been drained.
 
 **Step 1 — Register**
 ```bash
@@ -159,14 +172,12 @@ curl -X POST https://ilal-mvp-production.up.railway.app/api/v1/defi/swap \
   -H "Content-Type: application/json" \
   -d '{
     "tokenIn":     "0x4200000000000000000000000000000000000006",
-    "tokenOut":    "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "tokenOut":    "0xa486Fb51ED09B970A23F7Fe910bc90089f78424D",
     "amount":      "1000000000000000",
-    "zeroForOne":  false,
     "userAddress": "0xYOUR_WALLET"
   }'
 # → { "success": true, "transaction": { "to": "0x...", "data": "0x..." },
-#     "preflight": { "sessionActive": false, "canBroadcastSafely": false,
-#                    "warning": "No active compliance session..." } }
+#     "preflight": { "sessionActive": true, "canBroadcastSafely": true } }
 ```
 
 **Step 4 — Add Liquidity**
@@ -175,10 +186,10 @@ curl -X POST https://ilal-mvp-production.up.railway.app/api/v1/defi/liquidity \
   -H "X-API-Key: ilal_live_xxx" \
   -H "Content-Type: application/json" \
   -d '{
-    "token0":      "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
-    "token1":      "0x4200000000000000000000000000000000000006",
-    "amount0":     "100000",
-    "amount1":     "1000000000000000",
+    "token0":      "0x4200000000000000000000000000000000000006",
+    "token1":      "0xa486Fb51ED09B970A23F7Fe910bc90089f78424D",
+    "amount0":     "1000000000000000",
+    "amount1":     "2000000",
     "tickLower":   -600,
     "tickUpper":   600,
     "userAddress": "0xYOUR_WALLET"
@@ -188,18 +199,20 @@ curl -X POST https://ilal-mvp-production.up.railway.app/api/v1/defi/liquidity \
 ### Key Notes
 
 - **Authentication:** Use `X-API-Key: ilal_live_xxx` for server-to-server calls. Use `Authorization: Bearer <token>` for dashboard/JWT flows. All protected endpoints accept both.
-- **`zeroForOne` direction:** USDC address (`0x036...`) sorts before WETH (`0x420...`). WETH→USDC = `zeroForOne: false`. USDC→WETH = `zeroForOne: true`.
-- **Compliance session:** `preflight.sessionActive: false` means on-chain broadcast will revert. Call `/api/v1/verify` first to activate a 24-hour session.
-- **Error codes:** API Key errors return machine-readable `code` field: `API_KEY_FORMAT_INVALID`, `API_KEY_PREFIX_NOT_FOUND`, `API_KEY_HASH_MISMATCH`, `API_KEY_INACTIVE`, `API_KEY_EXPIRED`, `API_KEY_SCOPE_MISSING`.
+- **`zeroForOne` is optional:** The API auto-derives swap direction from `tokenIn`/`tokenOut` address ordering. You can omit it entirely. If provided, the API validates it matches the expected direction.
+- **Token ordering:** WETH (`0x4200...`) < tUSDC (`0xa486...`), so WETH is always `token0`. For WETH→tUSDC swaps, `zeroForOne` = `true` (auto-derived).
+- **Compliance session:** `preflight.sessionActive: false` means on-chain broadcast will revert. Call `/api/v1/onboarding/activate-session-demo` (testnet) or `/api/v1/verify` (production ZK) to activate a 24-hour session.
+- **Preflight self-check:** Call `GET /api/v1/preflight/:walletAddress` to check session, balances, allowances, and readiness in a single call.
+- **Error codes:** All errors return machine-readable `code`, `message`, `hint`, and `phase` fields. See the [Error Codes](#error-codes) section below.
 - **Preflight enforcement:** Add `?requireActiveSession=true` to force a `412 Precondition Failed` instead of a warning when session is inactive.
-- **Network:** Base Sepolia testnet (chainId: 84532). RPC: `https://sepolia.base.org`.
 
 ### Tokens (Base Sepolia)
 
-| Token | Address |
-|---|---|
-| WETH | `0x4200000000000000000000000000000000000006` |
-| USDC | `0x036CbD53842c5426634e7929541eC2318f3dCF7e` |
+| Token | Address | Decimals | Status |
+|---|---|---|---|
+| **WETH** | `0x4200000000000000000000000000000000000006` | 18 | Active |
+| **tUSDC** (ILAL Test) | `0xa486Fb51ED09B970A23F7Fe910bc90089f78424D` | 6 | **Active** |
+| ~~USDC (Circle)~~ | `0x036CbD53842c5426634e7929541eC2318f3dCF7e` | 6 | Deprecated |
 
 ### ZK Session Flow
 
