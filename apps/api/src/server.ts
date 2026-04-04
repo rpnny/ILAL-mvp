@@ -126,6 +126,10 @@ export async function createServer(): Promise<express.Application> {
   const { default: defiRoutes } = await import('./routes/defi.routes.js');
   app.use('/api/v1/defi', defiRoutes);
 
+  // Top-level preflight alias so GET /api/v1/preflight/:address also works
+  const { preflightCheck } = await import('./controllers/defi.controller.js');
+  app.get('/api/v1/preflight/:address', hybridAuthMiddleware, preflightCheck);
+
   // Initialize Issuer + Merkle services (non-blocking; errors are logged)
   try {
     await issuerService.initialize();

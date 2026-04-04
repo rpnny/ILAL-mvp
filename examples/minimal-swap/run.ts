@@ -12,6 +12,8 @@ import {
   http,
   formatEther,
   formatUnits,
+  parseAbi,
+  type Address,
   type Hex,
 } from 'viem';
 import { baseSepolia } from 'viem/chains';
@@ -27,6 +29,10 @@ const WETH  = '0x4200000000000000000000000000000000000006';
 const tUSDC = '0xa486Fb51ED09B970A23F7Fe910bc90089f78424D';
 
 const SWAP_AMOUNT = '1000000000000000'; // 0.001 WETH
+
+const ERC20_ABI = parseAbi([
+  'function balanceOf(address) view returns (uint256)',
+]);
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -62,8 +68,16 @@ async function main() {
   const account = privateKeyToAccount(PK);
   const walletAddress = account.address;
 
-  const publicClient = createPublicClient({ chain: baseSepolia, transport: http() });
-  const walletClient = createWalletClient({ account, chain: baseSepolia, transport: http() });
+  const publicClient = createPublicClient({ chain: baseSepolia, transport: http('https://sepolia.base.org') });
+  const walletClient = createWalletClient({ account, chain: baseSepolia, transport: http('https://sepolia.base.org') });
+
+  async function readBalances() {
+    const [weth, tusdc] = await Promise.all([
+      publicClient.readContract({ address: WETH as Address, abi: ERC20_ABI, functionName: 'balanceOf', args: [walletAddress] }),
+      publicClient.readContract({ address: tUSDC as Address, abi: ERC20_ABI, functionName: 'balanceOf', args: [walletAddress] }),
+    ]);
+    return { weth, tusdc };
+  }
 
   console.log('╔══════════════════════════════════════════════╗');
   console.log('║  ILAL Minimal Swap — Base Sepolia            ║');
@@ -96,36 +110,47 @@ async function main() {
     console.log(`  Expires: ${session.expiresAt}`);
   }
 
-  // 4. Preflight self-check
+  // 4. Preflight self-check  (both /preflight/:addr and /defi/preflight/:addr work)
   step(4, 'Preflight self-check');
-  const preflight = await api('GET', `/defi/preflight/${walletAddress}`);
-  console.log(`  Session active: ${preflight.session.active}`);
-  console.log(`  WETH balance:   ${formatEther(BigInt(preflight.tokens.WETH.balance))} WETH`);
-  console.log(`  tUSDC balance:  ${formatUnits(BigInt(preflight.tokens.tUSDC.balance), 6)} tUSDC`);
-  console.log(`  Can swap:       ${preflight.readiness.canSwap}`);
+  const preflight = await api('GET', `/preflight/${walletAddress}`);
+  console.log(`  Session active:  ${preflight.session.active}`);
+  console.log(`  WETH balance:    ${formatEther(BigInt(preflight.tokens.WETH.balance))} WETH`);
+  console.log(`  tUSDC balance:   ${formatUnits(BigInt(preflight.tokens.tUSDC.balance), 6)} tUSDC`);
+  console.log(`  Can swap:        ${preflight.readiness.canSwap}`);
   if (preflight.readiness.issues.length > 0) {
     for (const issue of preflight.readiness.issues) {
-      console.log(`  ⚠ ${issue}`);
+      console.log(`  ⚠  ${issue}`);
+    }
+    if (!preflight.readiness.canSwap) {
+      console.error('\n  Cannot proceed — fix the issues above first.');
+      process.exit(1);
     }
   }
 
-  // 5. Build swap transaction
-  step(5, `Build swap (${formatEther(BigInt(SWAP_AMOUNT))} WETH → tUSDC)`);
+  // 5. Read on-chain balances BEFORE swap (ground truth from chain, not API cache)
+  step(5, 'Reading on-chain balances before swap');
+  const before = await readBalances();
+  console.log(`  WETH:  ${formatEther(before.weth)} WETH`);
+  console.log(`  tUSDC: ${formatUnits(before.tusdc, 6)} tUSDC`);
+
+  // 6. Build swap transaction
+  step(6, `Build swap (${formatEther(BigInt(SWAP_AMOUNT))} WETH → tUSDC)`);
   const swap = await api('POST', '/defi/swap', {
     tokenIn:     WETH,
     tokenOut:    tUSDC,
     amount:      SWAP_AMOUNT,
     userAddress: walletAddress,
   });
-  console.log(`  Transaction built successfully`);
-  console.log(`  To:   ${swap.transaction.to}`);
-  console.log(`  Session active: ${swap.preflight.sessionActive}`);
+  console.log(`  Transaction built`);
+  console.log(`  To:              ${swap.transaction.to}`);
+  console.log(`  Session active:  ${swap.preflight.sessionActive}`);
   if (!swap.preflight.allowanceSufficient) {
-    console.log(`  ⚠ Allowance insufficient — approve WETH to SwapRouter first`);
+    console.log(`  ⚠  Allowance insufficient — approve WETH to SwapRouter first`);
+    console.log(`     ${swap.preflight.allowanceWarning?.hint}`);
   }
 
-  // 6. Sign & broadcast
-  step(6, 'Sign and broadcast');
+  // 7. Sign & broadcast
+  step(7, 'Sign and broadcast');
   const txHash = await walletClient.sendTransaction({
     to: swap.transaction.to as Hex,
     data: swap.transaction.data as Hex,
@@ -135,13 +160,13 @@ async function main() {
   });
   console.log(`  TX hash: ${txHash}`);
 
-  // 7. Wait for confirmation
-  step(7, 'Waiting for confirmation...');
+  // 8. Wait for confirmation
+  step(8, 'Waiting for confirmation...');
   const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
   const success = receipt.status === 'success';
-  console.log(`  Status: ${success ? 'SUCCESS' : 'REVERTED'}`);
-  console.log(`  Block:  ${receipt.blockNumber}`);
-  console.log(`  Gas:    ${receipt.gasUsed}`);
+  console.log(`  Status:   ${success ? '✓ SUCCESS' : '✗ REVERTED'}`);
+  console.log(`  Block:    ${receipt.blockNumber}`);
+  console.log(`  Gas used: ${receipt.gasUsed}`);
   console.log(`  Explorer: https://sepolia.basescan.org/tx/${txHash}`);
 
   if (!success) {
@@ -152,7 +177,24 @@ async function main() {
     process.exit(1);
   }
 
-  console.log('\n  Done! Swap completed successfully.');
+  // 9. Verify on-chain balance changes
+  step(9, 'Verifying on-chain balance changes');
+  const after = await readBalances();
+  const wethDelta  = after.weth  - before.weth;
+  const tusdcDelta = after.tusdc - before.tusdc;
+  console.log(`  WETH:  ${formatEther(before.weth)} → ${formatEther(after.weth)}  (Δ ${formatEther(wethDelta)} WETH)`);
+  console.log(`  tUSDC: ${formatUnits(before.tusdc, 6)} → ${formatUnits(after.tusdc, 6)}  (Δ +${formatUnits(tusdcDelta, 6)} tUSDC)`);
+
+  if (wethDelta >= 0n) {
+    console.error('  ✗ WETH balance did not decrease — swap may not have executed correctly');
+    process.exit(1);
+  }
+  if (tusdcDelta <= 0n) {
+    console.error('  ✗ tUSDC balance did not increase — swap may not have executed correctly');
+    process.exit(1);
+  }
+
+  console.log('\n  ✓ Swap verified. All done!');
 }
 
 main().catch((err) => {
