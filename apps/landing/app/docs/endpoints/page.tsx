@@ -197,7 +197,7 @@ export default function EndpointsPage() {
       <h1 className="font-heading text-4xl font-bold mb-3">API Endpoints</h1>
       <p className="text-lg text-gray-400 mb-6">Complete reference for all ILAL API endpoints.</p>
 
-      <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-5 mb-10 flex flex-col sm:flex-row sm:items-center gap-4">
+      <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-5 mb-6 flex flex-col sm:flex-row sm:items-center gap-4">
         <div>
           <div className="text-xs text-gray-500 uppercase tracking-widest mb-1">Base URL</div>
           <code className="text-[#00F0FF] font-mono">{BASE}</code>
@@ -212,6 +212,32 @@ export default function EndpointsPage() {
             <span className="text-gray-500 font-sans">API Key (server-to-server)</span>
           </div>
         </div>
+      </div>
+
+      {/* Rate Limit Reference */}
+      <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-5 mb-10">
+        <div className="text-xs text-gray-500 uppercase tracking-widest mb-3">Rate Limits (per minute, per API key)</div>
+        <div className="grid grid-cols-3 gap-3 text-sm">
+          <div className="bg-[#0D0D0D] rounded-lg p-3 border border-white/[0.06]">
+            <div className="text-gray-400 text-xs mb-1">FREE</div>
+            <div className="text-white font-mono font-bold text-lg">60 <span className="text-gray-500 text-xs font-normal">req/min</span></div>
+            <div className="text-gray-600 text-xs mt-1">1,000 req/month</div>
+          </div>
+          <div className="bg-[#0D0D0D] rounded-lg p-3 border border-white/[0.06]">
+            <div className="text-[#00F0FF] text-xs mb-1">PRO</div>
+            <div className="text-white font-mono font-bold text-lg">300 <span className="text-gray-500 text-xs font-normal">req/min</span></div>
+            <div className="text-gray-600 text-xs mt-1">50,000 req/month</div>
+          </div>
+          <div className="bg-[#0D0D0D] rounded-lg p-3 border border-white/[0.06]">
+            <div className="text-purple-400 text-xs mb-1">ENTERPRISE</div>
+            <div className="text-white font-mono font-bold text-lg">1,000 <span className="text-gray-500 text-xs font-normal">req/min</span></div>
+            <div className="text-gray-600 text-xs mt-1">Unlimited / month</div>
+          </div>
+        </div>
+        <p className="text-gray-600 text-xs mt-3">
+          Individual API keys can have a custom limit via <code className="text-gray-400">PATCH /apikeys/:id {'{'} rateLimit {'}'}</code>.
+          Effective limit = max(plan limit, key limit). On 429, the response includes <code className="text-gray-400">retryAfter</code> and the current plan/limit.
+        </p>
       </div>
 
       <div className="space-y-10">

@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { prisma } from '../config/database.js';
 import { generateApiKey, hashApiKey, extractApiKeyPrefix } from '../utils/apiKey.js';
 import { logger } from '../config/logger.js';
+import { RATE_LIMITS } from '../config/constants.js';
 
 // Request validation schemas
 const createApiKeySchema = z.object({
@@ -101,6 +102,10 @@ export async function createApiKey(req: Request, res: Response): Promise<void> {
       ? new Date(Date.now() + body.expiresIn * 24 * 60 * 60 * 1000).toISOString()
       : null;
 
+    // Default rateLimit follows the user's plan if not explicitly specified
+    const planKey = (req.user.plan || 'FREE') as keyof typeof RATE_LIMITS;
+    const defaultRateLimit = RATE_LIMITS[planKey]?.defaultKeyLimit ?? RATE_LIMITS.FREE.defaultKeyLimit;
+
     // Create API Key record
     const createdKey = await prisma.apiKey.create({
       data: {
@@ -109,7 +114,7 @@ export async function createApiKey(req: Request, res: Response): Promise<void> {
         keyPrefix: prefix,
         name: body.name,
         permissions: body.permissions.join(','),
-        rateLimit: body.rateLimit || 120,
+        rateLimit: body.rateLimit || defaultRateLimit,
         expiresAt: expiresAt,
       },
       select: {

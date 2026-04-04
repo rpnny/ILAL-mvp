@@ -79,16 +79,19 @@ export const RATE_LIMITS = {
   FREE: {
     windowMs: 60000,
     max: Number(process.env.RATE_LIMIT_MAX_REQUESTS_FREE) || 60,
+    defaultKeyLimit: 60,
     monthlyQuota: 1000,
   },
   PRO: {
     windowMs: 60000,
-    max: Number(process.env.RATE_LIMIT_MAX_REQUESTS_PRO) || 100,
+    max: Number(process.env.RATE_LIMIT_MAX_REQUESTS_PRO) || 300,
+    defaultKeyLimit: 300,
     monthlyQuota: 50000,
   },
   ENTERPRISE: {
     windowMs: 60000,
     max: Number(process.env.RATE_LIMIT_MAX_REQUESTS_ENTERPRISE) || 1000,
+    defaultKeyLimit: 1000,
     monthlyQuota: -1, // -1 = unlimited
   },
 };

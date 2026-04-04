@@ -13,14 +13,11 @@ import { RATE_LIMITS } from '../config/constants.js';
 export const dynamicRateLimiter = rateLimit({
   windowMs: 60000, // 1 minute window
   max: (req: Request) => {
-    // If user info is present, return plan-based limit
-    if (req.user?.plan) {
-      const plan = req.user.plan as string;
-      return RATE_LIMITS[plan as keyof typeof RATE_LIMITS]?.max || RATE_LIMITS.FREE.max;
-    }
-
-    // Default to free plan limit
-    return RATE_LIMITS.FREE.max;
+    const plan = (req.user?.plan as string) || 'FREE';
+    const planMax = RATE_LIMITS[plan as keyof typeof RATE_LIMITS]?.max ?? RATE_LIMITS.FREE.max;
+    // If the API key has a custom rateLimit set, use whichever is higher
+    const keyMax = req.apiKey?.rateLimit ?? 0;
+    return Math.max(planMax, keyMax);
   },
   standardHeaders: true, // Return standard RateLimit headers
   legacyHeaders: false, // Disable X-RateLimit-* headers
