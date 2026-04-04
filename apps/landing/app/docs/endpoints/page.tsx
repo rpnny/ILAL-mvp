@@ -106,6 +106,28 @@ const sections: { title: string; endpoints: Endpoint[] }[] = [
     ]
   },
   {
+    title: 'Testnet Utilities (Sandbox Only)',
+    endpoints: [
+      {
+        method: 'POST', path: '/testnet/activate', description: '⭐ TESTNET ONLY — Register + activate session in one call. No ZK proof needed. If wallet is already registered the registration step is skipped; if session is already active the activation step is skipped. Idempotent and safe to call repeatedly.', auth: 'both',
+        body: {
+          walletAddress: 'address — wallet to register and activate',
+          durationHours: 'number (optional) — session duration 1–720h, default 24',
+          name: 'string (optional) — institution name, auto-generated if omitted',
+        },
+        response: '{ success, walletAddress, txHash, expiresAt, gasUsed } or { success, alreadyActive: true, remainingSeconds }'
+      },
+      {
+        method: 'POST', path: '/testnet/activate-batch', description: 'TESTNET ONLY — Activate up to 20 wallets in a single request. Processes sequentially to avoid nonce conflicts. Returns per-wallet results even if some fail.', auth: 'both',
+        body: {
+          wallets: 'string[] — array of wallet addresses (max 20)',
+          durationHours: 'number (optional) — session duration for all wallets, default 24',
+        },
+        response: '{ total, succeeded, failed, results: [{ walletAddress, success, txHash | error }] }'
+      },
+    ]
+  },
+  {
     title: 'DeFi — Preflight & Transaction Builder',
     endpoints: [
       {

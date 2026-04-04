@@ -14,6 +14,7 @@ import { createServer } from './server.js';
 import { prisma } from './config/database.js';
 import { PORT, validateConfig } from './config/constants.js';
 import { logger } from './config/logger.js';
+import { liquidityKeeper } from './services/liquidity-keeper.service.js';
 
 // Initialize Sentry (before anything else)
 // When SENTRY_DSN is set, errors will be automatically reported
@@ -69,6 +70,8 @@ async function start() {
     // 5. Graceful shutdown
     const shutdown = async () => {
       logger.info('Shutting down gracefully...');
+
+      liquidityKeeper.stop();
 
       server.close(() => {
         logger.info('HTTP server closed');

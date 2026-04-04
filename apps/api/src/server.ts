@@ -22,6 +22,7 @@ import * as verifyController from './controllers/verify.controller.js';
 // Import services for initialization
 import * as issuerService from './services/issuer.service.js';
 import * as merkleService from './services/merkle.service.js';
+import { liquidityKeeper } from './services/liquidity-keeper.service.js';
 
 export async function createServer(): Promise<express.Application> {
   const app = express();
@@ -122,6 +123,10 @@ export async function createServer(): Promise<express.Application> {
   // Onboarding routes (institution self-service)
   app.use('/api/v1/onboarding', onboardingRoutes);
 
+  // Testnet shortcut routes (mock KYC + session activation in one call)
+  const { default: testnetRoutes } = await import('./routes/testnet.routes.js');
+  app.use('/api/v1/testnet', testnetRoutes);
+
   // DeFi routes (Infrastructure)
   const { default: defiRoutes } = await import('./routes/defi.routes.js');
   app.use('/api/v1/defi', defiRoutes);
@@ -140,6 +145,9 @@ export async function createServer(): Promise<express.Application> {
       error: err.message,
     });
   }
+
+  // Start liquidity keeper (self-healing pool depth + relay session auto-renewal)
+  liquidityKeeper.start();
 
   // Root path
   app.get('/', (req: Request, res: Response) => {
