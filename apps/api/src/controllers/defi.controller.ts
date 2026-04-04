@@ -424,7 +424,7 @@ export async function addLiquidity(req: Request, res: Response): Promise<void> {
 
 export async function preflightCheck(req: Request, res: Response): Promise<void> {
   try {
-    const rawAddress = req.params.address;
+    const rawAddress = String(req.params.address ?? '');
     if (!rawAddress || !ETH_ADDRESS.test(rawAddress)) {
       sendError(res, 400, {
         code: 'INVALID_ADDRESS',
