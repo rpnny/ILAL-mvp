@@ -71,33 +71,72 @@ const sections: { title: string; endpoints: Endpoint[] }[] = [
     ]
   },
   {
-    title: 'DeFi — Transaction Builder',
+    title: 'Onboarding — Institution Registration & Session',
     endpoints: [
       {
-        method: 'POST', path: '/defi/swap', description: 'Build an unsigned Uniswap V4 swap transaction. Returns calldata + preflight session check. Use ?requireActiveSession=true to get 412 if session is inactive.', auth: 'both',
+        method: 'POST', path: '/onboarding/register', description: 'Register a wallet as a compliant institution (mock KYC — auto-approved). Safe to call multiple times; re-registers if wallet belongs to another account in demo mode.', auth: 'both',
         body: {
-          tokenIn: 'address — token to sell',
-          tokenOut: 'address — token to buy (must differ from tokenIn)',
-          amount: 'string — positive integer in wei (exact input)',
-          zeroForOne: 'boolean — must match tokenIn < tokenOut',
-          userAddress: 'address — caller\'s wallet address (for ComplianceHook)'
+          name: 'string — institution name',
+          walletAddress: 'address — wallet to onboard',
+          countryCode: 'number (optional) — ISO 3166-1 numeric, default 840 (US)',
         },
-        params: { requireActiveSession: 'boolean (optional) — if true, returns 412 when session inactive' },
-        response: '{ success, transaction: { to, data, value, chainId, gas }, preflight: { sessionActive, canBroadcastSafely, warning? }, authMethod }'
+        response: '{ success, institutionId, status: "approved", walletAddress, merkleIndex }'
       },
       {
-        method: 'POST', path: '/defi/liquidity', description: 'Build an unsigned Uniswap V4 liquidity mint transaction. Returns calldata + preflight session check.', auth: 'both',
+        method: 'POST', path: '/onboarding/activate-session-demo', description: '⭐ TESTNET / DEV — Activate a 24h compliance session without a ZK proof. The ILAL relayer pays gas. Call after /onboarding/register. Idempotent — returns existing session info if already active.', auth: 'both',
         body: {
-          token0: 'address (must be < token1)',
-          token1: 'address (must be > token0)',
+          walletAddress: 'address — wallet to activate',
+          durationHours: 'number (optional) — session duration 1–720h, default 24',
+        },
+        response: '{ success, txHash, expiresAt, gasUsed } or { alreadyActive: true, remainingSeconds }'
+      },
+      {
+        method: 'POST', path: '/onboarding/activate-session', description: 'PRODUCTION — Server-side ZK proof generation + on-chain session activation. Requires circuit files on the server.', auth: 'both',
+        body: { walletAddress: 'address', expiry: 'number (optional) — unix timestamp' },
+        response: '{ success, txHash, sessionExpiry, expiresAt }'
+      },
+      {
+        method: 'GET', path: '/onboarding/status/:address', description: 'Check institution onboarding status for a wallet.', auth: 'both',
+        response: '{ success, status: "approved"|"pending"|"not_registered", institutionId, merkleIndex }'
+      },
+      {
+        method: 'GET', path: '/onboarding/attestation/:address', description: 'Get a fresh IssuerAttestation + Merkle proof for ZK proof generation.', auth: 'both',
+        response: '{ success, attestation: { userAddress, merkleRoot, merkleProof, merkleIndex, sigR8x, sigR8y, sigS, issuerAx, issuerAy } }'
+      },
+    ]
+  },
+  {
+    title: 'DeFi — Preflight & Transaction Builder',
+    endpoints: [
+      {
+        method: 'GET', path: '/preflight/:address', description: '⭐ Environment self-check. Returns session status, token balances, all allowances, and readiness in one call. Use before broadcasting to diagnose issues without on-chain trial-and-error.', auth: 'both',
+        response: '{ session: { active, remainingSeconds }, tokens: { WETH: { balance, decimals }, tUSDC: { balance, decimals } }, allowances: { WETH_to_SwapRouter, tUSDC_to_PositionManager, ... }, readiness: { canSwap, canAddLiquidity, issues: [] } }'
+      },
+      {
+        method: 'POST', path: '/defi/swap', description: 'Build an unsigned Uniswap V4 swap transaction. Returns calldata + preflight session + allowance check. Returns 412 SESSION_NOT_ACTIVE by default when session is inactive. Pass ?buildOnly=true to get unsigned TX data without session enforcement (useful for testing).', auth: 'both',
+        body: {
+          tokenIn: 'address — token to sell (WETH: 0x4200...0006)',
+          tokenOut: 'address — token to buy (tUSDC: 0xa486...424D)',
+          amount: 'string — positive integer in wei (exact input amount)',
+          zeroForOne: 'boolean (optional) — auto-derived from token ordering if omitted',
+          userAddress: 'address — wallet that will sign and broadcast'
+        },
+        params: { buildOnly: 'true | false (optional) — skip session check and return TX data even if session inactive. Default: false (returns 412 SESSION_NOT_ACTIVE when session is inactive).' },
+        response: '{ success, transaction: { to, data, value, chainId, gas }, preflight: { sessionActive, canBroadcastSafely, tokenSupported, allowanceSufficient, warning? }, authMethod }'
+      },
+      {
+        method: 'POST', path: '/defi/liquidity', description: 'Build an unsigned Uniswap V4 add-liquidity transaction. token0 must be < token1 (Uniswap sort order: WETH < tUSDC). Returns 412 SESSION_NOT_ACTIVE by default if session is inactive.', auth: 'both',
+        body: {
+          token0: 'address — must be < token1 (WETH: 0x4200...0006)',
+          token1: 'address — must be > token0 (tUSDC: 0xa486...424D)',
           amount0: 'string — non-negative integer (at least one must be > 0)',
           amount1: 'string — non-negative integer (at least one must be > 0)',
-          tickLower: 'number — optional, must be < tickUpper',
-          tickUpper: 'number — optional, must be > tickLower',
-          userAddress: 'address — caller\'s wallet address'
+          tickLower: 'number (optional) — default -600',
+          tickUpper: 'number (optional) — default 600',
+          userAddress: 'address — wallet that will sign and broadcast'
         },
-        params: { requireActiveSession: 'boolean (optional) — if true, returns 412 when session inactive' },
-        response: '{ success, transaction: { to, data, value, chainId, gas }, preflight: { sessionActive, canBroadcastSafely, warning? }, authMethod }'
+        params: { buildOnly: 'true | false (optional) — skip session check. Default: false.' },
+        response: '{ success, transaction: { to, data, value, chainId, gas }, preflight: { sessionActive, allowanceSufficient }, authMethod }'
       }
     ]
   },

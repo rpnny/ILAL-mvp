@@ -101,23 +101,65 @@ export default function QuickstartPage() {
           </div>
         </Step>
 
-        <Step n={4} title="Activate a Compliance Session (Required for On-Chain)">
+        <Step n={4} title="Register & Activate a Compliance Session (Required for On-Chain)">
           <p className="text-gray-400 mb-4">
             <strong className="text-yellow-400">This step is required before any on-chain transaction will succeed.</strong>{' '}
-            ILAL&apos;s ComplianceHook verifies that the caller has an active compliance session. Without one, swap and liquidity transactions will <strong className="text-white">revert on-chain</strong>.
+            ILAL&apos;s ComplianceHook verifies that the caller has an active compliance session on every swap and liquidity operation. Without one the transaction reverts.
           </p>
-          <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-xl p-4 mb-4">
-            <div className="text-yellow-400 text-sm font-semibold mb-2">Session Activation Flow</div>
-            <ol className="text-gray-300 text-sm space-y-1 list-decimal list-inside">
-              <li>Complete KYC/onboarding via <code className="bg-white/5 px-1 rounded">POST /onboarding/submit</code></li>
-              <li>Generate a ZK proof (EdDSA-Poseidon + Merkle membership)</li>
-              <li>Submit the proof via <code className="bg-white/5 px-1 rounded">POST /verify</code> to activate on-chain session</li>
+
+          {/* Testnet path — prominent */}
+          <div className="bg-green-500/5 border border-green-500/30 rounded-xl p-5 mb-5">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full font-mono">Testnet / Development</span>
+              <span className="text-green-400 text-sm font-semibold">Recommended path — no ZK proof required</span>
+            </div>
+            <ol className="text-gray-300 text-sm space-y-3 list-decimal list-inside">
+              <li>
+                Register your wallet (mock KYC — auto-approved instantly):
+                <CodeBlock lang="curl" code={`curl -X POST ${BASE_URL}/onboarding/register \\
+  -H "X-API-Key: YOUR_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"name": "My Institution", "walletAddress": "YOUR_WALLET"}'`} />
+              </li>
+              <li>
+                Activate the session (skips ZK proof, relayer pays gas):
+                <CodeBlock lang="curl" code={`curl -X POST ${BASE_URL}/onboarding/activate-session-demo \\
+  -H "X-API-Key: YOUR_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"walletAddress": "YOUR_WALLET", "durationHours": 24}'`} />
+                <div className="mt-2 text-xs text-gray-500">Response includes <code className="text-gray-300">txHash</code> and <code className="text-gray-300">expiresAt</code>. If the session is already active, returns <code className="text-gray-300">alreadyActive: true</code> with remaining time.</div>
+              </li>
             </ol>
-            <p className="text-gray-500 text-xs mt-2">Sessions last 24 hours with up to 6 renewals per proof.</p>
+            <p className="text-gray-500 text-xs mt-3">
+              You can call <code className="text-gray-400">activate-session-demo</code> again any time a session expires — no re-registration needed. Suitable for automated testing and CI/CD.
+            </p>
           </div>
-          <p className="text-gray-400 mb-4">Check your session status any time:</p>
+
+          {/* Production path */}
+          <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4 mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-mono">Production</span>
+              <span className="text-gray-300 text-sm font-semibold">Full ZK proof flow</span>
+            </div>
+            <ol className="text-gray-500 text-sm space-y-1 list-decimal list-inside">
+              <li>Register wallet via <code className="text-gray-400">POST /onboarding/register</code></li>
+              <li>Get attestation via <code className="text-gray-400">GET /onboarding/attestation/:address</code></li>
+              <li>Generate PLONK ZK proof client-side</li>
+              <li>Submit via <code className="text-gray-400">POST /verify</code> → session activated on-chain</li>
+            </ol>
+          </div>
+
+          <p className="text-gray-400 mb-3">Check session status at any time:</p>
           <CodeBlock lang="curl" code={`curl ${BASE_URL}/session/YOUR_WALLET_ADDRESS \\
-  -H "X-API-Key: YOUR_API_KEY"`} />
+  -H "X-API-Key: YOUR_API_KEY"
+# → { "isActive": true, "remainingSeconds": 86342, "expiresAt": "..." }`} />
+
+          <div className="mt-4">
+            <p className="text-gray-400 mb-2 text-sm">Or use the preflight endpoint for a full environment self-check:</p>
+            <CodeBlock lang="curl" code={`curl ${BASE_URL}/preflight/YOUR_WALLET_ADDRESS \\
+  -H "X-API-Key: YOUR_API_KEY"
+# → session status + balances + allowances + readiness in one call`} />
+          </div>
         </Step>
 
         <Step n={5} title="Build a Swap Transaction">
@@ -218,8 +260,8 @@ console.log('Tx hash:', hash);`} />
               { step: '2', endpoint: 'POST /auth/login', pass: 'JWT token received', fail: 'Bad credentials' },
               { step: '3', endpoint: 'POST /apikeys', pass: 'API Key created', fail: 'Auth or plan limit' },
               { step: '4', endpoint: 'GET /usage/stats', pass: 'Auth works (JWT or API Key)', fail: 'Check error code in response' },
-              { step: '5', endpoint: 'GET /session/:address', pass: 'Session status retrieved', fail: 'Auth issue or invalid address' },
-              { step: '6', endpoint: 'POST /verify', pass: 'Session activated on-chain', fail: 'ZK proof invalid or onboarding incomplete' },
+              { step: '5', endpoint: 'GET /session/:address', pass: 'isActive: true', fail: 'Auth issue or wallet not registered' },
+              { step: '6', endpoint: 'POST /onboarding/activate-session-demo', pass: 'txHash returned, session active', fail: 'Wallet not registered — run Step 4 first' },
               { step: '7', endpoint: 'POST /defi/swap', pass: 'Unsigned TX + preflight', fail: 'Param validation (check details array)' },
               { step: '8', endpoint: 'Sign + Broadcast', pass: 'On-chain confirmed', fail: 'preflight.sessionActive was false, or insufficient gas/balance' },
             ].map(({ step, endpoint, pass, fail }) => (

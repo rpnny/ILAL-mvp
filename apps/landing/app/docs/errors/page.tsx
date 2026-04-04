@@ -126,8 +126,8 @@ const errorCodes = [
                 status: 412,
                 phase: 'preflight',
                 title: 'Session Not Active',
-                description: 'No active compliance session for this wallet (transaction will revert)',
-                solution: 'Call POST /onboarding/activate-session-demo (testnet) or POST /verify (production)',
+                description: 'No active compliance session for this wallet. Returned by default from /defi/swap and /defi/liquidity — transaction would revert on-chain. Add ?buildOnly=true to suppress and get unsigned TX anyway.',
+                solution: 'Testnet: POST /onboarding/activate-session-demo  |  Production: POST /verify (ZK proof flow)',
             },
             {
                 code: 'ALLOWANCE_INSUFFICIENT',

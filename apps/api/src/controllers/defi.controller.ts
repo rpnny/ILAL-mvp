@@ -154,7 +154,8 @@ export async function executeSwap(req: Request, res: Response): Promise<void> {
   try {
     const params = swapSchema.parse(req.body);
     const userId = req.apiKey?.userId ?? req.user?.userId;
-    const requireActiveSession = req.query?.requireActiveSession === 'true';
+    // Default: block if session inactive. Pass ?buildOnly=true to get unsigned TX without session check.
+    const buildOnly = req.query?.buildOnly === 'true';
 
     logger.info('Swap request received', { user: params.userAddress, authMethod: req.authMethod });
 
@@ -194,7 +195,7 @@ export async function executeSwap(req: Request, res: Response): Promise<void> {
 
     const preflight = await checkPreflight(params.userAddress);
 
-    if (requireActiveSession && !preflight.sessionActive) {
+    if (!buildOnly && !preflight.sessionActive) {
       sendError(res, 412, {
         code: 'SESSION_NOT_ACTIVE',
         message: `No active compliance session for ${params.userAddress}`,
@@ -271,7 +272,8 @@ export async function addLiquidity(req: Request, res: Response): Promise<void> {
   try {
     const params = liquiditySchema.parse(req.body);
     const userId = req.apiKey?.userId ?? req.user?.userId;
-    const requireActiveSession = req.query?.requireActiveSession === 'true';
+    // Default: block if session inactive. Pass ?buildOnly=true to get unsigned TX without session check.
+    const buildOnly = req.query?.buildOnly === 'true';
 
     logger.info('Add Liquidity request received', { user: params.userAddress, authMethod: req.authMethod });
 
@@ -311,7 +313,7 @@ export async function addLiquidity(req: Request, res: Response): Promise<void> {
 
     const preflight = await checkPreflight(params.userAddress);
 
-    if (requireActiveSession && !preflight.sessionActive) {
+    if (!buildOnly && !preflight.sessionActive) {
       sendError(res, 412, {
         code: 'SESSION_NOT_ACTIVE',
         message: `No active compliance session for ${params.userAddress}`,
