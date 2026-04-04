@@ -25,10 +25,16 @@ export const dynamicRateLimiter = rateLimit({
   standardHeaders: true, // Return standard RateLimit headers
   legacyHeaders: false, // Disable X-RateLimit-* headers
   handler: (req: Request, res: Response) => {
+    const plan = (req.user?.plan as string) || 'FREE';
+    const limit = RATE_LIMITS[plan as keyof typeof RATE_LIMITS]?.max || RATE_LIMITS.FREE.max;
     res.status(429).json({
       error: 'Too Many Requests',
-      message: 'Rate limit exceeded. Please upgrade your plan or wait.',
+      code: 'RATE_LIMIT_EXCEEDED',
+      message: `Rate limit exceeded (${limit} requests/min on ${plan} plan). Please wait or upgrade.`,
+      hint: 'Space requests ≥1s apart, or use ?buildOnly=true to skip simulation for lower latency.',
       retryAfter: res.getHeader('Retry-After'),
+      plan,
+      limit,
     });
   },
   keyGenerator: (req: Request) => {

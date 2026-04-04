@@ -109,7 +109,7 @@ export async function createApiKey(req: Request, res: Response): Promise<void> {
         keyPrefix: prefix,
         name: body.name,
         permissions: body.permissions.join(','),
-        rateLimit: body.rateLimit || 10,
+        rateLimit: body.rateLimit || 120,
         expiresAt: expiresAt,
       },
       select: {

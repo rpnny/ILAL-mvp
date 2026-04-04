@@ -202,7 +202,7 @@ class BlockchainService {
     to: Address;
     data: Hex;
     value?: bigint;
-  }): Promise<{ success: boolean; reason?: string }> {
+  }): Promise<{ success: boolean; reason?: string; category?: string }> {
     try {
       await this.publicClient.call({
         account: params.from,
@@ -212,18 +212,48 @@ class BlockchainService {
       });
       return { success: true };
     } catch (error: any) {
-      const raw = error?.cause?.reason ?? error?.shortMessage ?? error?.message ?? 'unknown';
-      // Extract 4-byte selector for known revert errors
-      const selector = typeof raw === 'string' && raw.includes('0x') ? raw.match(/0x[0-9a-fA-F]{8}/)?.[0] : undefined;
-      const KNOWN: Record<string, string> = {
-        '0xbb2875c3': 'InsufficientOutput — pool cannot fill this amount at current price',
-        '0x7c9c6e8f': 'PRICE_LIMIT — pool liquidity exhausted in this direction',
-        '0x2f6c6a6f': 'SESSION_NOT_ACTIVE — compliance session expired or not started',
-        '0x13be252b': 'ERC20: insufficient allowance',
-        '0xf4d678b8': 'ERC20: insufficient balance',
+      // Try every possible path viem exposes for revert data
+      const revertData: string | undefined =
+        error?.cause?.data ?? error?.data ?? error?.cause?.cause?.data;
+      const shortMsg: string = error?.shortMessage ?? error?.message ?? 'unknown';
+
+      const KNOWN_SELECTORS: Record<string, { reason: string; category: string }> = {
+        '0xbb2875c3': { reason: 'InsufficientOutput — pool cannot fill this amount at current price. Reduce swap size or wait for more liquidity.', category: 'pool_depth' },
+        '0x7c9c6e8f': { reason: 'PRICE_LIMIT — pool liquidity exhausted in this direction. The pool tick has hit the boundary of available liquidity.', category: 'pool_depth' },
+        '0x39d35496': { reason: 'PoolNotInitialized — the token pair pool does not exist on this ComplianceHook.', category: 'pool_config' },
+        '0x584a7938': { reason: 'InvalidCaller — the router is not authorized to call the hook.', category: 'hook_config' },
+        '0xfb8f41b2': { reason: 'InvalidTick — tick parameter is out of range for this pool.', category: 'params' },
+        '0x13be252b': { reason: 'ERC20: insufficient allowance — approve the token to the router/manager first.', category: 'allowance' },
+        '0xf4d678b8': { reason: 'ERC20: insufficient balance — wallet does not hold enough of the input token.', category: 'balance' },
+        '0xe450d38c': { reason: 'ERC20: transfer amount exceeds balance.', category: 'balance' },
+        '0x2f6c6a6f': { reason: 'Compliance session not active or expired for this wallet.', category: 'session' },
       };
-      const reason = (selector && KNOWN[selector]) || raw;
-      return { success: false, reason };
+
+      // Match from revert data first (most accurate), then fall back to shortMessage
+      let selector: string | undefined;
+      if (revertData && typeof revertData === 'string' && revertData.startsWith('0x') && revertData.length >= 10) {
+        selector = revertData.slice(0, 10);
+      }
+      if (!selector) {
+        const hexMatch = shortMsg.match(/0x[0-9a-fA-F]{8}/);
+        if (hexMatch) selector = hexMatch[0];
+      }
+
+      const known = selector ? KNOWN_SELECTORS[selector] : undefined;
+      if (known) {
+        return { success: false, reason: known.reason, category: known.category };
+      }
+
+      // If viem gave a readable reason, use it; otherwise try to add context
+      if (shortMsg.includes('reverted') && !shortMsg.includes('unknown')) {
+        return { success: false, reason: shortMsg, category: 'unknown' };
+      }
+
+      return {
+        success: false,
+        reason: `Simulation reverted. ${revertData ? `Data: ${revertData.slice(0, 74)}` : shortMsg}`,
+        category: 'unknown',
+      };
     }
   }
 
