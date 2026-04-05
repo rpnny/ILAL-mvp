@@ -1,9 +1,9 @@
-# @ilal/sdk
+# @tony_hz/ilal-sdk
 
 > Official TypeScript SDK for ILAL Protocol - Compliant DeFi Infrastructure
 
-[![npm version](https://img.shields.io/npm/v/@ilal/sdk.svg)](https://www.npmjs.com/package/@ilal/sdk)
-[![License](https://img.shields.io/npm/l/@ilal/sdk.svg)](https://github.com/rpnny/ILAL-mvp/blob/main/LICENSE)
+[![npm version](https://img.shields.io/npm/v/@tony_hz/ilal-sdk.svg)](https://www.npmjs.com/package/@tony_hz/ilal-sdk)
+[![License](https://img.shields.io/npm/l/@tony_hz/ilal-sdk.svg)](https://github.com/rpnny/ILAL-mvp/blob/main/LICENSE)
 
 ## Features
 
