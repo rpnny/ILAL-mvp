@@ -37,7 +37,7 @@ export const CONTRACTS = {
   poolManager: (process.env.POOL_MANAGER_ADDRESS || '0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408') as Address,
   // positionManager: env var takes precedence so Railway can be updated after
   // redeployment without a code change (see script/FixPositionManager.s.sol).
-  positionManager: (process.env.POSITION_MANAGER_ADDRESS || '0x692548a6E1797d2762b9d04f29112C172E5Cea32') as Address,
+  positionManager: (process.env.POSITION_MANAGER_ADDRESS || '0xeE0f4bc4D5cA0d00cd743357661D34c2d48cfe7A') as Address,
   complianceHook: '0x54b88a4aAC9E73F6581C19a06a2DC280Eba78a80' as Address,
 };
 

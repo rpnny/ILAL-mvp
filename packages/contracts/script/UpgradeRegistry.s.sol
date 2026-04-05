@@ -21,7 +21,7 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 contract UpgradeRegistry is Script {
     address constant REGISTRY_PROXY    = 0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD;
     address constant SWAP_ROUTER       = 0xd46D84Dc2D098c767451675C9BcB85bf3f8a2891;
-    address constant POSITION_MANAGER  = 0x692548a6E1797d2762b9d04f29112C172E5Cea32;
+    address constant POSITION_MANAGER  = 0xeE0f4bc4D5cA0d00cd743357661D34c2d48cfe7A;
 
     function run() external {
         uint256 pk = vm.envUint("PRIVATE_KEY");

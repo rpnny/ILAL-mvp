@@ -96,7 +96,7 @@ contract FixPositionManager is Script {
         console.log("1. apps/api/src/config/constants.ts:");
         console.log("   positionManager: '", vm.toString(newPMAddr), "' as Address,");
         console.log("");
-        console.log("2. Railway Dashboard → Variables:");
+        console.log("2. Railway Dashboard -> Variables:");
         console.log("   POSITION_MANAGER_ADDRESS =", vm.toString(newPMAddr));
         console.log("");
         console.log("3. packages/contracts/script/UpgradeRegistry.s.sol:");
