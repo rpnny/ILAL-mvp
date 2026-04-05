@@ -13,6 +13,7 @@ import {
   getAddress,
   keccak256,
   encodeAbiParameters,
+  hexToBigInt,
   type Address,
   type Hex,
 } from 'viem';
@@ -374,7 +375,14 @@ class BlockchainService {
   }
 
   /**
-   * Read the current sqrtPriceX96 from the Uniswap v4 PoolManager for a given pool.
+   * Read the current sqrtPriceX96 from the Uniswap v4 PoolManager via extsload.
+   *
+   * The deployed PoolManager does not expose a getSlot0() view function.
+   * Instead we use the EIP-2330 `extsload` interface to read raw storage:
+   *   - poolId = keccak256(abi.encode(poolKey))
+   *   - slot   = keccak256(abi.encode(poolId, POOLS_MAPPING_SLOT))
+   *   - The slot packs: sqrtPriceX96 (uint160, bits 0-159) | tick (int24) | protocolFee | lpFee
+   *
    * Returns 0n if the pool is not initialized or the call fails.
    */
   async getPoolSqrtPrice(poolKey: {
@@ -384,8 +392,11 @@ class BlockchainService {
     tickSpacing: number;
     hooks: Address;
   }): Promise<bigint> {
+    // Storage slot of `mapping(PoolId => Pool.State) _pools` in the deployed PoolManager.
+    // Verified empirically against the Base Sepolia deployment at 0x05E73354...
+    const POOLS_MAPPING_SLOT = 6n;
+
     try {
-      // PoolId = keccak256(abi.encode(currency0, currency1, fee, tickSpacing, hooks))
       const poolId = keccak256(encodeAbiParameters(
         [
           { type: 'address' },
@@ -397,26 +408,38 @@ class BlockchainService {
         [poolKey.currency0, poolKey.currency1, poolKey.fee, poolKey.tickSpacing, poolKey.hooks],
       ));
 
-      const result = await this.publicClient.readContract({
+      // Slot 0 of the Pool.State struct within the mapping
+      const stateSlot = keccak256(encodeAbiParameters(
+        [{ type: 'bytes32' }, { type: 'uint256' }],
+        [poolId, POOLS_MAPPING_SLOT],
+      ));
+
+      const raw = await this.publicClient.readContract({
         address: CONTRACTS.poolManager,
         abi: [{
-          type: 'function', name: 'getSlot0',
-          inputs: [{ name: 'id', type: 'bytes32' }],
-          outputs: [
-            { name: 'sqrtPriceX96', type: 'uint160' },
-            { name: 'tick', type: 'int24' },
-            { name: 'protocolFee', type: 'uint24' },
-            { name: 'lpFee', type: 'uint24' },
-          ],
+          type: 'function', name: 'extsload',
+          inputs: [{ name: 'slot', type: 'bytes32' }],
+          outputs: [{ name: '', type: 'bytes32' }],
           stateMutability: 'view',
         }] as const,
-        functionName: 'getSlot0',
-        args: [poolId],
+        functionName: 'extsload',
+        args: [stateSlot],
       });
 
-      return result[0]; // sqrtPriceX96
+      // sqrtPriceX96 is stored in bits 0-159 (lowest 160 bits)
+      const sqrtPriceX96 = hexToBigInt(raw) & ((1n << 160n) - 1n);
+
+      logger.info('Pool sqrtPriceX96 fetched', {
+        poolId,
+        sqrtPriceX96: sqrtPriceX96.toString(),
+      });
+
+      return sqrtPriceX96;
     } catch (error: any) {
-      logger.warn('Failed to fetch pool sqrtPriceX96', { poolKey, error: error.message });
+      logger.warn('Failed to fetch pool sqrtPriceX96 via extsload', {
+        poolManager: CONTRACTS.poolManager,
+        error: error.message,
+      });
       return 0n;
     }
   }
