@@ -74,6 +74,70 @@ function encodeEmptyHookData(): Hex {
     return '0x';
 }
 
+// ── Uniswap v4 Liquidity Math ─────────────────────────────────────────────────
+// Reference: https://github.com/Uniswap/v4-core/blob/main/src/libraries/SqrtPriceMath.sol
+
+const Q96 = 2n ** 96n;
+
+/**
+ * Compute sqrtPriceX96 for a given tick using floating-point approximation.
+ * Accurate to ~1e-10 relative error for |tick| <= 887272.
+ * sqrtPrice = sqrt(1.0001^tick) * 2^96
+ */
+function getSqrtPriceAtTick(tick: number): bigint {
+  const sqrtPrice = Math.sqrt(Math.pow(1.0001, tick));
+  // Split Q96 into two Q48 factors to preserve precision when converting float → bigint
+  const HIGH = 2 ** 48;
+  return BigInt(Math.floor(sqrtPrice * HIGH)) * BigInt(HIGH);
+}
+
+/** L = amount0 * sqrtA * sqrtB / Q96 / (sqrtB - sqrtA) */
+function getLiquidityForAmount0(sqrtA: bigint, sqrtB: bigint, amount0: bigint): bigint {
+  if (sqrtA > sqrtB) [sqrtA, sqrtB] = [sqrtB, sqrtA];
+  if (sqrtB === sqrtA) return 0n;
+  // Reorder multiplication to avoid intermediate overflow while keeping precision
+  return (amount0 * sqrtA / Q96 * sqrtB) / (sqrtB - sqrtA);
+}
+
+/** L = amount1 * Q96 / (sqrtB - sqrtA) */
+function getLiquidityForAmount1(sqrtA: bigint, sqrtB: bigint, amount1: bigint): bigint {
+  if (sqrtA > sqrtB) [sqrtA, sqrtB] = [sqrtB, sqrtA];
+  if (sqrtB === sqrtA) return 0n;
+  return (amount1 * Q96) / (sqrtB - sqrtA);
+}
+
+/**
+ * Compute the maximum liquidityDelta achievable with (amount0, amount1)
+ * given the current pool price and tick range.
+ * Mirrors Uniswap v4 LiquidityAmounts.getLiquidityForAmounts().
+ */
+export function getLiquidityForAmounts(
+  sqrtPriceCurrent: bigint,
+  tickLower: number,
+  tickUpper: number,
+  amount0: bigint,
+  amount1: bigint,
+): bigint {
+  const sqrtA = getSqrtPriceAtTick(tickLower);
+  const sqrtB = getSqrtPriceAtTick(tickUpper);
+  const [sqrtLow, sqrtHigh] = sqrtA < sqrtB ? [sqrtA, sqrtB] : [sqrtB, sqrtA];
+
+  if (sqrtPriceCurrent <= sqrtLow) {
+    // Current price is below range — only amount0 contributes
+    return getLiquidityForAmount0(sqrtLow, sqrtHigh, amount0);
+  } else if (sqrtPriceCurrent >= sqrtHigh) {
+    // Current price is above range — only amount1 contributes
+    return getLiquidityForAmount1(sqrtLow, sqrtHigh, amount1);
+  } else {
+    // Current price is within range — take the min so both amounts can be deposited
+    const L0 = getLiquidityForAmount0(sqrtPriceCurrent, sqrtHigh, amount0);
+    const L1 = getLiquidityForAmount1(sqrtLow, sqrtPriceCurrent, amount1);
+    return L0 < L1 ? L0 : L1;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 class DeFiService {
     /**
      * Build an unsigned Swap transaction.
@@ -173,6 +237,10 @@ class DeFiService {
         tickLower?: number;
         tickUpper?: number;
         userAddress: Address;
+        /** Current pool sqrtPriceX96 read from PoolManager.getSlot0(). Required for
+         *  accurate liquidityDelta computation. If 0 or omitted, falls back to a
+         *  worst-case approximation that is likely to revert on-chain. */
+        sqrtPriceX96?: bigint;
     }) {
         logger.info('Building add liquidity transaction', { params });
 
@@ -189,14 +257,25 @@ class DeFiService {
         const amount0 = BigInt(params.amount0);
         const amount1 = BigInt(params.amount1);
 
-        // NOTE: Uniswap v4 PositionManager.mint() expects a `liquidityDelta`
-        // (uint128) that depends on the current pool sqrtPriceX96 and the tick
-        // range.  Computing it precisely requires reading on-chain pool state.
-        // As a build-only approximation we use the larger of the two token
-        // amounts.  Callers that need exact liquidity should query the
-        // PoolManager for the current sqrtPrice and derive liquidityDelta via
-        // the Uniswap math libraries before signing.
-        const liquidity = amount0 > amount1 ? amount0 : amount1;
+        // Compute accurate liquidityDelta using Uniswap v4 math when sqrtPriceX96
+        // is available. This mirrors LiquidityAmounts.getLiquidityForAmounts() from
+        // v4-periphery and produces the correct abstract liquidity unit that
+        // PositionManager.mint() expects.
+        let liquidity: bigint;
+        if (params.sqrtPriceX96 && params.sqrtPriceX96 > 0n) {
+            liquidity = getLiquidityForAmounts(params.sqrtPriceX96, tickLower, tickUpper, amount0, amount1);
+            logger.info('Computed liquidityDelta from sqrtPriceX96', {
+                sqrtPriceX96: params.sqrtPriceX96.toString(),
+                tickLower, tickUpper,
+                amount0: amount0.toString(), amount1: amount1.toString(),
+                liquidity: liquidity.toString(),
+            });
+        } else {
+            // Fallback: use larger amount as rough approximation (may revert on-chain).
+            // Controller should always provide sqrtPriceX96 from PoolManager.getSlot0().
+            logger.warn('sqrtPriceX96 not provided — using fallback liquidity approximation');
+            liquidity = amount0 > amount1 ? amount0 : amount1;
+        }
         const hookData = encodeEmptyHookData();
 
         const calldata: Hex = encodeFunctionData({
@@ -226,10 +305,9 @@ class DeFiService {
                 rpcUrl: 'https://sepolia.base.org',
                 explorerBase: 'https://sepolia.basescan.org/tx/',
             },
-            liquidityWarning: 'The liquidity value is an off-chain approximation (max of amount0, amount1). '
-                + 'Uniswap v4 PositionManager.mint() expects a liquidityDelta derived from the current '
-                + 'pool sqrtPriceX96 and tick range. For precise values, query PoolManager.getSlot0() '
-                + 'on-chain and compute liquidityDelta using the Uniswap math libraries before signing.',
+            liquidityWarning: params.sqrtPriceX96 && params.sqrtPriceX96 > 0n
+                ? 'liquidityDelta computed from on-chain sqrtPriceX96 using Uniswap v4 LiquidityAmounts math.'
+                : 'WARNING: sqrtPriceX96 was unavailable — liquidityDelta is an approximation (max of amount0, amount1) and may revert on-chain.',
             params: {
                 poolKey,
                 position: { tickLower, tickUpper, liquidity: liquidity.toString() },

@@ -11,6 +11,8 @@ import {
   createWalletClient,
   http,
   getAddress,
+  keccak256,
+  encodeAbiParameters,
   type Address,
   type Hex,
 } from 'viem';
@@ -368,6 +370,54 @@ class BlockchainService {
       return Number(decimals);
     } catch {
       return 18;
+    }
+  }
+
+  /**
+   * Read the current sqrtPriceX96 from the Uniswap v4 PoolManager for a given pool.
+   * Returns 0n if the pool is not initialized or the call fails.
+   */
+  async getPoolSqrtPrice(poolKey: {
+    currency0: Address;
+    currency1: Address;
+    fee: number;
+    tickSpacing: number;
+    hooks: Address;
+  }): Promise<bigint> {
+    try {
+      // PoolId = keccak256(abi.encode(currency0, currency1, fee, tickSpacing, hooks))
+      const poolId = keccak256(encodeAbiParameters(
+        [
+          { type: 'address' },
+          { type: 'address' },
+          { type: 'uint24' },
+          { type: 'int24' },
+          { type: 'address' },
+        ],
+        [poolKey.currency0, poolKey.currency1, poolKey.fee, poolKey.tickSpacing, poolKey.hooks],
+      ));
+
+      const result = await this.publicClient.readContract({
+        address: CONTRACTS.poolManager,
+        abi: [{
+          type: 'function', name: 'getSlot0',
+          inputs: [{ name: 'id', type: 'bytes32' }],
+          outputs: [
+            { name: 'sqrtPriceX96', type: 'uint160' },
+            { name: 'tick', type: 'int24' },
+            { name: 'protocolFee', type: 'uint24' },
+            { name: 'lpFee', type: 'uint24' },
+          ],
+          stateMutability: 'view',
+        }] as const,
+        functionName: 'getSlot0',
+        args: [poolId],
+      });
+
+      return result[0]; // sqrtPriceX96
+    } catch (error: any) {
+      logger.warn('Failed to fetch pool sqrtPriceX96', { poolKey, error: error.message });
+      return 0n;
     }
   }
 

@@ -476,6 +476,19 @@ export async function addLiquidity(req: Request, res: Response): Promise<void> {
     const allowance0Ok = amt0 === 0n || allowance0 >= amt0;
     const allowance1Ok = amt1 === 0n || allowance1 >= amt1;
 
+    // Fetch current pool sqrtPriceX96 so buildAddLiquidityTx can compute an
+    // accurate liquidityDelta via Uniswap v4 LiquidityAmounts math.
+    // Without this, the approximation (max of amount0, amount1) is dimensionally
+    // wrong and causes PoolManager to revert with empty 0x data.
+    const poolKey = {
+      currency0: params.token0 as Address,
+      currency1: params.token1 as Address,
+      fee: 500,
+      tickSpacing: 10,
+      hooks: CONTRACTS.complianceHook,
+    };
+    const sqrtPriceX96 = await blockchainService.getPoolSqrtPrice(poolKey);
+
     const result = await defiService.buildAddLiquidityTx({
       token0: params.token0 as Address,
       token1: params.token1 as Address,
@@ -484,6 +497,7 @@ export async function addLiquidity(req: Request, res: Response): Promise<void> {
       tickLower: params.tickLower,
       tickUpper: params.tickUpper,
       userAddress: params.userAddress as Address,
+      sqrtPriceX96,
     });
 
     if (!result.success) {
