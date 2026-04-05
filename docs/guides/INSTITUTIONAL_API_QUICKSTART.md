@@ -15,6 +15,7 @@ Complete guide: register, activate session, get test tokens, approve, and swap â
 | tUSDC | `0xa486Fb51ED09B970A23F7Fe910bc90089f78424D` |
 | WETH | `0x4200000000000000000000000000000000000006` |
 | SimpleSwapRouter | `0xd46D84Dc2D098c767451675C9BcB85bf3f8a2891` |
+| PositionManager | `0x550c31a1861528Dca121ed634E50258fFA03fc58` |
 | ComplianceHook | `0x54b88a4aAC9E73F6581C19a06a2DC280Eba78a80` |
 
 ## API Base URL

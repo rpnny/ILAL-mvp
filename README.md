@@ -78,7 +78,7 @@ Institution
 |----------|---------|--------|----------|
 | **ComplianceHook** (v3) | `0x54b88a4aAC9E73F6581C19a06a2DC280Eba78a80` | **Active** | [View](https://sepolia.basescan.org/address/0x54b88a4aAC9E73F6581C19a06a2DC280Eba78a80) |
 | **SimpleSwapRouter** | `0xd46D84Dc2D098c767451675C9BcB85bf3f8a2891` | Active | [View](https://sepolia.basescan.org/address/0xd46D84Dc2D098c767451675C9BcB85bf3f8a2891) |
-| **PositionManager** | `0x692548a6E1797d2762b9d04f29112C172E5Cea32` | Active | [View](https://sepolia.basescan.org/address/0x692548a6E1797d2762b9d04f29112C172E5Cea32) |
+| **PositionManager** (v3) | `0x550c31a1861528Dca121ed634E50258fFA03fc58` | **Active** | [View](https://sepolia.basescan.org/address/0x550c31a1861528Dca121ed634E50258fFA03fc58) |
 | **SessionManager** (UUPS) | `0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2` | Active | [View](https://sepolia.basescan.org/address/0x53fA67Dbe5803432Ba8697Ac94C80B601Eb850e2) |
 | **Registry** (UUPS) | `0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD` | Active | [View](https://sepolia.basescan.org/address/0x4C4e91B9b0561f031A9eA6d8F4dcC0DE46A129BD) |
 | **PlonkVerifier** (v2) | `0xa1FaF1d0858533820B48db578AaE8C31c9c1a37A` | Active | [View](https://sepolia.basescan.org/address/0xa1FaF1d0858533820B48db578AaE8C31c9c1a37A) |
@@ -151,7 +151,7 @@ ilal/
 | **tUSDC** (test stablecoin) | `0xa486Fb51ED09B970A23F7Fe910bc90089f78424D` |
 | **ComplianceHook** | `0x54b88a4aAC9E73F6581C19a06a2DC280Eba78a80` |
 | **SwapRouter** | `0xd46D84Dc2D098c767451675C9BcB85bf3f8a2891` |
-| **PositionManager** | `0x692548a6E1797d2762b9d04f29112C172E5Cea32` |
+| **PositionManager** | `0x550c31a1861528Dca121ed634E50258fFA03fc58` |
 | **`zeroForOne`** | Optional — auto-derived from tokenIn/tokenOut ordering |
 
 > **Critical:** ILAL's ComplianceHook rejects every on-chain transaction from a wallet without an active compliance session. The API will build and return a valid unsigned TX — but when you broadcast it, the chain will revert. **Activate your session (Step 2) before calling any DeFi endpoint.**
@@ -254,6 +254,113 @@ curl -X POST https://ilal-mvp-production.up.railway.app/api/v1/defi/liquidity \
 - **`canBroadcastSafely`:** Now backed by a live `eth_call` simulation of the full transaction. `true` means both session is active AND the simulation passed against current chain state.
 - **Error format:** All errors return `{ error, code, message, hint, phase }`. The `code` field is machine-readable (e.g., `SESSION_NOT_ACTIVE`, `ALLOWANCE_INSUFFICIENT`, `UNSUPPORTED_TOKEN`).
 - **Rate limits:** FREE=60/min, PRO=300/min, ENTERPRISE=1000/min. Custom key-level limits via `PATCH /apikeys/:id`.
+
+### SDK (Recommended)
+
+Install the SDK to skip manual HTTP calls:
+
+```bash
+npm install @tony_hz/ilal-sdk
+```
+
+```typescript
+import { ILALApiClient } from '@tony_hz/ilal-sdk';
+
+const client = new ILALApiClient({
+  apiKey: 'ilal_live_xxx',
+  apiBaseUrl: 'https://ilal-mvp-production.up.railway.app',
+  chainId: 84532,
+});
+
+// Preflight — check session, balances, allowances in one call
+const status = await client.preflight('0xYOUR_WALLET');
+
+// Approve tokens
+await client.approve({ token: TUSDC, amount: '10000000000', userAddress: '0x...', operation: 'swap' });
+
+// Swap
+const swap = await client.swap({ tokenIn: TUSDC, tokenOut: WETH, amount: '1000000000', userAddress: '0x...' });
+// swap.transaction → sign and broadcast with your wallet
+
+// Add Liquidity
+const liq = await client.addLiquidity({
+  token0: WETH, token1: TUSDC,
+  amount0: '1000000000000000', amount1: '2000000',
+  userAddress: '0x...',
+});
+
+// Quote (read-only, no gas)
+const quote = await client.quote({ tokenIn: TUSDC, tokenOut: WETH, amount: '1000000000', userAddress: '0x...' });
+```
+
+---
+
+### Integration Gotchas
+
+Things that will save you an afternoon of debugging:
+
+**1. Flow order is strict**
+```
+Register → API Key → Activate Session → Approve → Swap/Liquidity
+```
+Skip any step and you'll get a 412. Most common: forgetting to approve, or session expired.
+
+**2. Approve targets are different for swap vs. liquidity**
+- Swap: approve token to **SwapRouter** (`0xd46D84Dc...`)
+- Liquidity: approve **both** tokens to **PositionManager** (`0x550c31a1...`)
+- Use `POST /defi/approve` with `operation: "swap"` or `"liquidity"` — the API picks the correct spender.
+
+**3. Liquidity requires two approvals**
+```typescript
+// Approve WETH to PositionManager
+await signAndBroadcast((await client.approve({ token: WETH, operation: 'liquidity', amount, userAddress })).transaction);
+// Approve tUSDC to PositionManager
+await signAndBroadcast((await client.approve({ token: TUSDC, operation: 'liquidity', amount, userAddress })).transaction);
+// Now add liquidity
+const liq = await client.addLiquidity({ token0: WETH, token1: TUSDC, amount0, amount1, userAddress });
+```
+
+**4. `amount` is always in the token's smallest unit**
+- WETH: 18 decimals → `"1000000000000000"` = 0.001 WETH
+- tUSDC: 6 decimals → `"1000000"` = 1 tUSDC
+
+**5. Nonce management for rapid sequential transactions**
+```typescript
+const nonce = await provider.getTransactionCount(address, "pending");
+await wallet.sendTransaction({ ...approveTx, nonce });
+await wallet.sendTransaction({ ...swapTx, nonce: nonce + 1 });
+```
+Without this, the second transaction may fail with a nonce conflict.
+
+**6. Always check `canBroadcastSafely` before signing**
+- `true` = session active + simulation passed (swap) or allowances sufficient (liquidity)
+- `false` = check `preflight.simulation.revertReason` or `preflight.issues`
+
+**7. Don't call contracts directly** — the API injects correct hookData for ComplianceHook identity verification. Direct contract calls will revert with `NotVerified`.
+
+**8. `isApprovalNeeded` on approve responses** — if `false`, skip signing. The allowance is already sufficient.
+
+**9. Session lifetime**
+- Testnet: 28 days
+- Production: 24 hours
+- Check remaining time: `GET /api/v1/session/:address`
+
+---
+
+### Error Reference
+
+| Status | Code | Meaning | Fix |
+|--------|------|---------|-----|
+| 412 | `SESSION_NOT_ACTIVE` | No active compliance session | Call `/testnet/activate` |
+| 412 | `INSUFFICIENT_ETH` | Not enough ETH for gas | [Alchemy Faucet](https://www.alchemy.com/faucets/base-sepolia) |
+| 400 | `UNSUPPORTED_TOKEN` | Token not in whitelist | Only WETH + tUSDC on testnet |
+| 400 | `ALLOWANCE_INSUFFICIENT` | Token not approved | Call `/defi/approve` first |
+| 429 | `FAUCET_COOLDOWN` | Already claimed today | Check `retryAfterSeconds` in response |
+| 429 | `RATE_LIMIT_EXCEEDED` | Too many requests | Check plan tier (FREE=60/min) |
+
+All errors include `{ error, code, message, hint }`. The `hint` field tells you exactly what to do.
+
+---
 
 ### Tokens (Base Sepolia)
 
