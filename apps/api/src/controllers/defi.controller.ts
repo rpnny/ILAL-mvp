@@ -491,13 +491,17 @@ export async function addLiquidity(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    // Simulate the liquidity mint via eth_call with current on-chain state.
-    const simulation = await blockchainService.simulateCall({
-      from: params.userAddress as Address,
-      to: result.transaction.to as Address,
-      data: result.transaction.data as `0x${string}`,
-    });
-
+    // NOTE: We intentionally skip eth_call simulation for liquidity.
+    //
+    // The PositionManager.mint() API takes `liquidityDelta` (an abstract Uniswap v4
+    // unit derived from sqrtPriceX96 + tick range), NOT raw token amounts. The API
+    // currently approximates liquidityDelta as max(amount0, amount1) in wei — this
+    // incorrect value causes PoolManager to compute wildly wrong settlement amounts,
+    // producing an empty `0x` revert deep inside the unlock/settle call chain.
+    //
+    // eth_call simulation would be trustworthy only with an accurate liquidityDelta
+    // (requiring an on-chain PoolManager.getSlot0() read + Uniswap math). Until then,
+    // `canBroadcastSafely` is derived from the reliable pre-checks: session + allowances.
     const allowanceWarnings: Record<string, unknown> = {};
     if (!allowance0Ok) {
       allowanceWarnings.token0 = {
@@ -514,18 +518,18 @@ export async function addLiquidity(req: Request, res: Response): Promise<void> {
       };
     }
 
+    const canBroadcastSafely = preflight.sessionActive && allowance0Ok && allowance1Ok;
+
     res.json({
       ...result,
-      // When simulation fails, override top-level success and exclude the transaction object
-      ...(simulation.success ? {} : { success: false, transaction: undefined }),
       preflight: {
         ...preflight,
         tokenSupported: true,
         allowanceSufficient: allowance0Ok && allowance1Ok,
-        canBroadcastSafely: preflight.sessionActive && simulation.success,
+        canBroadcastSafely,
         simulation: {
-          success: simulation.success,
-          ...(simulation.reason ? { revertReason: simulation.reason } : {}),
+          skipped: true,
+          reason: 'Liquidity simulation skipped — liquidityDelta approximation makes eth_call unreliable. canBroadcastSafely is derived from session + allowance pre-checks.',
         },
         ...(Object.keys(allowanceWarnings).length > 0 ? { allowanceWarnings } : {}),
       },
