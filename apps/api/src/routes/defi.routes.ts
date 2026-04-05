@@ -12,6 +12,9 @@ const router: Router = Router();
 // Self-check / environment-check endpoint (read-only, no permission required)
 router.get('/preflight/:address', authenticate, DefiController.preflightCheck);
 
+// Quote endpoint (read-only, no gas needed)
+router.get('/quote', authenticate, requirePermissionIfApiKey('swap'), DefiController.getQuote);
+
 // Infrastructure endpoints - protected by API Key OR JWT
 router.post('/approve', authenticate, requirePermissionIfApiKey('swap'), DefiController.approve);
 router.post('/swap', authenticate, requirePermissionIfApiKey('swap'), DefiController.executeSwap);

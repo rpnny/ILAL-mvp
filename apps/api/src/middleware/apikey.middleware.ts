@@ -109,14 +109,22 @@ export async function apiKeyMiddleware(
       logger.error('Failed to update API Key lastUsedAt', { error: err.message });
     });
 
+    // Legacy permission name normalization — old keys may have 'defi:swap' etc. in DB
+    const LEGACY_MAP: Record<string, string> = {
+      'defi:swap': 'swap',
+      'defi:liquidity': 'liquidity',
+      'usage:read': 'usage',
+    };
+    const rawPermissions = Array.isArray(matchedKey.permissions)
+      ? matchedKey.permissions as string[]
+      : typeof matchedKey.permissions === 'string'
+        ? matchedKey.permissions.split(',').map(p => p.trim()).filter(Boolean)
+        : [];
+
     req.apiKey = {
       id: matchedKey.id,
       userId: matchedKey.userId,
-      permissions: Array.isArray(matchedKey.permissions)
-        ? matchedKey.permissions as string[]
-        : typeof matchedKey.permissions === 'string'
-          ? matchedKey.permissions.split(',').map(p => p.trim()).filter(Boolean)
-          : [],
+      permissions: rawPermissions.map(p => LEGACY_MAP[p] || p),
       rateLimit: matchedKey.rateLimit,
       keyPrefix: matchedKey.keyPrefix,
     };

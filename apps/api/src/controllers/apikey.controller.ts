@@ -9,10 +9,14 @@ import { generateApiKey, hashApiKey, extractApiKeyPrefix } from '../utils/apiKey
 import { logger } from '../config/logger.js';
 import { RATE_LIMITS } from '../config/constants.js';
 
+// Canonical permission names — must match what requirePermission() / requirePermissionIfApiKey() checks in routes.
+export const VALID_PERMISSIONS = ['verify', 'session', 'swap', 'liquidity', 'usage'] as const;
+type Permission = typeof VALID_PERMISSIONS[number];
+
 // Request validation schemas
 const createApiKeySchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
-  permissions: z.array(z.string()).default(['verify', 'session', 'defi:swap', 'defi:liquidity', 'usage:read']),
+  permissions: z.array(z.enum(VALID_PERMISSIONS)).default([...VALID_PERMISSIONS]),
   rateLimit: z.number().int().min(1).max(10000).optional(),
   expiresIn: z.number().int().positive().optional(), // Expiration period (days)
 });
@@ -229,7 +233,7 @@ export async function updateApiKey(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
     const updateSchema = z.object({
       name: z.string().min(1).max(100).optional(),
-      permissions: z.array(z.string()).optional(),
+      permissions: z.array(z.enum(VALID_PERMISSIONS)).optional(),
       rateLimit: z.number().int().min(1).max(10000).optional(),
     });
 

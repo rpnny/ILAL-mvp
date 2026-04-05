@@ -238,6 +238,70 @@ class BlockchainService {
   }
 
   /**
+   * Get native ETH balance for an address.
+   */
+  async getEthBalance(address: Address): Promise<bigint> {
+    try {
+      return await this.publicClient.getBalance({ address });
+    } catch (error: any) {
+      logger.warn('ETH balance check failed', { address, error: error.message });
+      return 0n;
+    }
+  }
+
+  // ── Shared revert selector map ────────────────────────────────────────────────
+
+  private static readonly KNOWN_SELECTORS: Record<string, { reason: string; category: string }> = {
+    // Pool / swap errors
+    '0xbb2875c3': { reason: 'InsufficientOutput — pool cannot fill this amount at current price. Reduce swap size or wait for more liquidity.', category: 'pool_depth' },
+    '0x7c9c6e8f': { reason: 'PRICE_LIMIT — pool liquidity exhausted in this direction. The pool tick has hit the boundary of available liquidity.', category: 'pool_depth' },
+    '0x39d35496': { reason: 'PoolNotInitialized — the token pair pool does not exist on this ComplianceHook.', category: 'pool_config' },
+    '0xfb8f41b2': { reason: 'InvalidTick — tick parameter is out of range for this pool.', category: 'params' },
+    // ERC-20 errors
+    '0x13be252b': { reason: 'ERC20: insufficient allowance — approve the token to the router/manager first.', category: 'allowance' },
+    '0xf4d678b8': { reason: 'ERC20: insufficient balance — wallet does not hold enough of the input token.', category: 'balance' },
+    '0xe450d38c': { reason: 'ERC20: transfer amount exceeds balance.', category: 'balance' },
+    // ComplianceHook errors
+    '0xb12c8f91': { reason: 'NotVerified — wallet does not have an active compliance session, or the router did not properly encode user identity (hookData). Ensure session is active and the contract is registered as an identity router.', category: 'session' },
+    '0x8d4b1b19': { reason: 'IdentityRouterRequired — the calling contract is not registered as an identity router in the Registry. The PositionManager or SwapRouter may need whitelisting via UpgradeRegistry script.', category: 'hook_config' },
+    '0x8f1186d2': { reason: 'RouterNotApproved — the calling router is not approved in the Registry. Whitelist it via Registry.approveRouter().', category: 'hook_config' },
+    '0x584a7938': { reason: 'InvalidCaller — the router is not authorized to call the hook.', category: 'hook_config' },
+    '0xd59b569a': { reason: 'InvalidHookData — hookData format is invalid. Expected empty (Mode 2/3) or >= 148 bytes (Mode 1 EIP-712 permit).', category: 'hook_config' },
+    '0x4cb3183d': { reason: 'EmergencyPaused — the protocol is in emergency pause mode. Contact the ILAL team.', category: 'hook_config' },
+    '0x2f6c6a6f': { reason: 'Compliance session not active or expired for this wallet.', category: 'session' },
+  };
+
+  /**
+   * Parse a revert error into a structured { reason, category } using KNOWN_SELECTORS.
+   */
+  private parseRevertError(error: any): { reason: string; category: string } {
+    const revertData: string | undefined =
+      error?.cause?.data ?? error?.data ?? error?.cause?.cause?.data;
+    const shortMsg: string = error?.shortMessage ?? error?.message ?? 'unknown';
+
+    let selector: string | undefined;
+    if (revertData && typeof revertData === 'string' && revertData.startsWith('0x') && revertData.length >= 10) {
+      selector = revertData.slice(0, 10);
+    }
+    if (!selector) {
+      const hexMatch = shortMsg.match(/0x[0-9a-fA-F]{8}/);
+      if (hexMatch) selector = hexMatch[0];
+    }
+
+    const known = selector ? BlockchainService.KNOWN_SELECTORS[selector] : undefined;
+    if (known) return known;
+
+    if (shortMsg.includes('reverted') && !shortMsg.includes('unknown')) {
+      return { reason: shortMsg, category: 'unknown' };
+    }
+
+    return {
+      reason: `Simulation reverted. ${revertData ? `Data: ${revertData.slice(0, 74)}` : shortMsg}`,
+      category: 'unknown',
+    };
+  }
+
+  /**
    * Simulate a transaction via eth_call with the given sender.
    * Returns { success: true } if the call succeeds, or { success: false, reason } if it reverts.
    * This is the most reliable way to check if a TX will succeed given current on-chain state.
@@ -257,48 +321,32 @@ class BlockchainService {
       });
       return { success: true };
     } catch (error: any) {
-      // Try every possible path viem exposes for revert data
-      const revertData: string | undefined =
-        error?.cause?.data ?? error?.data ?? error?.cause?.cause?.data;
-      const shortMsg: string = error?.shortMessage ?? error?.message ?? 'unknown';
+      const parsed = this.parseRevertError(error);
+      return { success: false, reason: parsed.reason, category: parsed.category };
+    }
+  }
 
-      const KNOWN_SELECTORS: Record<string, { reason: string; category: string }> = {
-        '0xbb2875c3': { reason: 'InsufficientOutput — pool cannot fill this amount at current price. Reduce swap size or wait for more liquidity.', category: 'pool_depth' },
-        '0x7c9c6e8f': { reason: 'PRICE_LIMIT — pool liquidity exhausted in this direction. The pool tick has hit the boundary of available liquidity.', category: 'pool_depth' },
-        '0x39d35496': { reason: 'PoolNotInitialized — the token pair pool does not exist on this ComplianceHook.', category: 'pool_config' },
-        '0x584a7938': { reason: 'InvalidCaller — the router is not authorized to call the hook.', category: 'hook_config' },
-        '0xfb8f41b2': { reason: 'InvalidTick — tick parameter is out of range for this pool.', category: 'params' },
-        '0x13be252b': { reason: 'ERC20: insufficient allowance — approve the token to the router/manager first.', category: 'allowance' },
-        '0xf4d678b8': { reason: 'ERC20: insufficient balance — wallet does not hold enough of the input token.', category: 'balance' },
-        '0xe450d38c': { reason: 'ERC20: transfer amount exceeds balance.', category: 'balance' },
-        '0x2f6c6a6f': { reason: 'Compliance session not active or expired for this wallet.', category: 'session' },
-      };
-
-      // Match from revert data first (most accurate), then fall back to shortMessage
-      let selector: string | undefined;
-      if (revertData && typeof revertData === 'string' && revertData.startsWith('0x') && revertData.length >= 10) {
-        selector = revertData.slice(0, 10);
-      }
-      if (!selector) {
-        const hexMatch = shortMsg.match(/0x[0-9a-fA-F]{8}/);
-        if (hexMatch) selector = hexMatch[0];
-      }
-
-      const known = selector ? KNOWN_SELECTORS[selector] : undefined;
-      if (known) {
-        return { success: false, reason: known.reason, category: known.category };
-      }
-
-      // If viem gave a readable reason, use it; otherwise try to add context
-      if (shortMsg.includes('reverted') && !shortMsg.includes('unknown')) {
-        return { success: false, reason: shortMsg, category: 'unknown' };
-      }
-
-      return {
-        success: false,
-        reason: `Simulation reverted. ${revertData ? `Data: ${revertData.slice(0, 74)}` : shortMsg}`,
-        category: 'unknown',
-      };
+  /**
+   * Simulate a transaction and return the raw return data on success.
+   * Used for quote / estimateOutput — we need the actual return value, not just success/fail.
+   */
+  async simulateCallWithReturn(params: {
+    from: Address;
+    to: Address;
+    data: Hex;
+    value?: bigint;
+  }): Promise<{ success: boolean; returnData?: Hex; reason?: string; category?: string }> {
+    try {
+      const result = await this.publicClient.call({
+        account: params.from,
+        to: params.to,
+        data: params.data,
+        value: params.value ?? 0n,
+      });
+      return { success: true, returnData: result.data };
+    } catch (error: any) {
+      const parsed = this.parseRevertError(error);
+      return { success: false, reason: parsed.reason, category: parsed.category };
     }
   }
 
