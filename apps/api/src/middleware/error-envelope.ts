@@ -16,6 +16,7 @@ export interface APIErrorBody {
   details?: unknown[];
   requestId?: string;
   retryable?: boolean;
+  ethFaucets?: string[];
 }
 
 const STATUS_TEXT: Record<number, string> = {

@@ -57,8 +57,8 @@ export function getRedisStore(): import('rate-limit-redis').default | undefined 
   try {
     const { default: RedisStore } = require('rate-limit-redis') as { default: typeof import('rate-limit-redis').default };
     return new RedisStore({
-      // @ts-expect-error - ioredis is compatible with rate-limit-redis sendCommand
-      sendCommand: (...args: string[]) => client.call(...args),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      sendCommand: (...args: string[]) => (client as any).call(...args),
     });
   } catch (err: any) {
     logger.warn('Failed to create RedisStore', { error: err.message });
