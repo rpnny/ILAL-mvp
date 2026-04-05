@@ -242,7 +242,13 @@ class DeFiService {
          *  worst-case approximation that is likely to revert on-chain. */
         sqrtPriceX96?: bigint;
     }) {
-        logger.info('Building add liquidity transaction', { params });
+        logger.info('Building add liquidity transaction', {
+            token0: params.token0, token1: params.token1,
+            amount0: params.amount0, amount1: params.amount1,
+            tickLower: params.tickLower, tickUpper: params.tickUpper,
+            userAddress: params.userAddress,
+            sqrtPriceX96: params.sqrtPriceX96?.toString(),
+        });
 
         const poolKey = {
             currency0: params.token0,
