@@ -31,6 +31,7 @@ model User {
   subscriptions     Subscription[]
   verificationCodes VerificationCode[]
   proofRecords      ProofRecord[]
+  transactions      TransactionRecord[]
 }
 
 // ZK proof usage records — anti-replay
@@ -44,6 +45,9 @@ model ProofRecord {
   createdAt    DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userAddress])
 }
 
 // Email verification codes
@@ -57,6 +61,8 @@ model VerificationCode {
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
 }
 
 // API Keys table
@@ -66,7 +72,7 @@ model ApiKey {
   key         String   @unique  // bcrypt hash of actual key
   keyPrefix   String             // First 4 chars for identification (e.g. "ilal")
   name        String
-  permissions String   @default("verify,session") // Comma-separated: "verify,session,usage"
+  permissions String   @default("verify,session,swap,liquidity,usage") // Comma-separated permissions
   rateLimit   Int      @default(10)   // Requests per minute
   isActive    Boolean  @default(true)
   lastUsedAt  String?  // ISO string
@@ -75,6 +81,8 @@ model ApiKey {
   
   user         User @relation(fields: [userId], references: [id], onDelete: Cascade)
   usageRecords UsageRecord[]
+
+  @@index([keyPrefix])
 }
 
 // Usage records table
@@ -91,6 +99,9 @@ model UsageRecord {
   
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   apiKey ApiKey @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  @@index([userId, timestamp])
+  @@index([apiKeyId, timestamp])
 }
 
 // Institutions table — onboarded institutional clients
@@ -108,6 +119,8 @@ model Institution {
   updatedAt      DateTime @updatedAt
 
   user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
 }
 
 // Subscriptions table
@@ -123,5 +136,27 @@ model Subscription {
   createdAt            DateTime @default(now())
   
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Transaction history — audit log for on-chain operations
+model TransactionRecord {
+  id           String   @id @default(cuid())
+  userId       String?
+  userAddress  String
+  txHash       String   @unique
+  type         String   // SESSION_ACTIVATION | SWAP | LIQUIDITY_ADD | LIQUIDITY_REMOVE
+  status       String   @default("PENDING") // PENDING | CONFIRMED | FAILED
+  chainId      Int      @default(84532)
+  blockNumber  BigInt?
+  gasUsed      BigInt?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userAddress])
+  @@index([userId])
+  @@index([type, createdAt])
 }
 

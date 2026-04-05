@@ -15,6 +15,7 @@ import { prisma } from './config/database.js';
 import { PORT, validateConfig } from './config/constants.js';
 import { logger } from './config/logger.js';
 import { liquidityKeeper } from './services/liquidity-keeper.service.js';
+import { disconnectRedis } from './config/redis.js';
 
 // Initialize Sentry (before anything else)
 // When SENTRY_DSN is set, errors will be automatically reported
@@ -67,20 +68,32 @@ async function start() {
       logger.info('═══════════════════════════════════════════════');
     });
 
-    // 5. Graceful shutdown
+    // 5. Graceful shutdown — drain connections before exit
+    let shuttingDown = false;
     const shutdown = async () => {
+      if (shuttingDown) return;
+      shuttingDown = true;
       logger.info('Shutting down gracefully...');
 
       liquidityKeeper.stop();
 
-      server.close(() => {
-        logger.info('HTTP server closed');
+      // Hard deadline: force exit after 30s if drain doesn't complete
+      const forceTimer = setTimeout(() => {
+        logger.warn('Shutdown timeout exceeded (30s) — forcing exit');
+        process.exit(1);
+      }, 30_000);
+      forceTimer.unref();
+
+      server.close(async () => {
+        logger.info('HTTP server closed (all connections drained)');
+        await Promise.all([
+          prisma.$disconnect().then(() => logger.info('Database disconnected')),
+          disconnectRedis().then(() => logger.info('Redis disconnected')),
+        ]).catch((err: any) => {
+          logger.error('Cleanup error during shutdown', { error: err.message });
+        });
+        process.exit(0);
       });
-
-      await prisma.$disconnect();
-      logger.info('Database disconnected');
-
-      process.exit(0);
     };
 
     process.on('SIGTERM', shutdown);

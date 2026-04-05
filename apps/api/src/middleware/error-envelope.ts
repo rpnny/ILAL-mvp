@@ -5,7 +5,7 @@
  * switch on `code` and show `hint` to the developer.
  */
 
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 
 export interface APIErrorBody {
   error: string;
@@ -14,6 +14,8 @@ export interface APIErrorBody {
   hint?: string;
   phase?: 'validation' | 'auth' | 'preflight' | 'build' | 'broadcast';
   details?: unknown[];
+  requestId?: string;
+  retryable?: boolean;
 }
 
 const STATUS_TEXT: Record<number, string> = {
@@ -33,10 +35,14 @@ export function sendError(
   res: Response,
   status: number,
   opts: Omit<APIErrorBody, 'error'>,
+  req?: Request,
 ): void {
   const body: APIErrorBody = {
     error: STATUS_TEXT[status] ?? 'Error',
     ...opts,
   };
+  if (req?.requestId) {
+    body.requestId = req.requestId;
+  }
   res.status(status).json(body);
 }

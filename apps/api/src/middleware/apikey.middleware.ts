@@ -165,3 +165,14 @@ export function requirePermission(permission: string) {
     next();
   };
 }
+
+/**
+ * Permission check that only applies when auth is via API Key.
+ * JWT (dashboard) users bypass this check — they have full access.
+ */
+export function requirePermissionIfApiKey(permission: string) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    if (req.authMethod !== 'api_key') return next();
+    return requirePermission(permission)(req, res, next);
+  };
+}

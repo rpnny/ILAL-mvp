@@ -148,6 +148,94 @@ async function checkPreflight(userAddress: string): Promise<PreflightResult> {
   }
 }
 
+// ── Approve endpoint ────────────────────────────────────────
+
+const approveSchema = z.object({
+  token:       z.string().regex(ETH_ADDRESS, 'Invalid token address'),
+  userAddress: z.string().regex(ETH_ADDRESS, 'Invalid userAddress'),
+  amount:      positiveIntString,
+  operation:   z.enum(['swap', 'liquidity']).optional(),
+  spender:     z.string().regex(ETH_ADDRESS, 'Invalid spender address').optional(),
+});
+
+export async function approve(req: Request, res: Response): Promise<void> {
+  try {
+    const params = approveSchema.parse(req.body);
+    const token = getAddress(params.token) as Address;
+    const userAddress = getAddress(params.userAddress) as Address;
+
+    // Token whitelist check
+    if (!isTokenSupported(token)) {
+      sendError(res, 400, {
+        code: 'TOKEN_NOT_SUPPORTED',
+        message: `Token ${token} is not in the supported whitelist.`,
+        hint: `Supported tokens: ${Object.entries(DEMO_TOKENS).map(([k, v]) => `${k}: ${v}`).join(', ')}`,
+      }, req);
+      return;
+    }
+
+    // Resolve spender from operation or explicit address
+    let spender: Address;
+    if (params.spender) {
+      spender = getAddress(params.spender) as Address;
+    } else if (params.operation === 'swap') {
+      spender = CONTRACTS.simpleSwapRouter as Address;
+    } else if (params.operation === 'liquidity') {
+      spender = CONTRACTS.positionManager as Address;
+    } else {
+      sendError(res, 400, {
+        code: 'MISSING_SPENDER',
+        message: 'Provide either "spender" address or "operation" (swap/liquidity) to determine the approval target.',
+        hint: 'For swaps use operation: "swap". For liquidity use operation: "liquidity".',
+      }, req);
+      return;
+    }
+
+    // Check current allowance
+    const currentAllowance = await blockchainService.getTokenAllowance(token, userAddress, spender);
+    const alreadySufficient = currentAllowance >= BigInt(params.amount);
+
+    // Build the unsigned approve TX
+    const result = await defiService.buildApproveTx({
+      token,
+      spender,
+      amount: params.amount,
+      userAddress,
+    });
+
+    res.json({
+      ...result,
+      allowance: {
+        current: currentAllowance.toString(),
+        requested: params.amount,
+        alreadySufficient,
+      },
+      spenderInfo: {
+        address: spender,
+        name: spender.toLowerCase() === CONTRACTS.simpleSwapRouter?.toLowerCase()
+          ? 'SimpleSwapRouter'
+          : spender.toLowerCase() === CONTRACTS.positionManager?.toLowerCase()
+            ? 'VerifiedPoolsPositionManager'
+            : 'Custom',
+      },
+      signerRequirement: {
+        mode: 'msg.sender',
+        userAddress,
+        message: 'Sign and broadcast with the wallet that owns the tokens.',
+      },
+      requestId: req.requestId,
+    });
+
+  } catch (err: any) {
+    if (err instanceof z.ZodError) {
+      sendError(res, 400, { code: 'VALIDATION_ERROR', message: 'Invalid input', details: err.errors }, req);
+      return;
+    }
+    logger.error('[defi/approve] Error', { error: err.message });
+    sendError(res, 500, { code: 'INTERNAL_ERROR', message: err.message }, req);
+  }
+}
+
 // ── Swap endpoint ────────────────────────────────────────────
 
 export async function executeSwap(req: Request, res: Response): Promise<void> {

@@ -17,6 +17,7 @@ import { z } from 'zod';
 import { prisma } from '../config/database.js';
 import { logger } from '../config/logger.js';
 import { blockchainService } from '../services/blockchain.service.js';
+import { faucetService } from '../services/faucet.service.js';
 import * as issuerService from '../services/issuer.service.js';
 import * as merkleService from '../services/merkle.service.js';
 
@@ -124,6 +125,12 @@ export async function activate(req: Request, res: Response): Promise<void> {
       expiresAt: new Date(Number(result.sessionExpiry) * 1000).toISOString(),
       gasUsed: result.gasUsed.toString(),
       note: 'Testnet only — ZK proof bypassed. Call this endpoint again when session expires.',
+      nextSteps: {
+        '1_getTokens': 'POST /api/v1/testnet/faucet  { "walletAddress": "0x..." }',
+        '2_approve': 'POST /api/v1/defi/approve  { "token": "<tUSDC>", "operation": "swap", "amount": "10000000000", "userAddress": "0x..." }',
+        '3_preflight': 'GET /api/v1/defi/preflight/<address>',
+        '4_swap': 'POST /api/v1/defi/swap  { "tokenIn": "<tUSDC>", "tokenOut": "<WETH>", "amount": "1000000000", "userAddress": "0x..." }',
+      },
     });
 
   } catch (err: any) {
@@ -223,5 +230,55 @@ export async function activateBatch(req: Request, res: Response): Promise<void> 
   } catch (err: any) {
     logger.error('[testnet/activate-batch] Error', { error: err.message });
     res.status(500).json({ error: 'Internal Server Error', message: err.message });
+  }
+}
+
+// ── Faucet ──────────────────────────────────────────────────────────────────
+
+const faucetSchema = z.object({
+  walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address'),
+});
+
+/**
+ * POST /api/v1/testnet/faucet
+ *
+ * Mints 10,000 tUSDC to the given wallet address.
+ * Rate limited: 1 claim per wallet per 24 hours.
+ */
+export async function faucet(req: Request, res: Response): Promise<void> {
+  try {
+    const body = faucetSchema.parse(req.body);
+    const walletAddress = getAddress(body.walletAddress) as Address;
+
+    if (!faucetService.available) {
+      res.status(503).json({
+        error: 'Service Unavailable',
+        message: 'Faucet is not available — VERIFIER_PRIVATE_KEY not configured.',
+        requestId: req.requestId,
+      });
+      return;
+    }
+
+    const result = await faucetService.mintTestTokens(walletAddress);
+
+    res.json({
+      success: true,
+      walletAddress,
+      ...result,
+      explorerUrl: `https://sepolia.basescan.org/tx/${result.txHash}`,
+      note: 'tUSDC minted. You also need Base Sepolia ETH for gas — use https://www.alchemy.com/faucets/base-sepolia',
+      nextSteps: {
+        '1_approve': 'POST /api/v1/defi/approve  { "token": "<tUSDC>", "operation": "swap", "amount": "10000000000", "userAddress": "0x..." }',
+        '2_swap': 'POST /api/v1/defi/swap  { "tokenIn": "<tUSDC>", "tokenOut": "<WETH>", "amount": "1000000000", "userAddress": "0x..." }',
+      },
+    });
+
+  } catch (err: any) {
+    if (err instanceof z.ZodError) {
+      res.status(400).json({ error: 'Bad Request', details: err.errors, requestId: req.requestId });
+      return;
+    }
+    logger.error('[testnet/faucet] Error', { error: err.message });
+    res.status(500).json({ error: 'Internal Server Error', message: err.message, requestId: req.requestId });
   }
 }

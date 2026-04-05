@@ -55,6 +55,8 @@ export interface SwapParams {
   recipient?: Address;
   deadline?: bigint;
   sqrtPriceLimitX96?: bigint;
+  fee?: number;         // Pool fee tier in bps, defaults to 500 (0.05%)
+  tickSpacing?: number; // Pool tick spacing, defaults to 10
 }
 
 export interface SwapResult {

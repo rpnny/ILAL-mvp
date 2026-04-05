@@ -28,30 +28,20 @@ pnpm add @ilal/sdk viem
 
 > **About Git dependencies**: Using `"@ilal/sdk": "github:xxx/ILAL-mvp#main"` installs the whole repo root; **you cannot install only the `packages/sdk` subpackage**. Use the **npm package** (after publish) or **local `file:`** install instead.
 
-### Using the SDK in an external project (before npm publish)
+### Before npm publish (alternative installs)
 
-If `@ilal/sdk` is not yet published to npm, you can install it from a local path:
+```bash
+# Option 1: Local path (recommended for development)
+git clone https://github.com/rpnny/ILAL-mvp.git && cd ilal
+pnpm install && pnpm build
+# In your project:
+pnpm add file:../ilal/packages/sdk
 
-1. **Clone the repo** (if needed):
-   ```bash
-   git clone https://github.com/rpnny/ILAL-mvp.git
-   cd ilal
-   ```
+# Option 2: API-only integration (no SDK needed)
+# Use the REST API directly — see docs/guides/INSTITUTIONAL_API_QUICKSTART.md
+```
 
-2. **Build the SDK from the monorepo root**:
-   ```bash
-   pnpm install
-   pnpm build
-   # or build only the SDK: cd packages/sdk && pnpm build
-   ```
-
-3. **Add the SDK via `file:` in your project** (adjust the path to your machine):
-   ```bash
-   pnpm add file:../ilal/packages/sdk
-   # or absolute path example:
-   pnpm add file:/Users/you/ilal/packages/sdk
-   ```
-   Then use `import { ILALClient } from '@ilal/sdk'` as usual.
+> **Note**: `github:rpnny/ILAL-mvp#main` installs the whole monorepo root. Use `file:` path or npm package instead.
 
 ## Quick Start
 

@@ -18,6 +18,7 @@ import { baseSepolia } from 'viem/chains';
 import { privateKeyToAccount, nonceManager } from 'viem/accounts';
 import { RPC_URL, CONTRACTS, VERIFIER_PRIVATE_KEY } from '../config/constants.js';
 import { logger } from '../config/logger.js';
+import { logTransaction } from './transaction-log.service.js';
 
 // ── ABIs ──────────────────────────────────────────────────────────────────────
 
@@ -77,6 +78,44 @@ class BlockchainService {
     }
   }
 
+  // ── Retry helper ─────────────────────────────────────────────────────────────
+
+  /**
+   * Retry an async operation with exponential backoff.
+   * Only retries on transient RPC errors, not on deterministic reverts.
+   */
+  private async withRetry<T>(
+    fn: () => Promise<T>,
+    maxAttempts = 3,
+    baseDelayMs = 1000,
+  ): Promise<T> {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        return await fn();
+      } catch (error: any) {
+        const msg = (error.shortMessage || error.message || '').toLowerCase();
+        const isTransient =
+          msg.includes('timeout') ||
+          msg.includes('econnrefused') ||
+          msg.includes('econnreset') ||
+          msg.includes('429') ||
+          msg.includes('502') ||
+          msg.includes('503') ||
+          msg.includes('rate limit') ||
+          msg.includes('fetch failed');
+
+        if (!isTransient || attempt === maxAttempts) throw error;
+
+        const delay = baseDelayMs * Math.pow(2, attempt - 1);
+        logger.warn(`RPC call failed (attempt ${attempt}/${maxAttempts}), retrying in ${delay}ms`, {
+          error: msg,
+        });
+        await new Promise(r => setTimeout(r, delay));
+      }
+    }
+    throw new Error('unreachable');
+  }
+
   // ── Read-only (always available) ─────────────────────────────────────────────
 
   /**
@@ -90,12 +129,14 @@ class BlockchainService {
     }
 
     try {
-      const isValid = await this.publicClient.readContract({
-        address: CONTRACTS.verifier!,
-        abi: verifierABI,
-        functionName: 'verifyComplianceProof',
-        args: [proof, publicInputs],
-      });
+      const isValid = await this.withRetry(() =>
+        this.publicClient.readContract({
+          address: CONTRACTS.verifier!,
+          abi: verifierABI,
+          functionName: 'verifyComplianceProof',
+          args: [proof, publicInputs],
+        })
+      );
 
       logger.debug('Proof verification result', { isValid });
       return isValid as boolean;
@@ -112,12 +153,14 @@ class BlockchainService {
   async isSessionActive(userAddress: Address): Promise<boolean> {
     const checksummed = getAddress(userAddress);
     try {
-      return (await this.publicClient.readContract({
-        address: CONTRACTS.sessionManager!,
-        abi: sessionManagerABI,
-        functionName: 'isSessionActive',
-        args: [checksummed],
-      })) as boolean;
+      return (await this.withRetry(() =>
+        this.publicClient.readContract({
+          address: CONTRACTS.sessionManager!,
+          abi: sessionManagerABI,
+          functionName: 'isSessionActive',
+          args: [checksummed],
+        })
+      )) as boolean;
     } catch (error: any) {
       throw new Error(`Session status check failed: ${error.shortMessage || error.message}`);
     }
@@ -129,12 +172,14 @@ class BlockchainService {
   async getRemainingTime(userAddress: Address): Promise<number> {
     const checksummed = getAddress(userAddress);
     try {
-      const remaining = await this.publicClient.readContract({
-        address: CONTRACTS.sessionManager!,
-        abi: sessionManagerABI,
-        functionName: 'getRemainingTime',
-        args: [checksummed],
-      });
+      const remaining = await this.withRetry(() =>
+        this.publicClient.readContract({
+          address: CONTRACTS.sessionManager!,
+          abi: sessionManagerABI,
+          functionName: 'getRemainingTime',
+          args: [checksummed],
+        })
+      );
       return Number(remaining);
     } catch (error: any) {
       throw new Error(`Get remaining time failed: ${error.shortMessage || error.message}`);
@@ -145,7 +190,7 @@ class BlockchainService {
    * Get latest block number (health check).
    */
   async getBlockNumber(): Promise<bigint> {
-    return this.publicClient.getBlockNumber();
+    return this.withRetry(() => this.publicClient.getBlockNumber());
   }
 
   /**
@@ -313,12 +358,25 @@ class BlockchainService {
 
       logger.info('Session tx submitted', { hash });
 
-      const receipt = await this.publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await this.withRetry(() =>
+        this.publicClient.waitForTransactionReceipt({ hash })
+      );
 
       logger.info('Session activated', {
         hash,
         block: receipt.blockNumber.toString(),
         gasUsed: receipt.gasUsed.toString(),
+      });
+
+      // Fire-and-forget transaction log
+      logTransaction({
+        userAddress: checksummed,
+        txHash: hash,
+        type: 'SESSION_ACTIVATION',
+        status: 'CONFIRMED',
+        blockNumber: receipt.blockNumber,
+        gasUsed: receipt.gasUsed,
+        metadata: { expiry: expiry.toString(), durationSeconds },
       });
 
       return { txHash: hash, sessionExpiry: expiry, gasUsed: receipt.gasUsed };

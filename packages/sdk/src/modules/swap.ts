@@ -45,8 +45,8 @@ export class SwapModule {
     const poolKey: PoolKey = {
       currency0,
       currency1,
-      fee: 500, // 0.05%
-      tickSpacing: 10,
+      fee: params.fee ?? 500,
+      tickSpacing: params.tickSpacing ?? 10,
       hooks: this.complianceHookAddress,
     };
 
@@ -157,8 +157,8 @@ export class SwapModule {
     const poolKey: PoolKey = {
       currency0,
       currency1,
-      fee: 500,
-      tickSpacing: 10,
+      fee: params.fee ?? 500,
+      tickSpacing: params.tickSpacing ?? 10,
       hooks: this.complianceHookAddress,
     };
 
@@ -243,8 +243,8 @@ export class SwapModule {
     const poolKey: PoolKey = {
       currency0,
       currency1,
-      fee: 500,
-      tickSpacing: 10,
+      fee: params.fee ?? 500,
+      tickSpacing: params.tickSpacing ?? 10,
       hooks: this.complianceHookAddress,
     };
 

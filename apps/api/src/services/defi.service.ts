@@ -227,6 +227,53 @@ class DeFiService {
     }
 
     /**
+     * Build an unsigned ERC-20 approve transaction.
+     * Needed before swap (approve to SwapRouter) or liquidity (approve to PositionManager).
+     */
+    async buildApproveTx(params: {
+        token: Address;
+        spender: Address;
+        amount: string;
+        userAddress: Address;
+    }) {
+        logger.info('Building approve transaction', { params });
+
+        const calldata: Hex = encodeFunctionData({
+            abi: [{
+                type: 'function', name: 'approve',
+                inputs: [{ name: 'spender', type: 'address' }, { name: 'amount', type: 'uint256' }],
+                outputs: [{ name: '', type: 'bool' }],
+                stateMutability: 'nonpayable',
+            }],
+            functionName: 'approve',
+            args: [params.spender, BigInt(params.amount)],
+        });
+
+        return {
+            success: true,
+            transaction: {
+                to: params.token as string,
+                data: calldata,
+                value: '0x0',
+                chainId: CHAIN_ID,
+                gas: '0xC350', // 50,000
+            },
+            instructions: {
+                description: 'Sign and broadcast this approve transaction before swapping or adding liquidity.',
+                network: 'Base Sepolia (chainId: 84532)',
+                rpcUrl: 'https://sepolia.base.org',
+                explorerBase: 'https://sepolia.basescan.org/tx/',
+            },
+            params: {
+                token: params.token,
+                spender: params.spender,
+                amount: params.amount,
+                userAddress: params.userAddress,
+            },
+        };
+    }
+
+    /**
      * Legacy execute mode (requires VERIFIER_PRIVATE_KEY configured on server)
      * Kept for backwards compatibility / demo use cases.
      */

@@ -2,10 +2,19 @@
  * Express Server Configuration
  */
 
+import crypto from 'node:crypto';
 import express, { type Request, type Response, type NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import { logger } from './config/logger.js';
+
+declare global {
+  namespace Express {
+    interface Request {
+      requestId?: string;
+    }
+  }
+}
 
 // Import routes
 import authRoutes from './routes/auth.routes.js';
@@ -77,12 +86,20 @@ export async function createServer(): Promise<express.Application> {
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true }));
 
+  // Request ID tracing — generate or echo client-provided ID
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    req.requestId = (req.headers['x-request-id'] as string) || crypto.randomUUID();
+    res.setHeader('X-Request-Id', req.requestId);
+    next();
+  });
+
   // Request logging
   app.use((req: Request, res: Response, next: NextFunction) => {
     const start = Date.now();
     res.on('finish', () => {
       const duration = Date.now() - start;
       logger.info('Request', {
+        requestId: req.requestId,
         method: req.method,
         path: req.path,
         status: res.statusCode,
@@ -167,12 +184,14 @@ export async function createServer(): Promise<express.Application> {
       error: 'Not Found',
       message: 'The requested resource was not found',
       path: req.path,
+      requestId: req.requestId,
     });
   });
 
   // Global error handler
   app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     logger.error('Unhandled error', {
+      requestId: req.requestId,
       error: err.message,
       stack: err.stack,
       path: req.path,
@@ -181,6 +200,7 @@ export async function createServer(): Promise<express.Application> {
     res.status(err.status || 500).json({
       error: 'Internal Server Error',
       message: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred',
+      requestId: req.requestId,
     });
   });
 
