@@ -35,9 +35,9 @@ export const CONTRACTS = {
   verifier: (process.env.VERIFIER_ADDRESS || '0x8e093aC51921fe2be9bd0910092a01200AAd6560') as Address,
   simpleSwapRouter: (process.env.SIMPLE_SWAP_ROUTER_ADDRESS || '0xd46D84Dc2D098c767451675C9BcB85bf3f8a2891') as Address,
   poolManager: (process.env.POOL_MANAGER_ADDRESS || '0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408') as Address,
-  // Pin these demo-critical contracts so stale Railway env vars cannot point
-  // the API back to an incompatible spender / drained hook pool.
-  positionManager: '0x692548a6E1797d2762b9d04f29112C172E5Cea32' as Address,
+  // positionManager: env var takes precedence so Railway can be updated after
+  // redeployment without a code change (see script/FixPositionManager.s.sol).
+  positionManager: (process.env.POSITION_MANAGER_ADDRESS || '0x692548a6E1797d2762b9d04f29112C172E5Cea32') as Address,
   complianceHook: '0x54b88a4aAC9E73F6581C19a06a2DC280Eba78a80' as Address,
 };
 
