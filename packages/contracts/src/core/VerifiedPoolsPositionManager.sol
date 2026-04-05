@@ -114,6 +114,7 @@ contract VerifiedPoolsPositionManager is IUnlockCallback, ReentrancyGuard {
     error InsufficientLiquidity();
     error InvalidHookData();
     error PermitCallerMismatch(address permitUser, address caller);
+    error CallbackFailed(string phase, bytes innerRevertData);
 
     // ============ 构造函数 ============
 
@@ -333,13 +334,21 @@ contract VerifiedPoolsPositionManager is IUnlockCallback, ReentrancyGuard {
             revert InvalidHookData();
         }
 
-        (BalanceDelta callerDelta, ) = poolManager.modifyLiquidity(
+        // Wrap modifyLiquidity in try/catch so revert reasons (e.g. NotVerified,
+        // IdentityRouterRequired) propagate instead of being swallowed by
+        // PoolManager.unlock() as empty 0x data.
+        BalanceDelta callerDelta;
+        try poolManager.modifyLiquidity(
             callbackData.poolKey,
             params,
             resolvedHookData
-        );
+        ) returns (BalanceDelta _callerDelta, BalanceDelta) {
+            callerDelta = _callerDelta;
+        } catch (bytes memory reason) {
+            revert CallbackFailed("modifyLiquidity", reason);
+        }
 
-        // 处理代币结算
+        // Settlement — safeTransferFrom errors propagate naturally.
         _settleDelta(callbackData.sender, callbackData.poolKey, callerDelta);
 
         return "";

@@ -74,6 +74,55 @@ export interface OnboardingAttestationResponse {
   message?: string;
 }
 
+export interface PreflightResponse {
+  sessionActive: boolean;
+  remainingSeconds: number;
+  tokens: Record<string, { balance: string; decimals: number }>;
+  allowances: Record<string, string>;
+  issues: string[];
+  poolHealth?: Record<string, unknown>;
+}
+
+export interface TransactionData {
+  to: string;
+  data: string;
+  value: string;
+  gas: string;
+  chainId?: number;
+}
+
+export interface ApproveResponse {
+  success: boolean;
+  isApprovalNeeded: boolean;
+  transaction?: TransactionData;
+  allowance?: { current: string; requested: string; alreadySufficient: boolean };
+}
+
+export interface SwapResponse {
+  success: boolean;
+  transaction?: TransactionData;
+  preflight?: Record<string, unknown>;
+  error?: string;
+}
+
+export interface LiquidityResponse {
+  success: boolean;
+  transaction?: TransactionData;
+  preflight?: Record<string, unknown>;
+  liquidityWarning?: string;
+  error?: string;
+}
+
+export interface QuoteResponse {
+  success: boolean;
+  estimatedOutput?: string;
+  formattedOutput?: string;
+  exchangeRate?: string;
+  priceImpact?: string;
+  suggestedMinAmountOut?: string;
+  error?: string;
+}
+
 /**
  * API 客户端 - 与 ILAL API 服务通信
  */
@@ -198,6 +247,82 @@ export class ApiClient {
   async onboardingAttestation(walletAddress: string): Promise<OnboardingAttestationResponse> {
     return await this.request<OnboardingAttestationResponse>(
       `/api/v1/onboarding/attestation/${walletAddress}`,
+      { method: 'GET' },
+    );
+  }
+
+  // ============ DeFi ============
+
+  /**
+   * Preflight check — verify session, balances, allowances before trading
+   */
+  async preflight(userAddress: string): Promise<PreflightResponse> {
+    return await this.request<PreflightResponse>(
+      `/api/v1/defi/preflight/${userAddress}`,
+      { method: 'GET' },
+    );
+  }
+
+  /**
+   * Build an ERC-20 approve transaction
+   */
+  async approve(params: {
+    token: string;
+    amount: string;
+    userAddress: string;
+    operation?: 'swap' | 'liquidity';
+  }): Promise<ApproveResponse> {
+    return await this.request<ApproveResponse>('/api/v1/defi/approve', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
+  /**
+   * Build a swap transaction (unsigned — sign and broadcast yourself)
+   */
+  async swap(params: {
+    tokenIn: string;
+    tokenOut: string;
+    amount: string;
+    userAddress: string;
+  }): Promise<SwapResponse> {
+    return await this.request<SwapResponse>('/api/v1/defi/swap', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
+  /**
+   * Build an add-liquidity transaction (unsigned)
+   */
+  async addLiquidity(params: {
+    token0: string;
+    token1: string;
+    amount0: string;
+    amount1: string;
+    userAddress: string;
+    tickLower?: number;
+    tickUpper?: number;
+  }): Promise<LiquidityResponse> {
+    return await this.request<LiquidityResponse>('/api/v1/defi/liquidity', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
+  /**
+   * Get a price quote for a swap (read-only, no gas needed)
+   */
+  async quote(params: {
+    tokenIn: string;
+    tokenOut: string;
+    amount: string;
+    userAddress?: string;
+  }): Promise<QuoteResponse> {
+    const qs = new URLSearchParams(params as Record<string, string>).toString();
+    return await this.request<QuoteResponse>(
+      `/api/v1/defi/quote?${qs}`,
       { method: 'GET' },
     );
   }

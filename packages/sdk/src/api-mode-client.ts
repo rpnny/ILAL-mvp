@@ -5,7 +5,10 @@
  */
 
 import type { Address, Hex } from 'viem';
-import { ApiClient, type ApiClientConfig, type VerifyResponse, type SessionStatusResponse } from './api-client';
+import {
+  ApiClient, type ApiClientConfig, type VerifyResponse, type SessionStatusResponse,
+  type PreflightResponse, type ApproveResponse, type SwapResponse, type LiquidityResponse, type QuoteResponse,
+} from './api-client';
 import type { ZKProofConfig } from './types';
 import { ZKProofModule } from './modules/zkproof';
 
@@ -148,6 +151,86 @@ export class ILALApiClient {
       proof,
       publicInputs,
     });
+  }
+
+  // ============ DeFi ============
+
+  /**
+   * Preflight check — verify session, balances, allowances
+   */
+  async preflight(userAddress: string): Promise<PreflightResponse> {
+    return await this.apiClient.preflight(userAddress);
+  }
+
+  /**
+   * Build an ERC-20 approve transaction
+   */
+  async approve(params: {
+    token: string;
+    amount: string;
+    userAddress: string;
+    operation?: 'swap' | 'liquidity';
+  }): Promise<ApproveResponse> {
+    return await this.apiClient.approve(params);
+  }
+
+  /**
+   * Build a swap transaction (unsigned — caller signs and broadcasts)
+   *
+   * @example
+   * ```typescript
+   * const res = await client.swap({
+   *   tokenIn: TUSDC, tokenOut: WETH,
+   *   amount: '1000000000', userAddress: '0x...',
+   * });
+   * if (res.success && res.transaction) {
+   *   const hash = await wallet.sendTransaction(res.transaction);
+   * }
+   * ```
+   */
+  async swap(params: {
+    tokenIn: string;
+    tokenOut: string;
+    amount: string;
+    userAddress: string;
+  }): Promise<SwapResponse> {
+    return await this.apiClient.swap(params);
+  }
+
+  /**
+   * Build an add-liquidity transaction (unsigned)
+   *
+   * @example
+   * ```typescript
+   * const res = await client.addLiquidity({
+   *   token0: WETH, token1: TUSDC,
+   *   amount0: '50000000000000000', amount1: '100000000',
+   *   userAddress: '0x...',
+   * });
+   * ```
+   */
+  async addLiquidity(params: {
+    token0: string;
+    token1: string;
+    amount0: string;
+    amount1: string;
+    userAddress: string;
+    tickLower?: number;
+    tickUpper?: number;
+  }): Promise<LiquidityResponse> {
+    return await this.apiClient.addLiquidity(params);
+  }
+
+  /**
+   * Get a price quote (read-only, no gas)
+   */
+  async quote(params: {
+    tokenIn: string;
+    tokenOut: string;
+    amount: string;
+    userAddress?: string;
+  }): Promise<QuoteResponse> {
+    return await this.apiClient.quote(params);
   }
 
   /**

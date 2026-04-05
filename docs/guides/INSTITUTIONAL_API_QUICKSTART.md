@@ -175,6 +175,118 @@ await signAndBroadcast(swapRes.transaction);
 console.log('Done! Check https://sepolia.basescan.org/address/' + WALLET);
 ```
 
+---
+
+## Add Liquidity (Steps 9-11)
+
+### Step 9: Approve Both Tokens to PositionManager
+
+Liquidity requires approving **both** tokens to the PositionManager (not the SwapRouter):
+
+```bash
+# Approve WETH
+curl -X POST $API/api/v1/defi/approve \
+  -H "X-API-Key: <your-api-key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "token": "0x4200000000000000000000000000000000000006",
+    "operation": "liquidity",
+    "amount": "50000000000000000",
+    "userAddress": "<your-wallet-address>"
+  }'
+
+# Sign and broadcast the approve tx, then:
+
+# Approve tUSDC
+curl -X POST $API/api/v1/defi/approve \
+  -H "X-API-Key: <your-api-key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "token": "0xa486Fb51ED09B970A23F7Fe910bc90089f78424D",
+    "operation": "liquidity",
+    "amount": "100000000",
+    "userAddress": "<your-wallet-address>"
+  }'
+
+# Sign and broadcast the approve tx
+```
+
+### Step 10: Build Add Liquidity Transaction
+
+```bash
+curl -X POST $API/api/v1/defi/liquidity \
+  -H "X-API-Key: <your-api-key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "token0": "0x4200000000000000000000000000000000000006",
+    "token1": "0xa486Fb51ED09B970A23F7Fe910bc90089f78424D",
+    "amount0": "50000000000000000",
+    "amount1": "100000000",
+    "userAddress": "<your-wallet-address>"
+  }'
+```
+
+**Important notes:**
+- `token0` must be less than `token1` (hex sort order). The API auto-sorts if you get it wrong.
+- `amount0` / `amount1` are in the token's smallest unit (wei for WETH, 6-decimal for tUSDC).
+- The API reads current pool price on-chain and computes the correct Uniswap v4 `liquidityDelta` — you don't need to calculate it yourself.
+- Default tick range is `[-600, 600]`. Pass `tickLower` / `tickUpper` to customize.
+
+### Step 11: Sign and Broadcast
+
+Same as Step 8 — sign the `transaction` object from the response.
+
+### Complete Liquidity Flow (TypeScript)
+
+```typescript
+const API = 'https://ilal-mvp-production.up.railway.app';
+const API_KEY = '<your-api-key>';
+const WALLET = '<your-wallet-address>';
+const WETH   = '0x4200000000000000000000000000000000000006';
+const TUSDC  = '0xa486Fb51ED09B970A23F7Fe910bc90089f78424D';
+
+const headers = { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' };
+
+// 1. Approve WETH to PositionManager
+const approveWeth = await fetch(`${API}/api/v1/defi/approve`, {
+  method: 'POST', headers,
+  body: JSON.stringify({ token: WETH, operation: 'liquidity', amount: '50000000000000000', userAddress: WALLET }),
+}).then(r => r.json());
+
+if (approveWeth.isApprovalNeeded) {
+  await signAndBroadcast(approveWeth.transaction);
+}
+
+// 2. Approve tUSDC to PositionManager
+const approveTusdc = await fetch(`${API}/api/v1/defi/approve`, {
+  method: 'POST', headers,
+  body: JSON.stringify({ token: TUSDC, operation: 'liquidity', amount: '100000000', userAddress: WALLET }),
+}).then(r => r.json());
+
+if (approveTusdc.isApprovalNeeded) {
+  await signAndBroadcast(approveTusdc.transaction);
+}
+
+// 3. Add liquidity (0.05 WETH + 100 tUSDC)
+const liqRes = await fetch(`${API}/api/v1/defi/liquidity`, {
+  method: 'POST', headers,
+  body: JSON.stringify({
+    token0: WETH, token1: TUSDC,
+    amount0: '50000000000000000', amount1: '100000000',
+    userAddress: WALLET,
+  }),
+}).then(r => r.json());
+
+if (liqRes.preflight?.canBroadcastSafely) {
+  await signAndBroadcast(liqRes.transaction);
+  console.log('Liquidity added!');
+} else {
+  console.log('Pre-check failed:', liqRes.preflight);
+}
+```
+
+---
+
 ## Troubleshooting
 
 | Error | Cause | Fix |
@@ -184,3 +296,6 @@ console.log('Done! Check https://sepolia.basescan.org/address/' + WALLET);
 | `ERC20: insufficient balance` | Not enough tokens | Call `/testnet/faucet` first |
 | `FAUCET_COOLDOWN` (429) | Already claimed today | Wait 24 hours |
 | `InsufficientOutput` | Pool too shallow | Reduce swap amount |
+| `INSUFFICIENT_ETH` (412) | Not enough ETH for gas | Get Base Sepolia ETH from [faucet](https://www.alchemy.com/faucets/base-sepolia) |
+| `CallbackFailed(modifyLiquidity, ...)` | Inner contract error surfaced | Check inner revert data — typically `NotVerified` (session) or allowance |
+| Liquidity tx revert `0x` | Old PositionManager (pre-v2) | Ensure API uses the latest PM address |

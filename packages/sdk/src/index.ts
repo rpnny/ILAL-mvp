@@ -18,6 +18,12 @@ export type {
   OnboardingStatusResponse,
   OnboardingAttestationResponse,
   IssuerAttestationData,
+  PreflightResponse,
+  TransactionData,
+  ApproveResponse,
+  SwapResponse,
+  LiquidityResponse,
+  QuoteResponse,
 } from './api-client';
 
 // ============ 模块 ============

@@ -272,6 +272,8 @@ class BlockchainService {
     '0xd59b569a': { reason: 'InvalidHookData — hookData format is invalid. Expected empty (Mode 2/3) or >= 148 bytes (Mode 1 EIP-712 permit).', category: 'hook_config' },
     '0x4cb3183d': { reason: 'EmergencyPaused — the protocol is in emergency pause mode. Contact the ILAL team.', category: 'hook_config' },
     '0x2f6c6a6f': { reason: 'Compliance session not active or expired for this wallet.', category: 'session' },
+    // PositionManager v2 — surfaces inner callback reverts instead of 0x
+    '0x2afa9341': { reason: 'CallbackFailed — PositionManager unlock callback reverted. Check innerRevertData for the original error (e.g. NotVerified, insufficient balance/allowance).', category: 'callback' },
   };
 
   /**
