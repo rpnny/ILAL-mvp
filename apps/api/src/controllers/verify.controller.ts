@@ -436,10 +436,14 @@ export async function getSessionStatus(req: Request, res: Response): Promise<voi
 
     res.json({
       address: userAddress,
-      isActive,
       active: isActive,
+      /** @deprecated Use `active` instead. `isActive` will be removed in a future version. */
+      isActive,
       remainingSeconds: remaining,
       expiresAt: isActive ? new Date(Date.now() + remaining * 1000).toISOString() : null,
+      _deprecations: {
+        isActive: 'Use `active` instead. `isActive` will be removed in a future version.',
+      },
     });
   } catch (error: any) {
     logger.error('Get session status failed', { error: error.message });

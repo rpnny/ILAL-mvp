@@ -82,14 +82,6 @@ const liquiditySchema = z.object({
   tickUpper:   z.number().int().optional(),
   userAddress: z.string().regex(ETH_ADDRESS, 'Invalid userAddress'),
 }).superRefine((data, ctx) => {
-  if (data.token0.toLowerCase() >= data.token1.toLowerCase()) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'token0 must be less than token1 (Uniswap sort order)',
-      path: ['token0'],
-    });
-  }
-
   if (data.amount0 === '0' && data.amount1 === '0') {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -203,8 +195,11 @@ export async function approve(req: Request, res: Response): Promise<void> {
       userAddress,
     });
 
+    const { transaction: _tx, ...resultWithoutTx } = result;
+
     res.json({
-      ...result,
+      ...resultWithoutTx,
+      ...(alreadySufficient ? {} : { transaction: result.transaction }),
       isApprovalNeeded: !alreadySufficient,
       allowance: {
         current: currentAllowance.toString(),
@@ -314,7 +309,8 @@ export async function executeSwap(req: Request, res: Response): Promise<void> {
       sendError(res, 412, {
         code: 'INSUFFICIENT_ETH',
         message: `Wallet has insufficient ETH for gas: ${ethBalance.toString()} wei (${(Number(ethBalance) / 1e18).toFixed(6)} ETH)`,
-        hint: 'Send at least 0.001 ETH (Base Sepolia) to the wallet for transaction gas fees. Faucet: https://www.alchemy.com/faucets/base-sepolia',
+        hint: 'Send at least 0.001 ETH (Base Sepolia) to the wallet for transaction gas fees.',
+        ethFaucets: ['https://www.alchemy.com/faucets/base-sepolia', 'https://faucets.chain.link/base-sepolia'],
         phase: 'preflight',
       }, req);
       return;
@@ -344,6 +340,8 @@ export async function executeSwap(req: Request, res: Response): Promise<void> {
 
     res.json({
       ...result,
+      // When simulation fails, override top-level success and exclude the transaction object
+      ...(simulation.success ? {} : { success: false, transaction: undefined }),
       preflight: {
         ...preflight,
         tokenSupported: true,
@@ -395,6 +393,13 @@ export async function executeSwap(req: Request, res: Response): Promise<void> {
 export async function addLiquidity(req: Request, res: Response): Promise<void> {
   try {
     const params = liquiditySchema.parse(req.body);
+
+    // Auto-sort tokens into Uniswap canonical order (token0 < token1) and swap amounts accordingly
+    if (params.token0.toLowerCase() > params.token1.toLowerCase()) {
+      [params.token0, params.token1] = [params.token1, params.token0];
+      [params.amount0, params.amount1] = [params.amount1, params.amount0];
+    }
+
     const userId = req.apiKey?.userId ?? req.user?.userId;
     // Default: block if session inactive. Pass ?buildOnly=true to get unsigned TX without session check.
     const buildOnly = req.query?.buildOnly === 'true';
@@ -454,7 +459,8 @@ export async function addLiquidity(req: Request, res: Response): Promise<void> {
       sendError(res, 412, {
         code: 'INSUFFICIENT_ETH',
         message: `Wallet has insufficient ETH for gas: ${ethBalance.toString()} wei (${(Number(ethBalance) / 1e18).toFixed(6)} ETH)`,
-        hint: 'Send at least 0.001 ETH (Base Sepolia) to the wallet for transaction gas fees. Faucet: https://www.alchemy.com/faucets/base-sepolia',
+        hint: 'Send at least 0.001 ETH (Base Sepolia) to the wallet for transaction gas fees.',
+        ethFaucets: ['https://www.alchemy.com/faucets/base-sepolia', 'https://faucets.chain.link/base-sepolia'],
         phase: 'preflight',
       }, req);
       return;
@@ -510,6 +516,8 @@ export async function addLiquidity(req: Request, res: Response): Promise<void> {
 
     res.json({
       ...result,
+      // When simulation fails, override top-level success and exclude the transaction object
+      ...(simulation.success ? {} : { success: false, transaction: undefined }),
       preflight: {
         ...preflight,
         tokenSupported: true,
@@ -711,7 +719,7 @@ export async function preflightCheck(req: Request, res: Response): Promise<void>
 
     // API key info
     const apiKeyInfo = req.apiKey
-      ? { valid: true, plan: req.user?.plan ?? 'FREE', rateLimit: req.apiKey.rateLimit }
+      ? { valid: true, plan: req.user?.plan ?? 'FREE', rateLimit: req.apiKey.rateLimit, permissions: req.apiKey.permissions }
       : { valid: true, plan: req.user?.plan ?? 'FREE' };
 
     // Institution binding
@@ -831,6 +839,8 @@ export async function preflightCheck(req: Request, res: Response): Promise<void>
       poolHealth = { probeStatus: 'error', error: probeErr.message };
     }
 
+    const ethLow = ethBalance < MIN_ETH_FOR_GAS;
+
     res.json({
       address,
       network: 'base-sepolia',
@@ -854,6 +864,12 @@ export async function preflightCheck(req: Request, res: Response): Promise<void>
         canAddLiquidity: sessionActive && institutionBound && issues.length === 0,
         issues,
       },
+      ...(ethLow ? {
+        ethFaucets: [
+          'https://www.alchemy.com/faucets/base-sepolia',
+          'https://faucets.chain.link/base-sepolia',
+        ],
+      } : {}),
     });
   } catch (error: any) {
     logger.error('Preflight check error', { error: error.message });

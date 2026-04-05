@@ -114,12 +114,16 @@ export const faucetRateLimiter = rateLimit({
     return wallet ? `faucet:${wallet}` : req.ip || 'unknown';
   },
   handler: (req: Request, res: Response) => {
+    const retryAfter = res.getHeader('Retry-After');
+    const retryAfterNum = typeof retryAfter === 'string' ? parseInt(retryAfter, 10) : (typeof retryAfter === 'number' ? retryAfter : 0);
     res.status(429).json({
       error: 'Too Many Requests',
       code: 'FAUCET_COOLDOWN',
       message: 'Faucet limit reached — each wallet can claim once per 24 hours.',
       hint: 'Wait 24 hours or use a different wallet address.',
-      retryAfter: res.getHeader('Retry-After'),
+      retryAfter,
+      retryAfterSeconds: retryAfterNum,
+      nextAvailableAt: new Date(Date.now() + retryAfterNum * 1000).toISOString(),
       retryable: true,
       requestId: req.requestId,
     });

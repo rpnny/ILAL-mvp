@@ -188,6 +188,14 @@ class DeFiService {
         const tickUpper = params.tickUpper ?? 600;
         const amount0 = BigInt(params.amount0);
         const amount1 = BigInt(params.amount1);
+
+        // NOTE: Uniswap v4 PositionManager.mint() expects a `liquidityDelta`
+        // (uint128) that depends on the current pool sqrtPriceX96 and the tick
+        // range.  Computing it precisely requires reading on-chain pool state.
+        // As a build-only approximation we use the larger of the two token
+        // amounts.  Callers that need exact liquidity should query the
+        // PoolManager for the current sqrtPrice and derive liquidityDelta via
+        // the Uniswap math libraries before signing.
         const liquidity = amount0 > amount1 ? amount0 : amount1;
         const hookData = encodeEmptyHookData();
 
@@ -218,6 +226,10 @@ class DeFiService {
                 rpcUrl: 'https://sepolia.base.org',
                 explorerBase: 'https://sepolia.basescan.org/tx/',
             },
+            liquidityWarning: 'The liquidity value is an off-chain approximation (max of amount0, amount1). '
+                + 'Uniswap v4 PositionManager.mint() expects a liquidityDelta derived from the current '
+                + 'pool sqrtPriceX96 and tick range. For precise values, query PoolManager.getSlot0() '
+                + 'on-chain and compute liquidityDelta using the Uniswap math libraries before signing.',
             params: {
                 poolKey,
                 position: { tickLower, tickUpper, liquidity: liquidity.toString() },
