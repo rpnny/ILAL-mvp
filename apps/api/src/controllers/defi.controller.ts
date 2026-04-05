@@ -10,7 +10,7 @@
 
 import type { Request, Response } from 'express';
 import { z } from 'zod';
-import { type Address, getAddress } from 'viem';
+import { type Address, type Hex, getAddress, decodeFunctionResult } from 'viem';
 import { defiService } from '../services/defi.service.js';
 import { blockchainService } from '../services/blockchain.service.js';
 import { logger } from '../config/logger.js';
@@ -205,6 +205,7 @@ export async function approve(req: Request, res: Response): Promise<void> {
 
     res.json({
       ...result,
+      isApprovalNeeded: !alreadySufficient,
       allowance: {
         current: currentAllowance.toString(),
         requested: params.amount,
@@ -222,6 +223,10 @@ export async function approve(req: Request, res: Response): Promise<void> {
         mode: 'msg.sender',
         userAddress,
         message: 'Sign and broadcast with the wallet that owns the tokens.',
+      },
+      nonceManagement: {
+        hint: 'For rapid sequential transactions, manage nonces client-side using eth_getTransactionCount("pending") and increment manually.',
+        example: 'const nonce = await provider.getTransactionCount(address, "pending"); sendTx({...tx, nonce});',
       },
       requestId: req.requestId,
     });
@@ -302,6 +307,19 @@ export async function executeSwap(req: Request, res: Response): Promise<void> {
     const amountBig = BigInt(params.amount);
     const allowanceSufficient = allowance >= amountBig;
 
+    // ETH balance check — catch "insufficient gas" before misleading contract errors
+    const ethBalance = await blockchainService.getEthBalance(params.userAddress as Address);
+    const MIN_ETH_FOR_GAS = 1000000000000000n; // 0.001 ETH
+    if (ethBalance < MIN_ETH_FOR_GAS) {
+      sendError(res, 412, {
+        code: 'INSUFFICIENT_ETH',
+        message: `Wallet has insufficient ETH for gas: ${ethBalance.toString()} wei (${(Number(ethBalance) / 1e18).toFixed(6)} ETH)`,
+        hint: 'Send at least 0.001 ETH (Base Sepolia) to the wallet for transaction gas fees. Faucet: https://www.alchemy.com/faucets/base-sepolia',
+        phase: 'preflight',
+      }, req);
+      return;
+    }
+
     const result = await defiService.swap({
       tokenIn: params.tokenIn as Address,
       tokenOut: params.tokenOut as Address,
@@ -350,6 +368,10 @@ export async function executeSwap(req: Request, res: Response): Promise<void> {
         mode: 'msg.sender',
         userAddress: params.userAddress,
         message: 'Sign and broadcast this transaction with the same wallet address as userAddress.',
+      },
+      nonceManagement: {
+        hint: 'For rapid sequential transactions, manage nonces client-side using eth_getTransactionCount("pending") and increment manually.',
+        example: 'const nonce = await provider.getTransactionCount(address, "pending"); sendTx({...tx, nonce});',
       },
     });
 
@@ -425,6 +447,19 @@ export async function addLiquidity(req: Request, res: Response): Promise<void> {
       return;
     }
 
+    // ETH balance check — catch "insufficient gas" before misleading contract errors
+    const ethBalance = await blockchainService.getEthBalance(params.userAddress as Address);
+    const MIN_ETH_FOR_GAS = 1000000000000000n; // 0.001 ETH
+    if (ethBalance < MIN_ETH_FOR_GAS) {
+      sendError(res, 412, {
+        code: 'INSUFFICIENT_ETH',
+        message: `Wallet has insufficient ETH for gas: ${ethBalance.toString()} wei (${(Number(ethBalance) / 1e18).toFixed(6)} ETH)`,
+        hint: 'Send at least 0.001 ETH (Base Sepolia) to the wallet for transaction gas fees. Faucet: https://www.alchemy.com/faucets/base-sepolia',
+        phase: 'preflight',
+      }, req);
+      return;
+    }
+
     // Allowance checks for PositionManager
     const [allowance0, allowance1] = await Promise.all([
       blockchainService.getTokenAllowance(params.token0 as Address, params.userAddress as Address, CONTRACTS.positionManager),
@@ -492,6 +527,10 @@ export async function addLiquidity(req: Request, res: Response): Promise<void> {
         userAddress: params.userAddress,
         message: 'Sign and broadcast this transaction with the same wallet address as userAddress.',
       },
+      nonceManagement: {
+        hint: 'For rapid sequential transactions, manage nonces client-side using eth_getTransactionCount("pending") and increment manually.',
+        example: 'const nonce = await provider.getTransactionCount(address, "pending"); sendTx({...tx, nonce});',
+      },
     });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
@@ -505,6 +544,151 @@ export async function addLiquidity(req: Request, res: Response): Promise<void> {
     }
     logger.error('Liquidity controller error', { error: error.message });
     sendError(res, 500, { code: 'INTERNAL_ERROR', message: error.message, phase: 'build' });
+  }
+}
+
+// ── Quote / estimateOutput endpoint ──────────────────────────
+
+const quoteSchema = z.object({
+  tokenIn:     z.string().regex(ETH_ADDRESS, 'Invalid tokenIn address'),
+  tokenOut:    z.string().regex(ETH_ADDRESS, 'Invalid tokenOut address'),
+  amount:      positiveIntString,
+});
+
+// SimpleSwapRouter.swap() returns int256 (the delta / output amount)
+const ROUTER_SWAP_ABI = [{
+  type: 'function', name: 'swap',
+  inputs: [
+    { name: 'key', type: 'tuple', components: [
+      { name: 'currency0', type: 'address' },
+      { name: 'currency1', type: 'address' },
+      { name: 'fee', type: 'uint24' },
+      { name: 'tickSpacing', type: 'int24' },
+      { name: 'hooks', type: 'address' },
+    ]},
+    { name: 'params', type: 'tuple', components: [
+      { name: 'zeroForOne', type: 'bool' },
+      { name: 'amountSpecified', type: 'int256' },
+      { name: 'sqrtPriceLimitX96', type: 'uint160' },
+    ]},
+    { name: 'hookData', type: 'bytes' },
+    { name: 'minAmountOut', type: 'uint256' },
+  ],
+  outputs: [{ name: 'deltaAmount', type: 'int256' }],
+  stateMutability: 'payable',
+}] as const;
+
+export async function getQuote(req: Request, res: Response): Promise<void> {
+  try {
+    const params = quoteSchema.parse(req.method === 'GET' ? req.query : req.body);
+
+    // Token whitelist
+    if (!isTokenSupported(params.tokenIn) || !isTokenSupported(params.tokenOut)) {
+      sendError(res, 400, {
+        code: 'UNSUPPORTED_TOKEN',
+        message: 'One or both tokens are not supported on this network',
+        hint: `Supported tokens: ${Object.entries(DEMO_TOKENS).map(([k, v]) => `${k} (${v})`).join(', ')}`,
+      }, req);
+      return;
+    }
+
+    if (params.tokenIn.toLowerCase() === params.tokenOut.toLowerCase()) {
+      sendError(res, 400, {
+        code: 'INVALID_PARAMS',
+        message: 'tokenIn and tokenOut must be different',
+      }, req);
+      return;
+    }
+
+    // Build swap TX (same as /defi/swap but we use the relay wallet for simulation)
+    let probeFrom: Address;
+    try {
+      probeFrom = blockchainService.getRelayAddress();
+    } catch {
+      sendError(res, 503, {
+        code: 'RELAY_NOT_CONFIGURED',
+        message: 'Quote endpoint requires VERIFIER_PRIVATE_KEY for simulation',
+      }, req);
+      return;
+    }
+
+    const swapTx = await defiService.buildSwapTx({
+      tokenIn: params.tokenIn as Address,
+      tokenOut: params.tokenOut as Address,
+      amount: params.amount,
+      userAddress: probeFrom,
+    });
+
+    // Simulate with relay wallet (has active session, tokens, and allowances)
+    const simulation = await blockchainService.simulateCallWithReturn({
+      from: probeFrom,
+      to: swapTx.transaction.to as Address,
+      data: swapTx.transaction.data as Hex,
+    });
+
+    if (!simulation.success || !simulation.returnData) {
+      res.json({
+        success: false,
+        error: simulation.reason || 'Simulation failed — pool may lack liquidity',
+        category: simulation.category,
+        tokenIn: params.tokenIn,
+        tokenOut: params.tokenOut,
+        amountIn: params.amount,
+      });
+      return;
+    }
+
+    // Decode the return value (int256 deltaAmount)
+    let estimatedOutput: bigint;
+    try {
+      const decoded = decodeFunctionResult({
+        abi: ROUTER_SWAP_ABI,
+        functionName: 'swap',
+        data: simulation.returnData,
+      });
+      // Router returns the output amount as a positive int256
+      estimatedOutput = decoded < 0n ? -decoded : decoded;
+    } catch {
+      // Fallback: try raw decoding (single int256)
+      const raw = BigInt(simulation.returnData);
+      estimatedOutput = raw < 0n ? -raw : raw;
+    }
+
+    // Get token decimals for formatting
+    const [tokenInDecimals, tokenOutDecimals] = await Promise.all([
+      blockchainService.getTokenDecimals(params.tokenIn as Address),
+      blockchainService.getTokenDecimals(params.tokenOut as Address),
+    ]);
+
+    const amountInNum = Number(params.amount) / Math.pow(10, tokenInDecimals);
+    const estimatedOutputNum = Number(estimatedOutput) / Math.pow(10, tokenOutDecimals);
+    const exchangeRate = amountInNum > 0 ? estimatedOutputNum / amountInNum : 0;
+
+    // Suggested minAmountOut with 0.5% slippage
+    const suggestedMinAmountOut = estimatedOutput * 995n / 1000n;
+
+    res.json({
+      success: true,
+      tokenIn: params.tokenIn,
+      tokenOut: params.tokenOut,
+      amountIn: params.amount,
+      estimatedOutput: estimatedOutput.toString(),
+      estimatedOutputFormatted: estimatedOutputNum.toFixed(tokenOutDecimals > 6 ? 8 : tokenOutDecimals),
+      exchangeRate: exchangeRate.toFixed(8),
+      suggestedMinAmountOut: suggestedMinAmountOut.toString(),
+      slippageTolerance: '0.5%',
+      tokenInDecimals,
+      tokenOutDecimals,
+      warning: 'Quote is estimated from current on-chain state. Actual output may differ due to price movement between quote and execution.',
+    });
+
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      sendError(res, 400, { code: 'INVALID_PARAMS', message: 'Invalid quote parameters', details: error.errors }, req);
+      return;
+    }
+    logger.error('Quote error', { error: error.message });
+    sendError(res, 500, { code: 'INTERNAL_ERROR', message: error.message }, req);
   }
 }
 
@@ -554,9 +738,13 @@ export async function preflightCheck(req: Request, res: Response): Promise<void>
       logger.warn('Preflight session check failed', { error: err.message });
     }
 
+    // ETH balance (for gas fees)
+    const ethBalance = await blockchainService.getEthBalance(address);
+
     // Token balances and decimals
     const tokenEntries = Object.entries(DEMO_TOKENS) as [string, Address][];
     const tokens: Record<string, { address: string; balance: string; decimals: number }> = {};
+    tokens['ETH'] = { address: '0x0000000000000000000000000000000000000000', balance: ethBalance.toString(), decimals: 18 };
     for (const [name, tokenAddr] of tokenEntries) {
       const [balance, decimals] = await Promise.all([
         blockchainService.getTokenBalance(tokenAddr, address),
@@ -575,7 +763,9 @@ export async function preflightCheck(req: Request, res: Response): Promise<void>
     }
 
     // Readiness assessment
+    const MIN_ETH_FOR_GAS = 1000000000000000n; // 0.001 ETH
     const issues: string[] = [];
+    if (ethBalance < MIN_ETH_FOR_GAS) issues.push('ETH balance too low for gas fees (need >= 0.001 ETH). Get Base Sepolia ETH from https://www.alchemy.com/faucets/base-sepolia');
     if (!institutionBound) issues.push('Wallet not registered under your account — call POST /onboarding/register');
     if (!sessionActive) issues.push('No active compliance session — call POST /onboarding/activate-session-demo');
 
