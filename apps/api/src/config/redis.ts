@@ -30,7 +30,7 @@ function getClient(): import('ioredis').default | null {
       logger.info('Redis connected (rate limiting distributed)');
     });
 
-    redisClient.on('error', (err) => {
+    redisClient.on('error', (err: Error) => {
       logger.warn('Redis error — falling back to in-memory rate limiting', { error: err.message });
       redisReady = false;
     });

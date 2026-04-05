@@ -561,6 +561,7 @@ const quoteSchema = z.object({
   tokenIn:     z.string().regex(ETH_ADDRESS, 'Invalid tokenIn address'),
   tokenOut:    z.string().regex(ETH_ADDRESS, 'Invalid tokenOut address'),
   amount:      positiveIntString,
+  userAddress: z.string().regex(ETH_ADDRESS, 'Invalid userAddress').optional(),
 });
 
 // SimpleSwapRouter.swap() returns int256 (the delta / output amount)
@@ -608,16 +609,25 @@ export async function getQuote(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    // Build swap TX (same as /defi/swap but we use the relay wallet for simulation)
+    // Use userAddress if provided — the SwapRouter injects msg.sender as hookData,
+    // so simulation must run from the actual user address so ComplianceHook can
+    // verify the session. Relay wallet has no session and will always revert.
     let probeFrom: Address;
-    try {
-      probeFrom = blockchainService.getRelayAddress();
-    } catch {
-      sendError(res, 503, {
-        code: 'RELAY_NOT_CONFIGURED',
-        message: 'Quote endpoint requires VERIFIER_PRIVATE_KEY for simulation',
-      }, req);
-      return;
+    if (params.userAddress) {
+      probeFrom = params.userAddress as Address;
+    } else {
+      // No userAddress — fallback to relay wallet for price-only estimation.
+      // NOTE: this will fail if the pool has a ComplianceHook (session required).
+      try {
+        probeFrom = blockchainService.getRelayAddress();
+      } catch {
+        sendError(res, 400, {
+          code: 'USER_ADDRESS_REQUIRED',
+          message: 'userAddress is required for quote simulation on compliance-gated pools',
+          hint: 'Pass userAddress (must have an active ILAL session) as a query param: ?userAddress=0x...',
+        }, req);
+        return;
+      }
     }
 
     const swapTx = await defiService.buildSwapTx({
@@ -627,7 +637,8 @@ export async function getQuote(req: Request, res: Response): Promise<void> {
       userAddress: probeFrom,
     });
 
-    // Simulate with relay wallet (has active session, tokens, and allowances)
+    // Simulate from the user's address so msg.sender flows through SwapRouter →
+    // hookData → ComplianceHook correctly.
     const simulation = await blockchainService.simulateCallWithReturn({
       from: probeFrom,
       to: swapTx.transaction.to as Address,
@@ -784,18 +795,13 @@ export async function preflightCheck(req: Request, res: Response): Promise<void>
       }
     }
 
-    // Pool health probe — simulate a dust swap in each direction using the relay wallet.
-    // The relay wallet always has tokens, max allowances, and an active session, so failures
-    // here reliably reflect actual pool depth — not user-side balance/allowance issues.
+    // Pool health probe — simulate a dust swap in each direction from the user's address.
+    // The SwapRouter injects msg.sender as hookData so the simulation must run from an
+    // address that has an active compliance session. Using the user address is correct;
+    // the relay wallet would fail NotVerified because it has no session.
     let poolHealth: Record<string, unknown> = { probeStatus: 'skipped' };
     try {
-      // Use relay wallet as probe sender; fall back to user address if relay not configured.
-      let probeFrom: Address;
-      try {
-        probeFrom = blockchainService.getRelayAddress();
-      } catch {
-        probeFrom = address;
-      }
+      const probeFrom: Address = address;
 
       const [wethToUsdcTx, usdcToWethTx] = await Promise.all([
         defiService.buildSwapTx({
@@ -830,7 +836,7 @@ export async function preflightCheck(req: Request, res: Response): Promise<void>
         probeSender: probeFrom,
         wethToTusdc: { canFill: wethProbe.success, ...(wethProbe.reason ? { revertReason: wethProbe.reason } : {}) },
         tusdcToWeth: { canFill: usdcProbe.success, ...(usdcProbe.reason ? { revertReason: usdcProbe.reason } : {}) },
-        note: 'Dust-amount eth_call using relay wallet — reflects pool liquidity, not user balances',
+        note: 'Dust-amount eth_call using user address — reflects pool liquidity given an active session',
       };
 
       if (!wethProbe.success) issues.push(`Pool WETH→tUSDC direction not fillable: ${wethProbe.reason}`);
