@@ -48,7 +48,7 @@ const SANCTIONED_COUNTRIES: ReadonlySet<number> = new Set([
  */
 function sanitizeName(raw: string): string {
   return raw
-    .replace(/[^a-zA-Z0-9\s\-.,&()\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af]/g, '')
+    .replace(/[^a-zA-Z0-9\s\-.,&\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
 }

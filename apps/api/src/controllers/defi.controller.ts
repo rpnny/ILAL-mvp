@@ -204,14 +204,17 @@ export async function approve(req: Request, res: Response): Promise<void> {
     const token = getAddress(params.token) as Address;
     const userAddress = getAddress(params.userAddress) as Address;
 
-    // Ownership check — prevent building approve TXs for wallets you don't own
+    // Ownership check — wallet must be registered under this account.
+    // Blocks both: wallets registered to another user, AND unregistered wallets.
     const userId = req.apiKey?.userId ?? req.user?.userId;
     if (userId) {
       const ownerUserId = await getInstitutionOwner(params.userAddress);
-      if (ownerUserId && ownerUserId !== userId) {
+      if (!ownerUserId || ownerUserId !== userId) {
         sendError(res, 403, {
           code: 'INSTITUTION_OWNERSHIP_MISMATCH',
-          message: `The wallet ${params.userAddress} is registered to another ILAL account`,
+          message: !ownerUserId
+            ? `The wallet ${params.userAddress} is not registered under your ILAL account`
+            : `The wallet ${params.userAddress} is registered to another ILAL account`,
           hint: 'You can only build approve transactions for wallets registered under your account.',
         }, req);
         return;

@@ -429,15 +429,18 @@ export async function getSessionStatus(req: Request, res: Response): Promise<voi
 
     const userAddress = getAddress(address) as Address;
 
-    // Ownership check — only allow querying sessions for wallets you own
+    // Ownership check — wallet must be registered under this account.
+    // Blocks both: wallets owned by others, AND unregistered wallets.
     const institution = await prisma.institution.findUnique({
       where: { walletAddress: userAddress },
       select: { userId: true },
     });
-    if (institution?.userId && institution.userId !== userId) {
+    if (!institution?.userId || institution.userId !== userId) {
       sendError(res, 403, {
         code: 'INSTITUTION_OWNERSHIP_MISMATCH',
-        message: 'You can only query session status for wallets registered under your account',
+        message: !institution?.userId
+          ? 'The wallet is not registered under your ILAL account'
+          : 'You can only query session status for wallets registered under your account',
         phase: 'auth',
       });
       return;
