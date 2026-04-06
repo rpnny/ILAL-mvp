@@ -111,6 +111,25 @@ export async function createServer(): Promise<express.Application> {
     next();
   });
 
+  // ============ Global Rate Limit ============
+  // IP-based global rate limit — applies to ALL routes including health.
+  // Per-route rate limits (dynamicRateLimiter) provide tighter per-key limits.
+  const { default: rateLimit } = await import('express-rate-limit');
+  app.use(rateLimit({
+    windowMs: 60_000,
+    max: 120,          // 120 req/min per IP — generous global cap
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: (_req: Request, res: Response) => {
+      res.status(429).json({
+        error: 'Too Many Requests',
+        code: 'RATE_LIMIT_EXCEEDED',
+        message: 'Global rate limit exceeded (120 requests/min per IP). Please slow down.',
+        retryable: true,
+      });
+    },
+  }));
+
   // ============ Routes ============
 
   // Health check (no auth required)

@@ -429,6 +429,20 @@ export async function getSessionStatus(req: Request, res: Response): Promise<voi
 
     const userAddress = getAddress(address) as Address;
 
+    // Ownership check — only allow querying sessions for wallets you own
+    const institution = await prisma.institution.findUnique({
+      where: { walletAddress: userAddress },
+      select: { userId: true },
+    });
+    if (institution?.userId && institution.userId !== userId) {
+      sendError(res, 403, {
+        code: 'INSTITUTION_OWNERSHIP_MISMATCH',
+        message: 'You can only query session status for wallets registered under your account',
+        phase: 'auth',
+      });
+      return;
+    }
+
     const [isActive, remaining] = await Promise.all([
       blockchainService.isSessionActive(userAddress),
       blockchainService.getRemainingTime(userAddress),

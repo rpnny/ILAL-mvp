@@ -24,18 +24,32 @@ const SANCTIONED_COUNTRIES: ReadonlySet<number> = new Set([
   364, // Iran
   760, // Syria
   192, // Cuba
-  // Additional high-risk jurisdictions (FATF blacklist)
+  643, // Russia
+  112, // Belarus
+  // Additional high-risk jurisdictions (FATF blacklist / UN sanctions)
   728, // South Sudan
   736, // Sudan (pre-split code, still blocked)
   716, // Zimbabwe (targeted sanctions)
+  887, // Yemen (Houthi-controlled areas)
+  434, // Libya
+  706, // Somalia
+  140, // Central African Republic
+  178, // Congo (DRC)
+  368, // Iraq (partial)
+  422, // Lebanon (Hezbollah-related)
+  704, // Vietnam (FATF grey list, restricted)
+  104, // Myanmar
 ]);
 
-/** Strip HTML/script tags and dangerous characters from user-supplied strings */
+/**
+ * Sanitize institution name — whitelist approach.
+ * Only allow safe characters: letters, digits, spaces, hyphens, dots, commas,
+ * ampersands, parentheses. Everything else is stripped.
+ */
 function sanitizeName(raw: string): string {
   return raw
-    .replace(/<[^>]*>/g, '')         // strip HTML tags
-    .replace(/['"`;\\]/g, '')        // strip quote chars and backslash
-    .replace(/\s+/g, ' ')           // collapse whitespace
+    .replace(/[^a-zA-Z0-9\s\-.,&()\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af]/g, '')
+    .replace(/\s+/g, ' ')
     .trim();
 }
 

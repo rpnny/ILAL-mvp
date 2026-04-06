@@ -10,9 +10,9 @@ import { dynamicRateLimiter } from '../middleware/ratelimit.middleware.js';
 
 const router: Router = Router();
 
-// All onboarding endpoints require authentication (API Key or JWT) + rate limiting
-router.use(dynamicRateLimiter);
+// Auth first, then rate limit (so limiter can key by API Key ID)
 router.use(hybridAuthMiddleware);
+router.use(dynamicRateLimiter);
 
 router.post('/register', requirePermissionIfApiKey('session'), onboardingController.register);
 router.post('/activate-session', requirePermissionIfApiKey('session'), onboardingController.activateSession);
