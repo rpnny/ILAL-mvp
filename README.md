@@ -204,52 +204,142 @@ curl -X POST https://ilal-mvp-production.up.railway.app/api/v1/testnet/activate-
   -d '{"wallets": ["0xWALLET_A", "0xWALLET_B"]}'
 ```
 
-**Step 3 — (Optional) Run Preflight Self-Check**
+**Step 3 — Get Gas + Test Tokens**
+
+You need **two** things before transacting: ETH (for gas) and tUSDC (to trade).
+
 ```bash
-# Returns session status, token balances, allowances, and readiness in one call
-curl https://ilal-mvp-production.up.railway.app/api/v1/preflight/0xYOUR_WALLET \
-  -H "X-API-Key: ilal_live_xxx"
-# → { session: { active, remainingSeconds }, readiness: { canSwap, issues: [] }, ... }
+# 3a. Get Base Sepolia ETH for gas (external faucet, free):
+#     https://www.alchemy.com/faucets/base-sepolia
+#     Recommended: ≥ 0.01 ETH per wallet
+
+# 3b. Get 10,000 tUSDC from the ILAL faucet (rate limited: 1 claim / wallet / 24h):
+curl -X POST https://ilal-mvp-production.up.railway.app/api/v1/testnet/faucet \
+  -H "X-API-Key: ilal_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{"walletAddress": "0xYOUR_WALLET"}'
+# → { "success": true, "txHash": "0x...", "amount": "10000000000" }
 ```
 
-**Step 4 — Build a Swap Transaction**
+**Step 4 — Approve Tokens**
+
+The API returns **unsigned** approve transactions. You must sign & broadcast them yourself.
+
+```bash
+# Approve tUSDC to SwapRouter (for swaps):
+curl -X POST https://ilal-mvp-production.up.railway.app/api/v1/defi/approve \
+  -H "X-API-Key: ilal_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "token":       "0xa486Fb51ED09B970A23F7Fe910bc90089f78424D",
+    "operation":   "swap",
+    "amount":      "10000000000",
+    "userAddress": "0xYOUR_WALLET"
+  }'
+# → { "isApprovalNeeded": true, "transaction": { "to": "0x...", "data": "0x..." } }
+# Sign and broadcast the transaction (see "Sign & Broadcast" below).
+# WAIT for on-chain confirmation before proceeding to Step 5.
+```
+
+> If `isApprovalNeeded` is `false`, the wallet already has sufficient allowance — skip to Step 5.
+
+**Step 5 — (Optional) Run Preflight Self-Check**
+```bash
+# Verify everything is ready: session active, tokens received, allowances set
+curl https://ilal-mvp-production.up.railway.app/api/v1/preflight/0xYOUR_WALLET \
+  -H "X-API-Key: ilal_live_xxx"
+# → { session: { active, remainingSeconds }, tokens: { tUSDC: { balance }, ETH: { balance } },
+#     readiness: { canSwap: true, issues: [] } }
+```
+
+**Step 6 — Build a Swap Transaction**
 ```bash
 curl -X POST https://ilal-mvp-production.up.railway.app/api/v1/defi/swap \
   -H "X-API-Key: ilal_live_xxx" \
   -H "Content-Type: application/json" \
   -d '{
-    "tokenIn":     "0x4200000000000000000000000000000000000006",
-    "tokenOut":    "0xa486Fb51ED09B970A23F7Fe910bc90089f78424D",
-    "amount":      "1000000000000000",
+    "tokenIn":     "0xa486Fb51ED09B970A23F7Fe910bc90089f78424D",
+    "tokenOut":    "0x4200000000000000000000000000000000000006",
+    "amount":      "1000000000",
     "userAddress": "0xYOUR_WALLET"
   }'
 # → {
 #     "success": true,
-#     "transaction": { "to": "0x...", "data": "0x...", "value": "0x0", "chainId": 84532 },
+#     "transaction": { "to": "0xd46D...", "data": "0x...", "value": "0x0", "chainId": 84532 },
 #     "preflight": {
 #       "sessionActive": true,
-#       "canBroadcastSafely": true,        ← backed by live eth_call simulation
-#       "simulation": { "success": true }
+#       "canBroadcastSafely": true        ← backed by live eth_call simulation
 #     }
 #   }
+# Sign and broadcast the transaction.
 ```
 
 > If `canBroadcastSafely` is `false`, do not broadcast. Check `preflight.simulation.revertReason` for the exact cause (session expired, insufficient allowance, pool depth, etc.). Most common fix: re-run Step 2.
 
-**Step 5 — Add Liquidity**
+**Step 7 — Add Liquidity** *(requires approving BOTH tokens to PositionManager)*
 ```bash
+# 7a. Approve WETH to PositionManager — sign & broadcast, wait for confirmation
+curl -X POST https://ilal-mvp-production.up.railway.app/api/v1/defi/approve \
+  -H "X-API-Key: ilal_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "token":       "0x4200000000000000000000000000000000000006",
+    "operation":   "liquidity",
+    "amount":      "50000000000000000",
+    "userAddress": "0xYOUR_WALLET"
+  }'
+
+# 7b. Approve tUSDC to PositionManager — sign & broadcast, wait for confirmation
+curl -X POST https://ilal-mvp-production.up.railway.app/api/v1/defi/approve \
+  -H "X-API-Key: ilal_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "token":       "0xa486Fb51ED09B970A23F7Fe910bc90089f78424D",
+    "operation":   "liquidity",
+    "amount":      "100000000",
+    "userAddress": "0xYOUR_WALLET"
+  }'
+
+# 7c. Add liquidity (0.05 WETH + 100 tUSDC) — sign & broadcast
 curl -X POST https://ilal-mvp-production.up.railway.app/api/v1/defi/liquidity \
   -H "X-API-Key: ilal_live_xxx" \
   -H "Content-Type: application/json" \
   -d '{
     "token0":      "0x4200000000000000000000000000000000000006",
     "token1":      "0xa486Fb51ED09B970A23F7Fe910bc90089f78424D",
-    "amount0":     "1000000000000000",
-    "amount1":     "2000000",
+    "amount0":     "50000000000000000",
+    "amount1":     "100000000",
     "tickLower":   -600,
     "tickUpper":   600,
     "userAddress": "0xYOUR_WALLET"
   }'
+```
+
+**Sign & Broadcast (all steps above)**
+
+The API only returns unsigned transactions. You sign with your own wallet key:
+
+```typescript
+import { createWalletClient, createPublicClient, http } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { baseSepolia } from 'viem/chains';
+
+const account = privateKeyToAccount('0xYOUR_PRIVATE_KEY');
+const wallet = createWalletClient({ account, chain: baseSepolia, transport: http() });
+const publicClient = createPublicClient({ chain: baseSepolia, transport: http() });
+
+// `tx` = the `transaction` object from any API response
+async function signAndBroadcast(tx: { to: string; data: string; value: string; gas?: string }) {
+  const hash = await wallet.sendTransaction({
+    to: tx.to as `0x${string}`,
+    data: tx.data as `0x${string}`,
+    value: BigInt(tx.value),
+    ...(tx.gas ? { gas: BigInt(tx.gas) } : {}),
+  });
+  const receipt = await publicClient.waitForTransactionReceipt({ hash });
+  console.log('Confirmed in block', receipt.blockNumber, '- tx:', hash);
+  return hash;
+}
 ```
 
 ---
@@ -310,9 +400,13 @@ Things that will save you an afternoon of debugging:
 
 **1. Flow order is strict — no shortcuts**
 ```
-GET /config/contracts → Register → API Key → Activate Session → Faucet → Approve → Swap/Liquidity
+Step 0 Contracts → Step 1 Register + API Key → Step 2 Activate
+→ Step 3 ETH + Faucet → Step 4 Approve → Step 6 Swap / Step 7 Liquidity
 ```
-Skip any step and you'll get a 412. Most common failure: forgetting to approve, or session expired.
+Skip any step and you'll get a 412 or revert. The three most common failures:
+- No session → call `/testnet/activate`
+- No allowance → call `/defi/approve` and wait for on-chain confirmation
+- No ETH → get Base Sepolia ETH from [Alchemy Faucet](https://www.alchemy.com/faucets/base-sepolia)
 
 **2. Approve targets are different for swap vs. liquidity**
 - Swap: approve token to **SwapRouter** (`0xd46D84Dc...`)
