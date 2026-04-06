@@ -33,8 +33,11 @@ import * as verifyController from './controllers/verify.controller.js';
 import * as issuerService from './services/issuer.service.js';
 import * as merkleService from './services/merkle.service.js';
 import { liquidityKeeper } from './services/liquidity-keeper.service.js';
+import { initRedis } from './config/redis.js';
 
 export async function createServer(): Promise<express.Application> {
+  // Initialize Redis BEFORE any middleware that uses rate limiters
+  await initRedis();
   const app = express();
   const trustProxyConfig = process.env.TRUST_PROXY ?? (process.env.NODE_ENV === 'production' ? '1' : 'false');
 

@@ -3,67 +3,66 @@
  *
  * When REDIS_URL is set, returns a RedisStore for express-rate-limit.
  * When unavailable, returns undefined so callers fall back to in-memory.
+ *
+ * NOTE: This module uses dynamic import() because the project uses ESM.
+ *       require() is NOT available in ESM modules.
  */
 
 import { logger } from './logger.js';
 
-let redisClient: import('ioredis').default | null = null;
-let redisReady = false;
+let redisClient: any = null;
+let redisStore: any = undefined;
+let initialized = false;
 
-function getClient(): import('ioredis').default | null {
-  if (redisClient) return redisClient;
+/**
+ * Initialize Redis client + RedisStore asynchronously.
+ * Safe to call multiple times — only initializes once.
+ */
+export async function initRedis(): Promise<void> {
+  if (initialized) return;
+  initialized = true;
 
   const url = process.env.REDIS_URL;
-  if (!url) return null;
+  if (!url) {
+    logger.info('REDIS_URL not set — rate limiting uses in-memory store (single instance only)');
+    return;
+  }
 
   try {
-    // Dynamic import avoids crash if ioredis isn't installed
-    const Redis = require('ioredis') as typeof import('ioredis').default;
+    const { default: Redis } = await import('ioredis');
     redisClient = new Redis(url, {
-      maxRetriesPerRequest: null, // required by rate-limit-redis
+      maxRetriesPerRequest: null,
       enableReadyCheck: true,
       lazyConnect: false,
     });
 
     redisClient.on('ready', () => {
-      redisReady = true;
       logger.info('Redis connected (rate limiting distributed)');
     });
 
     redisClient.on('error', (err: Error) => {
-      logger.warn('Redis error — falling back to in-memory rate limiting', { error: err.message });
-      redisReady = false;
+      logger.warn('Redis error', { error: err.message });
     });
 
-    redisClient.on('close', () => {
-      redisReady = false;
+    const { default: RedisStore } = await import('rate-limit-redis');
+    redisStore = new RedisStore({
+      sendCommand: (...args: string[]) => redisClient.call(...args),
     });
 
-    return redisClient;
+    logger.info('RedisStore created for rate limiting');
   } catch (err: any) {
-    logger.warn('Failed to initialize Redis client', { error: err.message });
-    return null;
+    logger.warn('Failed to initialize Redis — falling back to in-memory rate limiting', { error: err.message });
+    redisClient = null;
+    redisStore = undefined;
   }
 }
 
 /**
- * Returns a RedisStore for express-rate-limit, or undefined if Redis
- * is unavailable (in which case the default in-memory store is used).
+ * Returns the RedisStore instance (or undefined if Redis unavailable).
+ * Must call initRedis() first during server startup.
  */
-export function getRedisStore(): import('rate-limit-redis').default | undefined {
-  const client = getClient();
-  if (!client) return undefined;
-
-  try {
-    const { default: RedisStore } = require('rate-limit-redis') as { default: typeof import('rate-limit-redis').default };
-    return new RedisStore({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      sendCommand: (...args: string[]) => (client as any).call(...args),
-    });
-  } catch (err: any) {
-    logger.warn('Failed to create RedisStore', { error: err.message });
-    return undefined;
-  }
+export function getRedisStore(): any {
+  return redisStore;
 }
 
 /**

@@ -1,20 +1,42 @@
 /**
  * Rate Limiting Middleware
+ *
+ * All rate limiters resolve the RedisStore lazily at first request,
+ * so initRedis() can run during server startup before any requests arrive.
  */
 
 import rateLimit from 'express-rate-limit';
-import type { Request, Response } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { RATE_LIMITS } from '../config/constants.js';
 import { getRedisStore } from '../config/redis.js';
 
-// Resolve store once at module load — Redis if available, else in-memory
-const store = getRedisStore();
+const isDev = process.env.NODE_ENV === 'development' && process.env.RATE_LIMIT_DEV_OVERRIDE === 'true';
+
+/** Cache rate limiter instances so they're created once (with the correct store). */
+const limiterCache = new Map<string, ReturnType<typeof rateLimit>>();
+
+function lazyLimiter(
+  name: string,
+  opts: Parameters<typeof rateLimit>[0],
+) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    let limiter = limiterCache.get(name);
+    if (!limiter) {
+      const store = getRedisStore();
+      limiter = rateLimit({
+        ...(store ? { store } : {}),
+        ...opts,
+      });
+      limiterCache.set(name, limiter);
+    }
+    return limiter(req, res, next);
+  };
+}
 
 /**
  * Dynamic rate limiter - adjusts rate limits based on user plan
  */
-export const dynamicRateLimiter = rateLimit({
-  ...(store && { store }),
+export const dynamicRateLimiter = lazyLimiter('dynamic', {
   windowMs: 60000, // 1 minute window
   max: (req: Request) => {
     const plan = (req.user?.plan as string) || 'FREE';
@@ -23,8 +45,8 @@ export const dynamicRateLimiter = rateLimit({
     const keyMax = req.apiKey?.rateLimit ?? 0;
     return Math.max(planMax, keyMax);
   },
-  standardHeaders: true, // Return standard RateLimit headers
-  legacyHeaders: false, // Disable X-RateLimit-* headers
+  standardHeaders: true,
+  legacyHeaders: false,
   handler: (req: Request, res: Response) => {
     const plan = (req.user?.plan as string) || 'FREE';
     const limit = RATE_LIMITS[plan as keyof typeof RATE_LIMITS]?.max || RATE_LIMITS.FREE.max;
@@ -41,27 +63,16 @@ export const dynamicRateLimiter = rateLimit({
     });
   },
   keyGenerator: (req: Request) => {
-    // Use API Key ID or user ID as rate limit key
-    if (req.apiKey?.id) {
-      return `apikey:${req.apiKey.id}`;
-    }
-    if (req.user?.userId) {
-      return `user:${req.user.userId}`;
-    }
-    // Fallback to IP
+    if (req.apiKey?.id) return `apikey:${req.apiKey.id}`;
+    if (req.user?.userId) return `user:${req.user.userId}`;
     return req.ip || 'unknown';
   },
 });
 
-const isDev = process.env.NODE_ENV === 'development' && process.env.RATE_LIMIT_DEV_OVERRIDE === 'true';
-
 /**
  * Pre-auth rate limiter for expensive API-key protected endpoints.
- * Runs before bcrypt/API-key verification so unauthenticated floods are
- * throttled cheaply by IP instead of consuming CPU first.
  */
-export const preAuthVerifyRateLimiter = rateLimit({
-  ...(store && { store }),
+export const preAuthVerifyRateLimiter = lazyLimiter('preAuthVerify', {
   windowMs: 60 * 1000,
   max: isDev ? 60 : 20,
   standardHeaders: true,
@@ -79,12 +90,10 @@ export const preAuthVerifyRateLimiter = rateLimit({
 });
 
 /**
- * Fixed rate limiter for specific endpoints.
- * Dev mode relaxation requires explicit RATE_LIMIT_DEV_OVERRIDE=true.
+ * Fixed rate limiter for auth endpoints.
  */
-export const authRateLimiter = rateLimit({
-  ...(store && { store }),
-  windowMs: 15 * 60 * 1000, // 15 minutes
+export const authRateLimiter = lazyLimiter('auth', {
+  windowMs: 15 * 60 * 1000,
   max: isDev ? 50 : 5,
   standardHeaders: true,
   legacyHeaders: false,
@@ -101,11 +110,9 @@ export const authRateLimiter = rateLimit({
 
 /**
  * Faucet rate limiter — 1 claim per wallet per 24 hours.
- * Keys on wallet address (from request body) to prevent multi-key abuse.
  */
-export const faucetRateLimiter = rateLimit({
-  ...(store && { store }),
-  windowMs: 24 * 60 * 60 * 1000, // 24 hours
+export const faucetRateLimiter = lazyLimiter('faucet', {
+  windowMs: 24 * 60 * 60 * 1000,
   max: isDev ? 10 : 1,
   standardHeaders: true,
   legacyHeaders: false,
@@ -133,9 +140,8 @@ export const faucetRateLimiter = rateLimit({
 /**
  * Registration rate limiter
  */
-export const registerRateLimiter = rateLimit({
-  ...(store && { store }),
-  windowMs: 60 * 60 * 1000, // 1 hour
+export const registerRateLimiter = lazyLimiter('register', {
+  windowMs: 60 * 60 * 1000,
   max: isDev ? 20 : 3,
   standardHeaders: true,
   legacyHeaders: false,
