@@ -127,9 +127,12 @@ export async function createServer(): Promise<express.Application> {
   // IP-based global rate limit — applies to ALL routes including health.
   // Per-route rate limits (dynamicRateLimiter) provide tighter per-key limits.
   const { default: rateLimit } = await import('express-rate-limit');
+  const { getRedisStore } = await import('./config/redis.js');
+  const globalStore = getRedisStore(); // initRedis() already ran above — store is ready
   app.use(rateLimit({
     windowMs: 60_000,
     max: 120,          // 120 req/min per IP — generous global cap
+    ...(globalStore ? { store: globalStore } : {}),
     standardHeaders: true,
     legacyHeaders: false,
     handler: (_req: Request, res: Response) => {
