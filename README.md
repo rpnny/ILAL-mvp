@@ -369,7 +369,20 @@ Without this, the second transaction may collide with the first's nonce.
 
 **9. Don't call contracts directly** — the API injects correct hookData for ComplianceHook identity verification. Direct contract calls will revert with `NotVerified`.
 
-**10. `isApprovalNeeded` on approve responses** — if `false`, skip signing. The allowance is already sufficient.
+**10. `isApprovalNeeded` — `transaction` is only present when approval is actually needed**
+
+When allowance is already sufficient the `transaction` field is **intentionally omitted**. Always gate on `isApprovalNeeded`:
+```typescript
+const res = await client.approve({ token: TUSDC, operation: 'swap', amount: '1000000000', userAddress });
+if (res.isApprovalNeeded) {
+  // transaction is present — sign and broadcast
+  await signAndBroadcast(res.transaction);
+} else {
+  // allowance already sufficient — skip approve, proceed to swap
+  console.log('Already approved:', res.allowance.current);
+}
+```
+A **brand-new wallet** (allowance = 0) always gets `isApprovalNeeded: true` and a valid `transaction`. If you see no `transaction` field, your wallet's existing allowance already covers the amount.
 
 **11. Session lifetime**
 - Testnet sessions: 24 hours (pass `durationHours` to extend, max 720h)
