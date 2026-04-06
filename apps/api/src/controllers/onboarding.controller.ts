@@ -242,6 +242,7 @@ export async function register(req: Request, res: Response): Promise<void> {
     res.status(201).json({
       success: true,
       institutionId: existing?.id ?? 'created',
+      name: body.name,
       status: 'approved',
       walletAddress,
       merkleRoot: root,
