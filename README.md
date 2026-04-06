@@ -19,6 +19,7 @@ ILAL is a Uniswap v4 Hook that enforces KYC/AML compliance at the protocol level
 
 ### Latest Validation
 
+- **ZK compliance core verified end-to-end on live testnet** — PLONK proof generated, on-chain PlonkVerifierAdapter accepted, session activated, ComplianceHook enforcement confirmed (see [ZK Compliance Verification](#zk-compliance--verified-on-base-sepolia) below)
 - Multi-wallet institutional simulation (4 roles × parallel) passed with real on-chain execution
 - Automated liquidity keeper maintains WETH/tUSDC pool depth continuously — no manual intervention
 - `canBroadcastSafely` now backed by live `eth_call` simulation before returning — not just a session check
@@ -26,6 +27,7 @@ ILAL is a Uniswap v4 Hook that enforces KYC/AML compliance at the protocol level
 - Rate limits: FREE=60/min, PRO=300/min, ENTERPRISE=1000/min — suitable for concurrent institutional workloads
 
 **Verified on-chain transactions (live Base Sepolia):**
+- ZK Session Activation (PLONK proof): [`0xf0fbb55e...`](https://sepolia.basescan.org/tx/0xf0fbb55ebba7425c6f9ec9fc2a70bb7d9b23d13152eeba2ede78b402adb3b896)
 - Swap WETH→tUSDC: [`0xd5afad58...`](https://sepolia.basescan.org/tx/0xd5afad581a685b4a20a5795c77565d4ac66a0bfe346e766669f7ada8fd23ee51)
 - Add Liquidity [-600,600]: [`0x709925b0...`](https://sepolia.basescan.org/tx/0x709925b0bc256678054af221643fc0c4dabcde4783b72551389e8e0d9f71b894)
 - Add Liquidity [-120,120]: [`0xecc8bf42...`](https://sepolia.basescan.org/tx/0xecc8bf42e04e2f9af61f269cbb068ebcde49914ffc249484d053a26370d54d73)
@@ -70,6 +72,23 @@ Institution
 - API onboarding/session/attestation reads are owner-scoped — no cross-account access
 - Hook bitmask `0x0A80` covers `beforeSwap`, `beforeAddLiquidity`, `beforeRemoveLiquidity`
 
+### ZK Compliance — Verified on Base Sepolia
+
+The ZK compliance core has been verified end-to-end on the live testnet deployment (2026-04-06). This proves the full chain: EdDSA attestation → Merkle membership → PLONK proof → on-chain verification → session activation → ComplianceHook enforcement.
+
+| Step | Result | Evidence |
+|------|--------|----------|
+| Address without session → swap | **Reverted** with `SESSION_NOT_ACTIVE` | ComplianceHook `beforeSwap()` enforces |
+| Institution onboarding + Merkle tree | Registered (index=18) | EdDSA-Poseidon attestation signed |
+| PLONK proof generation (server-side) | 29.8 seconds | 19,763 constraints, snarkjs fullProve |
+| On-chain proof verification | Accepted | PlonkVerifierAdapter contract |
+| Session activation via relayer | [`0xf0fbb55e...`](https://sepolia.basescan.org/tx/0xf0fbb55ebba7425c6f9ec9fc2a70bb7d9b23d13152eeba2ede78b402adb3b896) | 52,499 gas, 24h session |
+| Address with session → swap | **Allowed** | ComplianceHook passes, session active |
+
+> **What this proves:** The ZK compliance pipeline is not theoretical — it runs on live contracts on Base Sepolia. A real PLONK proof was generated from a real EdDSA attestation and Merkle membership proof, verified by a real on-chain verifier contract, and used to activate a real session that the ComplianceHook recognizes. The negative test confirms that addresses without sessions are mathematically blocked.
+
+To reproduce: `npx tsx scripts/zk-e2e-proof.ts`
+
 ---
 
 ## Deployments (Base Sepolia Testnet)
@@ -104,7 +123,7 @@ Institution
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| ZK Proof Generation | ~15 s | PLONK `fullProve`, 19,763 constraints, WASM |
+| ZK Proof Generation | ~30 s (server-side) | PLONK `fullProve`, 19,763 constraints, WASM — measured 29.8s on Railway |
 | Off-chain ZK Verification | 8.2 ms median | snarkjs PLONK verify |
 | Per-swap Compliance Overhead | ~15,000 gas (~$0.0003) | Single `SLOAD` on session cache |
 | On-chain PLONK Verification | 683,986 gas (~$0.016) | One-time cost per session |
@@ -129,7 +148,7 @@ ilal/
 ├── examples/
 │   ├── minimal-swap/     # Minimal Node/TS end-to-end swap example (runnable)
 │   └── institutional-demo/ # Multi-role institutional simulation demo
-├── scripts/              # E2E tests, system tests, deployment utilities
+├── scripts/              # E2E tests (zk-e2e-proof.ts, ilal-e2e-live.ts), deployment utilities
 ├── .github/workflows/    # CI pipeline (contracts, API, frontend)
 └── docs/                 # API reference, architecture notes, deployment guides
 ```
@@ -596,28 +615,52 @@ All errors include `{ error, code, message, hint }`. The `hint` field tells you 
 
 ### Production ZK Session Flow
 
-For production (non-testnet) environments, session activation requires a real ZK proof:
+For production (non-testnet) environments, session activation requires a real ZK proof instead of the `/testnet/activate` shortcut.
 
+**Option A: Server-side proof (recommended)** — The API generates the proof for you:
 ```bash
-# 1. Register wallet
+# 1. Register institution + wallet in Merkle tree
 curl -X POST .../api/v1/onboarding/register \
   -H "X-API-Key: ilal_live_xxx" \
-  -d '{"name": "My Institution", "walletAddress": "0x..."}'
+  -H "Content-Type: application/json" \
+  -d '{"name": "My Institution", "walletAddress": "0x...", "countryCode": 840}'
+# → { merkleIndex: 18, merkleRoot: "0x...", status: "approved" }
 
-# 2. Get attestation (needed to generate proof)
+# 2. Activate session (server generates PLONK proof → on-chain verify → session start)
+curl -X POST .../api/v1/onboarding/activate-session \
+  -H "X-API-Key: ilal_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{"walletAddress": "0x..."}'
+# → { success: true, txHash: "0xf0fbb55e...", expiresAt: "2026-04-07T03:09:26Z" }
+# Takes ~30s — the server generates the PLONK proof, submits on-chain, and returns.
+```
+
+**Option B: Client-side proof** — Generate the proof yourself and submit it:
+```bash
+# 1. Register wallet (same as above)
+# 2. Get attestation (EdDSA signature + Merkle proof)
 curl .../api/v1/onboarding/attestation/0xYOUR_WALLET \
   -H "X-API-Key: ilal_live_xxx"
-# → { attestation: { userAddress, merkleRoot, merkleProof, sigR8x, ... } }
+# → { attestation: { userAddress, merkleRoot, merkleProof, sigR8x, sigR8y, sigS, ... } }
 
-# 3. Generate PLONK proof client-side (~15s)
-#    Use packages/circuits or @ilal/sdk
-
+# 3. Generate PLONK proof client-side (~15s) using packages/circuits or @ilal/sdk
 # 4. Submit proof — activates on-chain session via relayer
 curl -X POST .../api/v1/verify \
   -H "X-API-Key: ilal_live_xxx" \
+  -H "Content-Type: application/json" \
   -d '{"proof": {...}, "publicInputs": ["..."], "userAddress": "0x..."}'
 # → { success: true, txHash: "0x...", expiresAt: "..." }
 ```
+
+**Testnet vs. Production comparison:**
+
+| Step | Testnet (current demo) | Production |
+|------|------------------------|------------|
+| KYC | Auto-approve (mock) | Real KYC provider |
+| Session activation | `POST /testnet/activate` (no proof) | `POST /onboarding/activate-session` (ZK proof) |
+| Proof generation | Skipped | ~30s server-side PLONK |
+| On-chain verification | Skipped | PlonkVerifierAdapter contract |
+| Session duration | 24h (configurable) | 24h (max 6 renewals per proof) |
 
 Full API reference: [`docs/guides/saas/API_REFERENCE.md`](docs/guides/saas/API_REFERENCE.md)
 
@@ -730,9 +773,14 @@ SwapWidget ................ 9   SessionStatusCard .......... 6   UserMenu ......
 
 ### E2E — Base Sepolia Live Testnet
 
-Full flow: register → activate session (testnet) → preflight self-check → build swap → sign & broadcast → verify on-chain balances.
+**ZK Compliance E2E** (`scripts/zk-e2e-proof.ts`) — Proves the full ZK pipeline works on live contracts:
+- Negative test: random address → swap reverted with `SESSION_NOT_ACTIVE` (ComplianceHook enforces)
+- Onboarding: institution registered in Merkle tree (index=18, EdDSA attestation signed)
+- ZK proof: PLONK proof generated server-side in 29.8s (19,763 constraints) → PlonkVerifierAdapter accepted
+- Session activation: [`0xf0fbb55e...`](https://sepolia.basescan.org/tx/0xf0fbb55ebba7425c6f9ec9fc2a70bb7d9b23d13152eeba2ede78b402adb3b896) — 52,499 gas, 24h session
+- Positive test: session-active address → ComplianceHook allows swap
 
-Verified on-chain transactions:
+**DeFi E2E** (`scripts/ilal-e2e-live.ts`) — Full flow: register → activate → preflight → swap → liquidity:
 - [`0xd5afad58...`](https://sepolia.basescan.org/tx/0xd5afad581a685b4a20a5795c77565d4ac66a0bfe346e766669f7ada8fd23ee51) — Swap WETH→tUSDC
 - [`0x709925b0...`](https://sepolia.basescan.org/tx/0x709925b0bc256678054af221643fc0c4dabcde4783b72551389e8e0d9f71b894) — Add Liquidity [-600,600]
 - [`0xecc8bf42...`](https://sepolia.basescan.org/tx/0xecc8bf42e04e2f9af61f269cbb068ebcde49914ffc249484d053a26370d54d73) — Add Liquidity [-120,120]
@@ -746,8 +794,8 @@ Verified on-chain transactions:
 | Area | Status | Notes |
 |------|--------|-------|
 | Smart contracts | ✅ Deployed | Base Sepolia testnet, v3 ComplianceHook active |
-| ZK circuit (PLONK) | ✅ Working | 19,763 constraints, ~15s proof gen |
-| ZK verification (on-chain + off-chain) | ✅ Working | v2 PlonkVerifierAdapter |
+| ZK circuit (PLONK) | ✅ Verified E2E | 19,763 constraints, ~30s proof gen (live), [tx proof](https://sepolia.basescan.org/tx/0xf0fbb55ebba7425c6f9ec9fc2a70bb7d9b23d13152eeba2ede78b402adb3b896) |
+| ZK verification (on-chain + off-chain) | ✅ Verified E2E | PlonkVerifierAdapter accepted real proof on Base Sepolia |
 | Session relay (API → on-chain) | ✅ Working | EIP-712, relayer wallet |
 | Testnet session activation | ✅ Working | `POST /testnet/activate` — no ZK proof needed |
 | REST API (auth, sessions, DeFi) | ✅ Working | Railway deployment |
@@ -812,6 +860,9 @@ cd examples/minimal-swap && npx tsx run.ts
 
 # Direct live E2E on Base Sepolia (requires funded wallet + circuit artifacts)
 npx tsx scripts/ilal-e2e-live.ts
+
+# ZK compliance E2E verification (no wallet needed — server-side proof)
+npx tsx scripts/zk-e2e-proof.ts
 ```
 
 ### ZK Circuit
