@@ -6,6 +6,7 @@ import { Router, type Request, type Response } from 'express';
 import * as verifyController from '../controllers/verify.controller.js';
 import { apiKeyMiddleware, requirePermission } from '../middleware/apikey.middleware.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
+import { hybridAuthMiddleware } from '../middleware/hybrid.middleware.js';
 import { dynamicRateLimiter, preAuthVerifyRateLimiter } from '../middleware/ratelimit.middleware.js';
 import { usageTrackingMiddleware, quotaCheckMiddleware } from '../middleware/usage.middleware.js';
 
@@ -13,10 +14,9 @@ const router: Router = Router();
 
 /**
  * GET /api/v1/verify/session?address=0x...
- * Dashboard-facing: returns session status for a wallet address.
- * Requires JWT auth (not API key) so the dashboard can call this directly.
+ * Session status query — accepts both JWT and API Key auth.
  */
-router.get('/session', authMiddleware, async (req: Request, res: Response) => {
+router.get('/session', hybridAuthMiddleware, async (req: Request, res: Response) => {
     const { address } = req.query as { address?: string };
     if (!address) {
         res.status(400).json({ error: 'Missing required query param: address' });
@@ -27,7 +27,7 @@ router.get('/session', authMiddleware, async (req: Request, res: Response) => {
     await verifyController.getSessionStatus(req, res);
 });
 
-router.post('/renew', authMiddleware, verifyController.renewSession);
+router.post('/renew', hybridAuthMiddleware, verifyController.renewSession);
 
 // POST /api/v1/verify - Verify ZK Proof and activate session (requires API key)
 router.use(preAuthVerifyRateLimiter);

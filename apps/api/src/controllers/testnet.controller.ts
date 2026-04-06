@@ -22,9 +22,16 @@ import * as issuerService from '../services/issuer.service.js';
 import * as merkleService from '../services/merkle.service.js';
 
 const activateSchema = z.object({
-  walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address'),
+  walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address').optional(),
+  userAddress:   z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address').optional(),
   durationHours: z.number().int().min(1).max(720).optional().default(24),
   name: z.string().min(1).max(200).optional(),
+}).transform((data) => ({
+  ...data,
+  walletAddress: data.walletAddress ?? data.userAddress,
+})).refine((data) => !!data.walletAddress, {
+  message: 'walletAddress (or userAddress) is required',
+  path: ['walletAddress'],
 });
 
 /**
@@ -40,7 +47,7 @@ const activateSchema = z.object({
 export async function activate(req: Request, res: Response): Promise<void> {
   try {
     const body = activateSchema.parse(req.body);
-    const walletAddress = getAddress(body.walletAddress) as Address;
+    const walletAddress = getAddress(body.walletAddress!) as Address;
     const userId = req.apiKey?.userId ?? req.user?.userId;
 
     // ── Step 1: Auto-register if needed ────────────────────────────────────
@@ -236,7 +243,13 @@ export async function activateBatch(req: Request, res: Response): Promise<void> 
 // ── Faucet ──────────────────────────────────────────────────────────────────
 
 const faucetSchema = z.object({
-  walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address'),
+  walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address').optional(),
+  userAddress:   z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address').optional(),
+}).transform((data) => ({
+  walletAddress: data.walletAddress ?? data.userAddress,
+})).refine((data) => !!data.walletAddress, {
+  message: 'walletAddress (or userAddress) is required',
+  path: ['walletAddress'],
 });
 
 /**
@@ -248,7 +261,7 @@ const faucetSchema = z.object({
 export async function faucet(req: Request, res: Response): Promise<void> {
   try {
     const body = faucetSchema.parse(req.body);
-    const walletAddress = getAddress(body.walletAddress) as Address;
+    const walletAddress = getAddress(body.walletAddress!) as Address;
 
     if (!faucetService.available) {
       res.status(503).json({

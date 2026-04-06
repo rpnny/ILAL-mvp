@@ -19,8 +19,15 @@ import { blockchainService } from '../services/blockchain.service.js';
 
 const registerSchema = z.object({
   name: z.string().min(1).max(200),
-  walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address'),
+  walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address').optional(),
+  userAddress:   z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address').optional(),
   countryCode: z.number().int().min(1).max(999).optional().default(840),
+}).transform((data) => ({
+  ...data,
+  walletAddress: data.walletAddress ?? data.userAddress,
+})).refine((data) => !!data.walletAddress, {
+  message: 'walletAddress (or userAddress) is required',
+  path: ['walletAddress'],
 });
 
 function requireAuthenticatedUserId(req: Request, res: Response): string | null {
@@ -62,7 +69,7 @@ export async function register(req: Request, res: Response): Promise<void> {
     if (!userId) return;
 
     const body = registerSchema.parse(req.body);
-    const walletAddress = getAddress(body.walletAddress);
+    const walletAddress = getAddress(body.walletAddress!);
 
     const existing = await prisma.institution.findUnique({ where: { walletAddress } });
     if (existing) {
@@ -225,9 +232,11 @@ export async function activateSession(req: Request, res: Response): Promise<void
     const userId = requireAuthenticatedUserId(req, res);
     if (!userId) return;
 
-    const { walletAddress: rawAddress, expiry = 86400 } = req.body as { walletAddress?: string; expiry?: number };
+    const body = req.body as { walletAddress?: string; userAddress?: string; expiry?: number };
+    const rawAddress = body.walletAddress ?? body.userAddress;
+    const expiry = body.expiry ?? 86400;
     if (!rawAddress || !/^0x[a-fA-F0-9]{40}$/.test(rawAddress)) {
-      res.status(400).json({ success: false, error: 'Invalid or missing walletAddress' });
+      res.status(400).json({ success: false, error: 'Invalid or missing walletAddress (or userAddress)' });
       return;
     }
     const walletAddress = getAddress(rawAddress) as Address;
@@ -347,13 +356,16 @@ export async function activateSessionDemo(req: Request, res: Response): Promise<
     const userId = requireAuthenticatedUserId(req, res);
     if (!userId) return;
 
-    const { walletAddress: rawAddress, durationHours = 24 } = req.body as {
+    const demoBody = req.body as {
       walletAddress?: string;
+      userAddress?: string;
       durationHours?: number;
     };
+    const rawAddress = demoBody.walletAddress ?? demoBody.userAddress;
+    const durationHours = demoBody.durationHours ?? 24;
 
     if (!rawAddress || !/^0x[a-fA-F0-9]{40}$/.test(rawAddress)) {
-      res.status(400).json({ success: false, error: 'Invalid or missing walletAddress' });
+      res.status(400).json({ success: false, error: 'Invalid or missing walletAddress (or userAddress)' });
       return;
     }
     const walletAddress = getAddress(rawAddress) as Address;

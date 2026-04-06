@@ -12,6 +12,9 @@ const router: Router = Router();
 // Self-check / environment-check endpoint (read-only, no permission required)
 router.get('/preflight/:address', authenticate, DefiController.preflightCheck);
 
+// Balance query (read-only, no permission required)
+router.get('/balance/:address', authenticate, DefiController.getBalance);
+
 // Quote endpoint (read-only, no gas needed)
 router.get('/quote', authenticate, requirePermissionIfApiKey('swap'), DefiController.getQuote);
 

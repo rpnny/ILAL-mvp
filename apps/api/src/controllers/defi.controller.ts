@@ -42,6 +42,39 @@ const nonNegativeIntString = z.string().regex(
   'Must be a non-negative integer string',
 );
 
+/**
+ * Normalize field aliases in request body so clients can use either name:
+ *   walletAddress ↔ userAddress
+ *   tokenAddress  → token
+ */
+function normalizeBody(body: Record<string, any>): Record<string, any> {
+  const out = { ...body };
+  // walletAddress → userAddress (DeFi endpoints expect userAddress)
+  if (out.walletAddress && !out.userAddress) {
+    out.userAddress = out.walletAddress;
+  }
+  // tokenAddress → token (approve endpoint expects token)
+  if (out.tokenAddress && !out.token) {
+    out.token = out.tokenAddress;
+  }
+  return out;
+}
+
+/** Token symbol lookup for human-readable amounts */
+function tokenSymbol(addr: string): string {
+  const lower = addr.toLowerCase();
+  for (const [sym, a] of Object.entries(DEMO_TOKENS)) {
+    if ((a as string).toLowerCase() === lower) return sym;
+  }
+  return addr.slice(0, 10) + '...';
+}
+
+/** Format a raw wei amount to human-readable string like "1.5 WETH" */
+function formatAmount(raw: string | bigint, decimals: number, symbol: string): string {
+  const num = Number(BigInt(raw.toString())) / Math.pow(10, decimals);
+  return `${num.toFixed(decimals > 6 ? 8 : decimals)} ${symbol}`;
+}
+
 // ── Swap Schema ──────────────────────────────────────────────
 
 const swapSchema = z.object({
@@ -152,7 +185,7 @@ const approveSchema = z.object({
 
 export async function approve(req: Request, res: Response): Promise<void> {
   try {
-    const params = approveSchema.parse(req.body);
+    const params = approveSchema.parse(normalizeBody(req.body));
     const token = getAddress(params.token) as Address;
     const userAddress = getAddress(params.userAddress) as Address;
 
@@ -183,9 +216,13 @@ export async function approve(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    // Check current allowance
-    const currentAllowance = await blockchainService.getTokenAllowance(token, userAddress, spender);
+    // Check current allowance + get decimals for human-readable formatting
+    const [currentAllowance, tokenDecimals] = await Promise.all([
+      blockchainService.getTokenAllowance(token, userAddress, spender),
+      blockchainService.getTokenDecimals(token),
+    ]);
     const alreadySufficient = currentAllowance >= BigInt(params.amount);
+    const sym = tokenSymbol(params.token);
 
     // Build the unsigned approve TX
     const result = await defiService.buildApproveTx({
@@ -203,7 +240,9 @@ export async function approve(req: Request, res: Response): Promise<void> {
       isApprovalNeeded: !alreadySufficient,
       allowance: {
         current: currentAllowance.toString(),
+        currentFormatted: formatAmount(currentAllowance, tokenDecimals, sym),
         requested: params.amount,
+        requestedFormatted: formatAmount(params.amount, tokenDecimals, sym),
         alreadySufficient,
       },
       spenderInfo: {
@@ -240,7 +279,7 @@ export async function approve(req: Request, res: Response): Promise<void> {
 
 export async function executeSwap(req: Request, res: Response): Promise<void> {
   try {
-    const params = swapSchema.parse(req.body);
+    const params = swapSchema.parse(normalizeBody(req.body));
     const userId = req.apiKey?.userId ?? req.user?.userId;
     // Default: block if session inactive. Pass ?buildOnly=true to get unsigned TX without session check.
     const buildOnly = req.query?.buildOnly === 'true';
@@ -316,6 +355,14 @@ export async function executeSwap(req: Request, res: Response): Promise<void> {
       return;
     }
 
+    // Get token decimals for human-readable formatting
+    const [tokenInDecimals, tokenOutDecimals] = await Promise.all([
+      blockchainService.getTokenDecimals(params.tokenIn as Address),
+      blockchainService.getTokenDecimals(params.tokenOut as Address),
+    ]);
+    const symIn = tokenSymbol(params.tokenIn);
+    const symOut = tokenSymbol(params.tokenOut);
+
     const result = await defiService.swap({
       tokenIn: params.tokenIn as Address,
       tokenOut: params.tokenOut as Address,
@@ -342,6 +389,8 @@ export async function executeSwap(req: Request, res: Response): Promise<void> {
       ...result,
       // When simulation fails, override top-level success and exclude the transaction object
       ...(simulation.success ? {} : { success: false, transaction: undefined }),
+      amountFormatted: formatAmount(params.amount, tokenInDecimals, symIn),
+      swap: `${formatAmount(params.amount, tokenInDecimals, symIn)} → ${symOut}`,
       preflight: {
         ...preflight,
         tokenSupported: true,
@@ -355,9 +404,11 @@ export async function executeSwap(req: Request, res: Response): Promise<void> {
           allowanceWarning: {
             token: params.tokenIn,
             required: params.amount,
+            requiredFormatted: formatAmount(params.amount, tokenInDecimals, symIn),
             current: allowance.toString(),
+            currentFormatted: formatAmount(allowance, tokenInDecimals, symIn),
             spender: CONTRACTS.simpleSwapRouter,
-            hint: `Approve at least ${params.amount} of ${params.tokenIn} to the SwapRouter (${CONTRACTS.simpleSwapRouter}) before broadcasting.`,
+            hint: `Approve at least ${formatAmount(params.amount, tokenInDecimals, symIn)} to the SwapRouter before broadcasting.`,
           },
         } : {}),
       },
@@ -392,7 +443,7 @@ export async function executeSwap(req: Request, res: Response): Promise<void> {
 
 export async function addLiquidity(req: Request, res: Response): Promise<void> {
   try {
-    const params = liquiditySchema.parse(req.body);
+    const params = liquiditySchema.parse(normalizeBody(req.body));
 
     // Auto-sort tokens into Uniswap canonical order (token0 < token1) and swap amounts accordingly
     if (params.token0.toLowerCase() > params.token1.toLowerCase()) {
@@ -607,7 +658,7 @@ const ROUTER_SWAP_ABI = [{
 
 export async function getQuote(req: Request, res: Response): Promise<void> {
   try {
-    const params = quoteSchema.parse(req.method === 'GET' ? req.query : req.body);
+    const params = quoteSchema.parse(normalizeBody(req.method === 'GET' ? req.query : req.body));
 
     // Token whitelist
     if (!isTokenSupported(params.tokenIn) || !isTokenSupported(params.tokenOut)) {
@@ -675,20 +726,37 @@ export async function getQuote(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    // Decode the return value (int256 deltaAmount)
+    // Decode the return value — SimpleSwapRouter returns BalanceDelta,
+    // which is an int256 packing two int128s: upper 128 bits = amount0, lower 128 bits = amount1.
+    // For exact-input swaps, one delta is negative (tokens in) and the other positive (tokens out).
     let estimatedOutput: bigint;
-    try {
-      const decoded = decodeFunctionResult({
-        abi: ROUTER_SWAP_ABI,
-        functionName: 'swap',
-        data: simulation.returnData,
-      });
-      // Router returns the output amount as a positive int256
-      estimatedOutput = decoded < 0n ? -decoded : decoded;
-    } catch {
-      // Fallback: try raw decoding (single int256)
-      const raw = BigInt(simulation.returnData);
-      estimatedOutput = raw < 0n ? -raw : raw;
+    {
+      let rawDelta: bigint;
+      try {
+        rawDelta = decodeFunctionResult({
+          abi: ROUTER_SWAP_ABI,
+          functionName: 'swap',
+          data: simulation.returnData,
+        });
+      } catch {
+        rawDelta = BigInt(simulation.returnData);
+      }
+
+      // Unpack BalanceDelta: upper 128 bits = amount0 (int128), lower 128 bits = amount1 (int128)
+      const amount0 = BigInt.asIntN(128, rawDelta >> 128n);
+      const amount1 = BigInt.asIntN(128, rawDelta & ((1n << 128n) - 1n));
+
+      // Determine swap direction to pick the correct output delta
+      const zeroForOne = params.tokenIn.toLowerCase() < params.tokenOut.toLowerCase();
+
+      // For exact-input swaps: input delta is negative, output delta is positive.
+      // zeroForOne (selling token0 → buying token1): output = amount1
+      // !zeroForOne (selling token1 → buying token0): output = amount0
+      const outputDelta = zeroForOne ? amount1 : amount0;
+
+      // Output delta should be positive (tokens coming out of the pool to user).
+      // Use abs() as a safety measure.
+      estimatedOutput = outputDelta < 0n ? -outputDelta : outputDelta;
     }
 
     // Get token decimals for formatting
@@ -725,6 +793,54 @@ export async function getQuote(req: Request, res: Response): Promise<void> {
       return;
     }
     logger.error('Quote error', { error: error.message });
+    sendError(res, 500, { code: 'INTERNAL_ERROR', message: error.message }, req);
+  }
+}
+
+// ── Balance query endpoint ──────────────────────────────────
+
+export async function getBalance(req: Request, res: Response): Promise<void> {
+  try {
+    const rawAddress = String(req.params.address ?? '');
+    if (!rawAddress || !ETH_ADDRESS.test(rawAddress)) {
+      sendError(res, 400, {
+        code: 'INVALID_ADDRESS',
+        message: 'Invalid Ethereum address',
+      }, req);
+      return;
+    }
+
+    const address = getAddress(rawAddress) as Address;
+
+    // Fetch all balances in parallel
+    const [ethBalance, wethBalance, tusdcBalance, wethDecimals, tusdcDecimals] = await Promise.all([
+      blockchainService.getEthBalance(address),
+      blockchainService.getTokenBalance(DEMO_TOKENS.WETH as Address, address),
+      blockchainService.getTokenBalance(DEMO_TOKENS.tUSDC as Address, address),
+      blockchainService.getTokenDecimals(DEMO_TOKENS.WETH as Address),
+      blockchainService.getTokenDecimals(DEMO_TOKENS.tUSDC as Address),
+    ]);
+
+    const formatBalance = (raw: bigint, decimals: number) => ({
+      raw: raw.toString(),
+      formatted: (Number(raw) / Math.pow(10, decimals)).toFixed(decimals > 6 ? 8 : decimals),
+      decimals,
+    });
+
+    res.json({
+      address,
+      balances: {
+        ETH:   formatBalance(ethBalance, 18),
+        WETH:  { ...formatBalance(wethBalance, wethDecimals), token: DEMO_TOKENS.WETH },
+        tUSDC: { ...formatBalance(tusdcBalance, tusdcDecimals), token: DEMO_TOKENS.tUSDC },
+      },
+      network: {
+        chainId: 84532,
+        name: 'Base Sepolia',
+      },
+    });
+  } catch (error: any) {
+    logger.error('Balance query error', { error: error.message });
     sendError(res, 500, { code: 'INTERNAL_ERROR', message: error.message }, req);
   }
 }
