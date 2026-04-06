@@ -124,7 +124,7 @@ To reproduce: `npx tsx scripts/zk-e2e-proof.ts`
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| ZK Proof Generation | ~30 s (server-side) | PLONK `fullProve`, 19,763 constraints, WASM — measured 29.8s on Railway |
+| ZK Proof Generation | ~30-36 s (server-side) | PLONK `fullProve`, 19,763 constraints, WASM — measured 35.9s on Railway |
 | Off-chain ZK Verification | 8.2 ms median | snarkjs PLONK verify |
 | Per-swap Compliance Overhead | ~15,000 gas (~$0.0003) | Single `SLOAD` on session cache |
 | On-chain PLONK Verification | 683,986 gas (~$0.016) | One-time cost per session |
@@ -625,7 +625,7 @@ curl -X POST .../api/v1/onboarding/register \
   -H "X-API-Key: ilal_live_xxx" \
   -H "Content-Type: application/json" \
   -d '{"name": "My Institution", "walletAddress": "0x...", "countryCode": 840}'
-# → { merkleIndex: 18, merkleRoot: "0x...", status: "approved" }
+# → { merkleIndex: 37, merkleRoot: "0x...", name: "My Institution", status: "approved" }
 
 # 2. Activate session (server generates PLONK proof → on-chain verify → session start)
 curl -X POST .../api/v1/onboarding/activate-session \
@@ -686,18 +686,22 @@ Full API reference: [`docs/guides/saas/API_REFERENCE.md`](docs/guides/saas/API_R
 
 ## Security Status
 
-The current deployment includes the following hardening work:
+**Client security audit (2026-04-06): 17/20 issues resolved.** The current deployment includes:
 
-- Cross-account API access is blocked by binding `Institution → User` ownership in onboarding, verification, attestation, and session-query paths
-- `ComplianceHook` no longer treats generic approved routers as identity-forwarding routers; Mode 2 identity forwarding is restricted to a stricter allowlist
-- Frontend/API integration no longer relies on public session endpoints or hard-coded backend paths for protected flows
-- Production API config requires explicit refresh-secret and CORS/proxy controls rather than permissive defaults
-- `canBroadcastSafely` is now backed by live `eth_call` simulation — not just a session flag check
+- **Sanctioned country blocking** — 17 jurisdictions (DPRK, Iran, Syria, Cuba, Russia, Belarus, etc.) rejected at registration with HTTP 400
+- **XSS sanitization** — Institution name field uses character whitelist `[a-zA-Z0-9 \-.,& CJK]`; parentheses, angle brackets, quotes all stripped. Sanitized value returned in response for client verification
+- **Cross-account ownership enforcement** — `/defi/approve`, `/defi/swap`, `/session/:address`, onboarding, and attestation endpoints all reject wallets not registered under the caller's account (403 `INSTITUTION_OWNERSHIP_MISMATCH`)
+- **Rate limiting** — Redis-backed distributed rate limiter (per API key): FREE=60/min, PRO=300/min, ENTERPRISE=1000/min. Verified: 60 requests pass, request 61+ returns 429
+- **Input validation** — uint256 overflow checks, dust swap rejection (< 1000 wei), token ordering validation, slippage warnings
+- `ComplianceHook` Mode 2 identity forwarding restricted to stricter allowlist
+- `canBroadcastSafely` backed by live `eth_call` simulation
 
-Residual risk profile:
+Known limitations:
 
+- **API Key whitespace**: HTTP/1.1 parser strips leading/trailing OWS (RFC 7230 §3.2.3) before application code runs. Strict format regex `/^ilal_(test|live)_[a-f0-9]{48}$/` is the authoritative gate
+- **IP-based rate limiting**: Railway's Fastly edge uses pooled outbound IPs; per-IP limits are ineffective in multi-instance deployments. Per-API-key limits (Redis-backed) are the enforced layer
 - Mainnet deployment has not started and should still be gated on independent audit review
-- Billing/quota enforcement remains placeholder logic and should not be treated as a hardened abuse-control layer
+- Billing/quota enforcement remains placeholder logic
 - Testnet/demo wallets and tokens should be treated as disposable operational assets
 
 ---
@@ -776,9 +780,9 @@ SwapWidget ................ 9   SessionStatusCard .......... 6   UserMenu ......
 
 **ZK Compliance E2E** (`scripts/zk-e2e-proof.ts`) — Proves the full ZK pipeline works on live contracts:
 - Negative test: random address → swap reverted with `SESSION_NOT_ACTIVE` (ComplianceHook enforces)
-- Onboarding: institution registered in Merkle tree (index=18, EdDSA attestation signed)
-- ZK proof: PLONK proof generated server-side in 29.8s (19,763 constraints) → PlonkVerifierAdapter accepted
-- Session activation: [`0xf0fbb55e...`](https://sepolia.basescan.org/tx/0xf0fbb55ebba7425c6f9ec9fc2a70bb7d9b23d13152eeba2ede78b402adb3b896) — 52,499 gas, 24h session
+- Onboarding: institution registered in Merkle tree (index=37, EdDSA attestation signed)
+- ZK proof: PLONK proof generated server-side in 35.9s (19,763 constraints) → PlonkVerifierAdapter accepted
+- Session activation: [`0x8ca5f56e...`](https://sepolia.basescan.org/tx/0x8ca5f56eb9328a443ca8fe9c3317cfbd5d0a6bcd90d5ede687b8f04451853a67) — 52,511 gas, 24h session
 - Positive test: session-active address → ComplianceHook allows swap
 
 **DeFi E2E** (`scripts/ilal-e2e-live.ts`) — Full flow: register → activate → preflight → swap → liquidity:
@@ -795,7 +799,7 @@ SwapWidget ................ 9   SessionStatusCard .......... 6   UserMenu ......
 | Area | Status | Notes |
 |------|--------|-------|
 | Smart contracts | ✅ Deployed | Base Sepolia testnet, v3 ComplianceHook active |
-| ZK circuit (PLONK) | ✅ Verified E2E | 19,763 constraints, ~30s proof gen (live), [tx proof](https://sepolia.basescan.org/tx/0xf0fbb55ebba7425c6f9ec9fc2a70bb7d9b23d13152eeba2ede78b402adb3b896) |
+| ZK circuit (PLONK) | ✅ Verified E2E | 19,763 constraints, ~36s proof gen (live), [tx proof](https://sepolia.basescan.org/tx/0x8ca5f56eb9328a443ca8fe9c3317cfbd5d0a6bcd90d5ede687b8f04451853a67) |
 | ZK verification (on-chain + off-chain) | ✅ Verified E2E | PlonkVerifierAdapter accepted real proof on Base Sepolia |
 | Session relay (API → on-chain) | ✅ Working | EIP-712, relayer wallet |
 | Testnet session activation | ✅ Working | `POST /testnet/activate` — no ZK proof needed |
