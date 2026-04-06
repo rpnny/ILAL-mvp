@@ -163,7 +163,7 @@ ilal/
 
 ---
 
-### Integration Steps (Testnet)
+### Integration Steps — API Mode (Testnet)
 
 **Step 0 — Fetch Live Contract Addresses** *(one-time, no auth)*
 ```bash
@@ -354,43 +354,118 @@ async function signAndBroadcast(tx: { to: string; data: string; value: string; g
 - **Error format:** All errors return `{ error, code, message, hint, phase }`. The `code` field is machine-readable (e.g., `SESSION_NOT_ACTIVE`, `ALLOWANCE_INSUFFICIENT`, `UNSUPPORTED_TOKEN`).
 - **Rate limits:** FREE=60/min, PRO=300/min, ENTERPRISE=1000/min. Custom key-level limits via `PATCH /apikeys/:id`.
 
-### SDK (Recommended)
-
-Install the SDK to skip manual HTTP calls:
+### SDK — Two Integration Modes
 
 ```bash
 npm install @tony_hz/ilal-sdk
 ```
 
+#### Mode A: API Mode (`ILALApiClient`) — Recommended for institutional backends
+
+Uses the ILAL REST API via API Key. The API builds unsigned transactions; you sign & broadcast with your own wallet. **No direct RPC connection needed** — the API handles simulation, session checks, and pool state reads.
+
 ```typescript
 import { ILALApiClient } from '@tony_hz/ilal-sdk';
+import { createWalletClient, createPublicClient, http } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { baseSepolia } from 'viem/chains';
 
+// 1. Create API client (talks to ILAL API)
 const client = new ILALApiClient({
   apiKey: 'ilal_live_xxx',
   apiBaseUrl: 'https://ilal-mvp-production.up.railway.app',
   chainId: 84532,
 });
 
-// Preflight — check session, balances, allowances in one call
-const status = await client.preflight('0xYOUR_WALLET');
+// 2. Create wallet (for signing — never leaves your server)
+const account = privateKeyToAccount('0xYOUR_PRIVATE_KEY');
+const wallet = createWalletClient({ account, chain: baseSepolia, transport: http() });
+const pub = createPublicClient({ chain: baseSepolia, transport: http() });
 
-// Approve tokens
-await client.approve({ token: TUSDC, amount: '10000000000', userAddress: '0x...', operation: 'swap' });
+async function signAndBroadcast(tx: any) {
+  const hash = await wallet.sendTransaction({
+    to: tx.to, data: tx.data, value: BigInt(tx.value), ...(tx.gas ? { gas: BigInt(tx.gas) } : {}),
+  });
+  return pub.waitForTransactionReceipt({ hash });
+}
 
-// Swap
+// 3. Full flow
+const preflight = await client.preflight('0xYOUR_WALLET');
+
+const approve = await client.approve({ token: TUSDC, amount: '10000000000', userAddress: '0x...', operation: 'swap' });
+if (approve.isApprovalNeeded) await signAndBroadcast(approve.transaction);
+
 const swap = await client.swap({ tokenIn: TUSDC, tokenOut: WETH, amount: '1000000000', userAddress: '0x...' });
-// swap.transaction → sign and broadcast with your wallet
+if (swap.preflight?.canBroadcastSafely) await signAndBroadcast(swap.transaction);
 
-// Add Liquidity
-const liq = await client.addLiquidity({
-  token0: WETH, token1: TUSDC,
-  amount0: '1000000000000000', amount1: '2000000',
-  userAddress: '0x...',
-});
-
-// Quote (read-only, no gas)
 const quote = await client.quote({ tokenIn: TUSDC, tokenOut: WETH, amount: '1000000000', userAddress: '0x...' });
 ```
+
+**When to use:** Server-to-server integration, trading bots, institutional custody systems, any backend that holds private keys and needs a simple HTTP interface.
+
+#### Mode B: Direct Mode (`ILALClient`) — For DApps and advanced integrations
+
+Connects directly to the blockchain via your own RPC. The SDK calls smart contracts directly using your `walletClient` + `publicClient`. Supports ZK proof generation, EIP-712 permit signing, and full on-chain operations.
+
+```typescript
+import { ILALClient } from '@tony_hz/ilal-sdk';
+import { createWalletClient, createPublicClient, http } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { baseSepolia } from 'viem/chains';
+
+// Option A: From browser wallet (MetaMask, Rabby, etc.)
+const client = ILALClient.fromProvider({
+  provider: window.ethereum,
+  chainId: 84532,
+});
+
+// Option B: From private key (Node.js backend)
+const account = privateKeyToAccount('0xYOUR_PRIVATE_KEY');
+const client = new ILALClient({
+  walletClient: createWalletClient({ account, chain: baseSepolia, transport: http() }),
+  publicClient: createPublicClient({ chain: baseSepolia, transport: http() }),
+  chainId: 84532,
+});
+
+// Session management — direct on-chain
+const session = await client.session.getStatus('0xYOUR_WALLET');
+console.log('Session active:', session.isActive, 'Expires:', session.expiresAt);
+
+// Swap — direct contract call (SDK handles hookData encoding)
+const result = await client.swap.execute({
+  tokenIn: '0xa486Fb51ED09B970A23F7Fe910bc90089f78424D',
+  tokenOut: '0x4200000000000000000000000000000000000006',
+  amount: 1000000000n,
+  userAddress: '0xYOUR_WALLET',
+});
+
+// Liquidity — direct contract call
+await client.liquidity.addLiquidity({
+  token0: '0x4200000000000000000000000000000000000006',
+  token1: '0xa486Fb51ED09B970A23F7Fe910bc90089f78424D',
+  amount0: 50000000000000000n,
+  amount1: 100000000n,
+  tickLower: -600,
+  tickUpper: 600,
+});
+
+// ZK Proof generation (client-side, ~15s)
+const proof = await client.zkproof.generateProof(circuitInput);
+```
+
+**When to use:** DApp frontends (React/Next.js with wallet connect), advanced users who want full control, or scenarios requiring client-side ZK proof generation.
+
+#### Mode comparison
+
+| | API Mode (`ILALApiClient`) | Direct Mode (`ILALClient`) |
+|--|---------------------------|---------------------------|
+| **Connection** | ILAL REST API | Direct RPC to chain |
+| **Auth** | API Key (`X-API-Key`) | Wallet signature |
+| **TX signing** | You sign unsigned TX from API | SDK signs and broadcasts |
+| **Session activation** | `POST /testnet/activate` | `client.session.activate()` |
+| **ZK proof** | Submit via `POST /verify` | Generate client-side |
+| **Preflight simulation** | API runs `eth_call` for you | Manual |
+| **Best for** | Backends, bots, custody | DApps, frontends |
 
 ---
 
