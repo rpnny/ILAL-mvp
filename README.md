@@ -153,6 +153,9 @@ ilal/
 | **SwapRouter** | `0xd46D84Dc2D098c767451675C9BcB85bf3f8a2891` |
 | **PositionManager** | `0x550c31a1861528Dca121ed634E50258fFA03fc58` |
 | **`zeroForOne`** | Optional — auto-derived from tokenIn/tokenOut ordering |
+| **Live contract addresses** | `GET /api/v1/config/contracts` — always reflects the current deployment |
+
+> **⚠️ Do not hardcode the PositionManager address.** It is redeployed when contract bugs are fixed. Always fetch from `GET /api/v1/config/contracts` and use the `positionManager` field from the response.
 
 > **Critical:** ILAL's ComplianceHook rejects every on-chain transaction from a wallet without an active compliance session. The API will build and return a valid unsigned TX — but when you broadcast it, the chain will revert. **Activate your session (Step 2) before calling any DeFi endpoint.**
 
@@ -162,6 +165,12 @@ ilal/
 
 ### Integration Steps (Testnet)
 
+**Step 0 — Fetch Live Contract Addresses** *(one-time, no auth)*
+```bash
+curl https://ilal-mvp-production.up.railway.app/api/v1/config/contracts
+# → { "contracts": { "positionManager": "0x...", "simpleSwapRouter": "0x...", ... }, "tokens": { ... } }
+```
+
 **Step 1 — Register & Get API Key**
 ```bash
 # Create account
@@ -170,11 +179,11 @@ curl -X POST https://ilal-mvp-production.up.railway.app/api/v1/auth/register \
   -d '{"email":"you@institution.com","password":"SecurePass123!","name":"Fund Name"}'
 # → { "accessToken": "eyJ...", "user": { ... } }
 
-# Create API key (save it — shown only once)
+# Create API key — permissions must be a JSON array (save it — shown only once)
 curl -X POST https://ilal-mvp-production.up.railway.app/api/v1/apikeys \
   -H "Authorization: Bearer <accessToken>" \
   -H "Content-Type: application/json" \
-  -d '{"name":"my-key"}'
+  -d '{"name":"my-key","permissions":["verify","session","swap","liquidity","usage"]}'
 # → { "apiKey": "ilal_live_xxx", ... }
 ```
 
@@ -299,51 +308,81 @@ const quote = await client.quote({ tokenIn: TUSDC, tokenOut: WETH, amount: '1000
 
 Things that will save you an afternoon of debugging:
 
-**1. Flow order is strict**
+**1. Flow order is strict — no shortcuts**
 ```
-Register → API Key → Activate Session → Approve → Swap/Liquidity
+GET /config/contracts → Register → API Key → Activate Session → Faucet → Approve → Swap/Liquidity
 ```
-Skip any step and you'll get a 412. Most common: forgetting to approve, or session expired.
+Skip any step and you'll get a 412. Most common failure: forgetting to approve, or session expired.
 
 **2. Approve targets are different for swap vs. liquidity**
 - Swap: approve token to **SwapRouter** (`0xd46D84Dc...`)
 - Liquidity: approve **both** tokens to **PositionManager** (`0x550c31a1...`)
 - Use `POST /defi/approve` with `operation: "swap"` or `"liquidity"` — the API picks the correct spender.
 
-**3. Liquidity requires two approvals**
+**3. Approve tx must confirm on-chain before the next call**
+```typescript
+// ✅ Correct — wait for confirmation
+const approveTx = await client.approve({ token: TUSDC, operation: 'swap', amount, userAddress });
+const hash = await wallet.sendTransaction(approveTx.transaction);
+await publicClient.waitForTransactionReceipt({ hash }); // ← must wait
+const swapTx = await client.swap({ ... });
+
+// ❌ Wrong — concurrent. Swap sees allowance = 0 and reverts.
+await Promise.all([approve(...), swap(...)]);
+```
+
+**4. Liquidity requires two approvals**
 ```typescript
 // Approve WETH to PositionManager
-await signAndBroadcast((await client.approve({ token: WETH, operation: 'liquidity', amount, userAddress })).transaction);
+const a1 = await client.approve({ token: WETH, operation: 'liquidity', amount: '50000000000000000', userAddress });
+await waitForReceipt(await wallet.sendTransaction(a1.transaction));
 // Approve tUSDC to PositionManager
-await signAndBroadcast((await client.approve({ token: TUSDC, operation: 'liquidity', amount, userAddress })).transaction);
+const a2 = await client.approve({ token: TUSDC, operation: 'liquidity', amount: '100000000', userAddress });
+await waitForReceipt(await wallet.sendTransaction(a2.transaction));
 // Now add liquidity
 const liq = await client.addLiquidity({ token0: WETH, token1: TUSDC, amount0, amount1, userAddress });
 ```
 
-**4. `amount` is always in the token's smallest unit**
+**5. `amount` is always in the token's smallest unit**
 - WETH: 18 decimals → `"1000000000000000"` = 0.001 WETH
 - tUSDC: 6 decimals → `"1000000"` = 1 tUSDC
 
-**5. Nonce management for rapid sequential transactions**
+**6. You need ETH for gas — tUSDC faucet does NOT give ETH**
+```bash
+# Get test ETH from Alchemy (Base Sepolia)
+# https://www.alchemy.com/faucets/base-sepolia
+# Keep ≥ 0.01 ETH per wallet. Swap costs ~100k gas, liquidity ~400k gas.
+```
+
+**7. Nonce management for rapid sequential transactions**
 ```typescript
+// If you need approve → swap without waiting for each receipt:
 const nonce = await provider.getTransactionCount(address, "pending");
 await wallet.sendTransaction({ ...approveTx, nonce });
 await wallet.sendTransaction({ ...swapTx, nonce: nonce + 1 });
 ```
-Without this, the second transaction may fail with a nonce conflict.
+Without this, the second transaction may collide with the first's nonce.
 
-**6. Always check `canBroadcastSafely` before signing**
+**8. Always check `canBroadcastSafely` before signing**
 - `true` = session active + simulation passed (swap) or allowances sufficient (liquidity)
 - `false` = check `preflight.simulation.revertReason` or `preflight.issues`
 
-**7. Don't call contracts directly** — the API injects correct hookData for ComplianceHook identity verification. Direct contract calls will revert with `NotVerified`.
+**9. Don't call contracts directly** — the API injects correct hookData for ComplianceHook identity verification. Direct contract calls will revert with `NotVerified`.
 
-**8. `isApprovalNeeded` on approve responses** — if `false`, skip signing. The allowance is already sufficient.
+**10. `isApprovalNeeded` on approve responses** — if `false`, skip signing. The allowance is already sufficient.
 
-**9. Session lifetime**
-- Testnet: 28 days
-- Production: 24 hours
+**11. Session lifetime**
+- Testnet sessions: 24 hours (pass `durationHours` to extend, max 720h)
+- Production: 24 hours (real ZK proof required)
 - Check remaining time: `GET /api/v1/session/:address`
+- Re-activate: just call `/testnet/activate` again — fully idempotent
+
+**12. Don't hardcode contract addresses** — fetch them at startup:
+```typescript
+const { contracts, tokens } = await fetch(`${API}/api/v1/config/contracts`).then(r => r.json());
+const POSITION_MANAGER = contracts.positionManager; // always current
+```
+The PositionManager address changes when the contract is redeployed.
 
 ---
 
@@ -355,6 +394,9 @@ Without this, the second transaction may fail with a nonce conflict.
 | 412 | `INSUFFICIENT_ETH` | Not enough ETH for gas | [Alchemy Faucet](https://www.alchemy.com/faucets/base-sepolia) |
 | 400 | `UNSUPPORTED_TOKEN` | Token not in whitelist | Only WETH + tUSDC on testnet |
 | 400 | `ALLOWANCE_INSUFFICIENT` | Token not approved | Call `/defi/approve` first |
+| 400 | `VALIDATION_ERROR` | Bad request body | Check `details` array — often `permissions` sent as string instead of array |
+| 401 | `API_KEY_FORMAT_INVALID` | X-API-Key format wrong | Must be `ilal_live_<48 hex chars>` |
+| 401 | `API_KEY_MISSING` | No X-API-Key header on testnet endpoint | Add `X-API-Key: ilal_live_xxx` to all requests including `/testnet/activate` |
 | 429 | `FAUCET_COOLDOWN` | Already claimed today | Check `retryAfterSeconds` in response |
 | 429 | `RATE_LIMIT_EXCEEDED` | Too many requests | Check plan tier (FREE=60/min) |
 
