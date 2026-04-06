@@ -47,19 +47,14 @@ export async function apiKeyMiddleware(
       return;
     }
 
-    // Reject keys with leading/trailing whitespace — do NOT silently trim.
-    // Trimming creates audit ambiguity (multiple representations of the same key).
+    // Format validation — strict regex rejects any embedded whitespace, wrong length,
+    // or non-hex characters. Leading/trailing OWS (space, tab) is stripped by the
+    // HTTP/1.1 parser (RFC 7230 §3.2.3) before this code runs, so the application
+    // layer cannot intercept it. The format regex is the authoritative gate.
     const apiKeyHeader = rawApiKey;
-    if (apiKeyHeader !== apiKeyHeader.trim()) {
-      apiKeyError(res, 'API_KEY_FORMAT_INVALID',
-        'API Key contains leading or trailing whitespace',
-        'Remove any spaces, tabs, or newlines around the key value');
-      return;
-    }
-
     if (!isValidApiKeyFormat(apiKeyHeader)) {
       apiKeyError(res, 'API_KEY_FORMAT_INVALID', 'API Key format is invalid',
-        'Expected format: ilal_{test|live}_{48 hex characters}');
+        'Expected format: ilal_{test|live}_{48 hex characters}. Key must contain only lowercase hex digits with no spaces.');
       return;
     }
 
