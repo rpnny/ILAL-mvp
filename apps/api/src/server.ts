@@ -7,6 +7,7 @@ import express, { type Request, type Response, type NextFunction } from 'express
 import cors from 'cors';
 import helmet from 'helmet';
 import { logger } from './config/logger.js';
+import { CONTRACTS, DEMO_TOKENS, CHAIN_ID } from './config/constants.js';
 
 declare global {
   namespace Express {
@@ -115,6 +116,27 @@ export async function createServer(): Promise<express.Application> {
   // Health check (no auth required)
   app.get('/api/v1/health', verifyController.healthCheck);
   app.get('/health', verifyController.healthCheck);
+
+  // Contract addresses — public, no auth required
+  app.get('/api/v1/config/contracts', (_req: Request, res: Response) => {
+    res.json({
+      network: 'base-sepolia',
+      chainId: CHAIN_ID,
+      contracts: {
+        sessionManager:   CONTRACTS.sessionManager,
+        verifier:         CONTRACTS.verifier,
+        simpleSwapRouter: CONTRACTS.simpleSwapRouter,
+        poolManager:      CONTRACTS.poolManager,
+        positionManager:  CONTRACTS.positionManager,
+        complianceHook:   CONTRACTS.complianceHook,
+      },
+      tokens: {
+        WETH:  DEMO_TOKENS.WETH,
+        tUSDC: DEMO_TOKENS.tUSDC,
+      },
+      note: 'All addresses are on Base Sepolia (chainId 84532). positionManager reflects the currently active deployment.',
+    });
+  });
 
   // Auth routes
   app.use('/api/v1/auth', authRoutes);

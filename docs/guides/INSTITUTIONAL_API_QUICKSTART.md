@@ -10,6 +10,13 @@ Complete guide: register, activate session, get test tokens, approve, and swap �
 
 ## Contract Addresses (Base Sepolia)
 
+> **Always fetch the live addresses from the API** — the PositionManager may be redeployed without notice:
+> ```bash
+> curl $API/api/v1/config/contracts
+> ```
+
+Static reference (may lag behind the latest deployment):
+
 | Contract | Address |
 |----------|---------|
 | tUSDC | `0xa486Fb51ED09B970A23F7Fe910bc90089f78424D` |
@@ -42,7 +49,7 @@ Save the `accessToken` from the response.
 curl -X POST $API/api/v1/apikeys \
   -H "Authorization: Bearer <accessToken>" \
   -H "Content-Type: application/json" \
-  -d '{"name":"integration-test","permissions":"verify,session,swap,liquidity,usage"}'
+  -d '{"name":"integration-test","permissions":["verify","session","swap","liquidity","usage"]}'
 ```
 
 Save the API key (shown only once). Use it as `X-API-Key` header for all subsequent calls.
@@ -300,3 +307,5 @@ if (liqRes.preflight?.canBroadcastSafely) {
 | `INSUFFICIENT_ETH` (412) | Not enough ETH for gas | Get Base Sepolia ETH from [faucet](https://www.alchemy.com/faucets/base-sepolia) |
 | `CallbackFailed(modifyLiquidity, ...)` | Inner contract error surfaced | Check inner revert data — typically `NotVerified` (session) or allowance |
 | Liquidity tx revert `0x` | Old PositionManager (pre-v2) | Ensure API uses the latest PM address |
+| 401 on `/testnet/activate` | Missing or invalid API key | Include `X-API-Key: <your-api-key>` header. Key must be `ilal_live_<48 hex chars>`. |
+| 400 on `/apikeys` create | `permissions` sent as string | Send `permissions` as a JSON array: `["verify","session","swap","liquidity","usage"]` |
