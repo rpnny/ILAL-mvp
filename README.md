@@ -27,7 +27,8 @@ ILAL is a Uniswap v4 Hook that enforces KYC/AML compliance at the protocol level
 - Rate limits: FREE=60/min, PRO=300/min, ENTERPRISE=1000/min — suitable for concurrent institutional workloads
 
 **Verified on-chain transactions (live Base Sepolia):**
-- ZK Session Activation (PLONK proof): [`0xf0fbb55e...`](https://sepolia.basescan.org/tx/0xf0fbb55ebba7425c6f9ec9fc2a70bb7d9b23d13152eeba2ede78b402adb3b896)
+- ZK Session Activation (PLONK proof, 35.9s, 52511 gas): [`0x8ca5f56e...`](https://sepolia.basescan.org/tx/0x8ca5f56eb9328a443ca8fe9c3317cfbd5d0a6bcd90d5ede687b8f04451853a67) ← latest run 2026-04-06
+- Earlier ZK Session Activation: [`0xf0fbb55e...`](https://sepolia.basescan.org/tx/0xf0fbb55ebba7425c6f9ec9fc2a70bb7d9b23d13152eeba2ede78b402adb3b896)
 - Swap WETH→tUSDC: [`0xd5afad58...`](https://sepolia.basescan.org/tx/0xd5afad581a685b4a20a5795c77565d4ac66a0bfe346e766669f7ada8fd23ee51)
 - Add Liquidity [-600,600]: [`0x709925b0...`](https://sepolia.basescan.org/tx/0x709925b0bc256678054af221643fc0c4dabcde4783b72551389e8e0d9f71b894)
 - Add Liquidity [-120,120]: [`0xecc8bf42...`](https://sepolia.basescan.org/tx/0xecc8bf42e04e2f9af61f269cbb068ebcde49914ffc249484d053a26370d54d73)
@@ -79,10 +80,10 @@ The ZK compliance core has been verified end-to-end on the live testnet deployme
 | Step | Result | Evidence |
 |------|--------|----------|
 | Address without session → swap | **Reverted** with `SESSION_NOT_ACTIVE` | ComplianceHook `beforeSwap()` enforces |
-| Institution onboarding + Merkle tree | Registered (index=18) | EdDSA-Poseidon attestation signed |
-| PLONK proof generation (server-side) | 29.8 seconds | 19,763 constraints, snarkjs fullProve |
+| Institution onboarding + Merkle tree | Registered (index=37) | EdDSA-Poseidon attestation signed |
+| PLONK proof generation (server-side) | 35.9 seconds | 19,763 constraints, snarkjs fullProve |
 | On-chain proof verification | Accepted | PlonkVerifierAdapter contract |
-| Session activation via relayer | [`0xf0fbb55e...`](https://sepolia.basescan.org/tx/0xf0fbb55ebba7425c6f9ec9fc2a70bb7d9b23d13152eeba2ede78b402adb3b896) | 52,499 gas, 24h session |
+| Session activation via relayer | [`0x8ca5f56e...`](https://sepolia.basescan.org/tx/0x8ca5f56eb9328a443ca8fe9c3317cfbd5d0a6bcd90d5ede687b8f04451853a67) | 52,511 gas, 24h session |
 | Address with session → swap | **Allowed** | ComplianceHook passes, session active |
 
 > **What this proves:** The ZK compliance pipeline is not theoretical — it runs on live contracts on Base Sepolia. A real PLONK proof was generated from a real EdDSA attestation and Merkle membership proof, verified by a real on-chain verifier contract, and used to activate a real session that the ComplianceHook recognizes. The negative test confirms that addresses without sessions are mathematically blocked.
