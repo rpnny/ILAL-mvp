@@ -471,11 +471,13 @@ export async function getSessionStatus(req: Request, res: Response): Promise<voi
  */
 export async function healthCheck(req: Request, res: Response): Promise<void> {
   try {
+    const { getRedisStore } = await import('../config/redis.js');
     const response: any = {
       status: 'ok',
       service: 'ILAL API',
       timestamp: new Date().toISOString(),
       database: 'connected',
+      rateLimiting: getRedisStore() ? 'redis' : 'memory',
     };
 
     try {
