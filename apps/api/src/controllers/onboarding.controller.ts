@@ -17,8 +17,31 @@ import * as merkleService from '../services/merkle.service.js';
 import * as zkproofService from '../services/zkproof.service.js';
 import { blockchainService } from '../services/blockchain.service.js';
 
+// ── OFAC / UN sanctioned country codes (ISO 3166-1 numeric) ──
+// Sources: OFAC SDN, EU consolidated list, UN Security Council sanctions
+const SANCTIONED_COUNTRIES: ReadonlySet<number> = new Set([
+  408, // North Korea (DPRK)
+  364, // Iran
+  760, // Syria
+  192, // Cuba
+  // Additional high-risk jurisdictions (FATF blacklist)
+  728, // South Sudan
+  736, // Sudan (pre-split code, still blocked)
+  716, // Zimbabwe (targeted sanctions)
+]);
+
+/** Strip HTML/script tags and dangerous characters from user-supplied strings */
+function sanitizeName(raw: string): string {
+  return raw
+    .replace(/<[^>]*>/g, '')         // strip HTML tags
+    .replace(/['"`;\\]/g, '')        // strip quote chars and backslash
+    .replace(/\s+/g, ' ')           // collapse whitespace
+    .trim();
+}
+
 const registerSchema = z.object({
-  name: z.string().min(1).max(200),
+  name: z.string().min(1).max(200).transform(sanitizeName)
+    .refine((v) => v.length >= 1, { message: 'Name must not be empty after sanitization' }),
   walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address').optional(),
   userAddress:   z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address').optional(),
   countryCode: z.number().int().min(1).max(999).optional().default(840),
@@ -28,6 +51,9 @@ const registerSchema = z.object({
 })).refine((data) => !!data.walletAddress, {
   message: 'walletAddress (or userAddress) is required',
   path: ['walletAddress'],
+}).refine((data) => !SANCTIONED_COUNTRIES.has(data.countryCode), {
+  message: 'Registration from sanctioned jurisdictions is prohibited',
+  path: ['countryCode'],
 });
 
 function requireAuthenticatedUserId(req: Request, res: Response): string | null {

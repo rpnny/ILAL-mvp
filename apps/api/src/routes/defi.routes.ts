@@ -6,8 +6,12 @@ import { Router } from 'express';
 import * as DefiController from '../controllers/defi.controller.js';
 import { hybridAuthMiddleware as authenticate } from '../middleware/hybrid.middleware.js';
 import { requirePermissionIfApiKey } from '../middleware/apikey.middleware.js';
+import { dynamicRateLimiter } from '../middleware/ratelimit.middleware.js';
 
 const router: Router = Router();
+
+// Apply rate limiting to all DeFi routes
+router.use(dynamicRateLimiter);
 
 // Self-check / environment-check endpoint (read-only, no permission required)
 router.get('/preflight/:address', authenticate, DefiController.preflightCheck);

@@ -39,11 +39,21 @@ export async function apiKeyMiddleware(
   next: NextFunction
 ): Promise<void> {
   try {
-    const apiKeyHeader = req.headers['x-api-key'] as string;
+    const rawApiKey = req.headers['x-api-key'] as string;
 
-    if (!apiKeyHeader) {
+    if (!rawApiKey) {
       apiKeyError(res, 'API_KEY_MISSING', 'Missing X-API-Key header',
         'Include the X-API-Key header with your API key');
+      return;
+    }
+
+    // Reject keys with leading/trailing whitespace — do NOT silently trim.
+    // Trimming creates audit ambiguity (multiple representations of the same key).
+    const apiKeyHeader = rawApiKey;
+    if (apiKeyHeader !== apiKeyHeader.trim()) {
+      apiKeyError(res, 'API_KEY_FORMAT_INVALID',
+        'API Key contains leading or trailing whitespace',
+        'Remove any spaces, tabs, or newlines around the key value');
       return;
     }
 

@@ -32,15 +32,20 @@ function isTokenSupported(addr: string): boolean {
 
 const ETH_ADDRESS = /^0x[a-fA-F0-9]{40}$/;
 
-const positiveIntString = z.string().regex(
-  /^[1-9]\d*$/,
-  'Must be a positive integer string (no leading zeros, no decimals)',
-);
+// uint256 max = 2^256 - 1 (78 digits). Reject anything larger to prevent overflow.
+const UINT256_MAX = (1n << 256n) - 1n;
 
-const nonNegativeIntString = z.string().regex(
-  /^(0|[1-9]\d*)$/,
-  'Must be a non-negative integer string',
-);
+const positiveIntString = z.string()
+  .regex(/^[1-9]\d*$/, 'Must be a positive integer string (no leading zeros, no decimals)')
+  .max(78, 'Amount exceeds uint256 maximum (78 digits)')
+  .refine((v) => { try { return BigInt(v) <= UINT256_MAX; } catch { return false; } },
+    { message: 'Amount exceeds uint256 maximum (2^256 - 1)' });
+
+const nonNegativeIntString = z.string()
+  .regex(/^(0|[1-9]\d*)$/, 'Must be a non-negative integer string')
+  .max(78, 'Amount exceeds uint256 maximum (78 digits)')
+  .refine((v) => { try { return BigInt(v) <= UINT256_MAX; } catch { return false; } },
+    { message: 'Amount exceeds uint256 maximum (2^256 - 1)' });
 
 /**
  * Normalize field aliases in request body so clients can use either name:
@@ -128,6 +133,16 @@ const liquiditySchema = z.object({
       code: z.ZodIssueCode.custom,
       message: 'tickLower must be less than tickUpper',
       path: ['tickLower'],
+    });
+  }
+
+  // Uniswap v4 requires token0 < token1 (by address). Reject misordered pairs
+  // so clients don't waste gas on a guaranteed revert.
+  if (data.token0.toLowerCase() > data.token1.toLowerCase()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `token0 must have a lower address than token1 (Uniswap convention). Swap them: token0=${data.token1}, token1=${data.token0}`,
+      path: ['token0'],
     });
   }
 });
@@ -300,6 +315,17 @@ export async function executeSwap(req: Request, res: Response): Promise<void> {
       }
     }
 
+    // Minimum amount check — reject dust swaps (< 1000 wei)
+    if (BigInt(params.amount) < 1000n) {
+      sendError(res, 400, {
+        code: 'AMOUNT_TOO_SMALL',
+        message: `Swap amount ${params.amount} is below minimum (1000 wei). Dust swaps waste gas and can be used for griefing.`,
+        hint: 'Use a meaningful amount: e.g., 1000000 (1 tUSDC) or 1000000000000000 (0.001 WETH).',
+        phase: 'validation',
+      }, req);
+      return;
+    }
+
     // Token whitelist check
     if (!isTokenSupported(params.tokenIn)) {
       sendError(res, 400, {
@@ -421,6 +447,10 @@ export async function executeSwap(req: Request, res: Response): Promise<void> {
       nonceManagement: {
         hint: 'For rapid sequential transactions, manage nonces client-side using eth_getTransactionCount("pending") and increment manually.',
         example: 'const nonce = await provider.getTransactionCount(address, "pending"); sendTx({...tx, nonce});',
+      },
+      slippageWarning: {
+        message: 'This transaction uses minAmountOut=0 (no slippage protection). For production, get a quote first and set your own minAmountOut.',
+        recommendation: 'Call GET /defi/quote to get suggestedMinAmountOut (0.5% slippage), then modify the swap calldata before broadcasting.',
       },
     });
 
