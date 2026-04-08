@@ -115,12 +115,32 @@ model Institution {
   merkleIndex    Int?
   attestation    String?  // JSON-encoded IssuerAttestation
   approvedAt     String?  // ISO string
+  kycSource      String?  // "sumsub" | "coinbase-eas" | "mock"
+  kycProviderId  String?  // Sumsub applicantId or EAS attestation UID
+  kycMetadata    Json?    // Provider-specific verification metadata
+  kycVerifiedAt  String?  // ISO string — when KYC provider confirmed identity
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+}
+
+// KYC webhook/verification log — idempotency + audit trail
+model KycWebhookLog {
+  id            String   @id @default(cuid())
+  provider      String   // "sumsub" | "coinbase-eas"
+  externalId    String   // Sumsub applicantId or EAS attestation UID
+  eventType     String   // "applicantReviewed", "eas-verified", etc.
+  payload       Json     // Raw payload (PII-scrubbed)
+  walletAddress String?
+  processed     Boolean  @default(false)
+  result        String?  // "approved" | "rejected" | "error"
+  createdAt     DateTime @default(now())
+
+  @@unique([provider, externalId, eventType])
+  @@index([walletAddress])
 }
 
 // Subscriptions table

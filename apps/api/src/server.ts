@@ -53,8 +53,8 @@ export async function createServer(): Promise<express.Application> {
 
   // ============ Middleware ============
 
-  // IMPORTANT: Stripe webhook must be registered BEFORE express.json()
-  // because it needs the raw request body for signature verification
+  // IMPORTANT: Webhooks must be registered BEFORE express.json()
+  // because they need the raw request body for signature verification
   const { handleWebhook } = await import('./services/stripe.service.js');
   const { logger: log } = await import('./config/logger.js');
   app.post('/api/v1/stripe/webhook',
@@ -70,6 +70,13 @@ export async function createServer(): Promise<express.Application> {
         res.status(400).json({ error: err.message });
       }
     }
+  );
+
+  // Sumsub webhook — HMAC-SHA1 signature verification on raw body
+  const { handleSumsubWebhook } = await import('./controllers/webhook.controller.js');
+  app.post('/api/v1/webhooks/sumsub',
+    express.raw({ type: 'application/json' }),
+    handleSumsubWebhook,
   );
 
   // Security headers

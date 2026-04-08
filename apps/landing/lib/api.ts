@@ -169,6 +169,95 @@ export async function renewSession(
   });
 }
 
+// ── KYC / Onboarding ─────────────────────────────────────────
+
+/**
+ * Register an institution (creates with kycStatus=0 if real KYC is enabled).
+ */
+export async function registerInstitution(
+  token: string,
+  params: { name: string; walletAddress: string; countryCode?: number },
+): Promise<{
+  success: boolean;
+  institutionId: string;
+  status: string;
+  walletAddress: string;
+  nextSteps?: string[];
+  merkleRoot?: string;
+  leafIndex?: number;
+  message: string;
+}> {
+  return apiFetch(`${API_URL}/api/v1/onboarding/register`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify(params),
+  });
+}
+
+/**
+ * Verify a wallet via Coinbase EAS attestation on-chain.
+ */
+export async function verifyEAS(
+  token: string,
+  walletAddress: string,
+): Promise<{
+  success: boolean;
+  status: string;
+  institutionId: string;
+  walletAddress: string;
+  kycSource?: string;
+  merkleRoot?: string;
+  merkleIndex?: number;
+  message: string;
+}> {
+  return apiFetch(`${API_URL}/api/v1/onboarding/verify-eas`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify({ walletAddress }),
+  });
+}
+
+/**
+ * Get onboarding/KYC status for a wallet.
+ */
+export async function getOnboardingStatus(
+  token: string,
+  walletAddress: string,
+): Promise<{
+  success: boolean;
+  status: string;
+  institutionId?: string;
+  name?: string;
+  walletAddress: string;
+  kycSource?: string | null;
+  kycVerifiedAt?: string | null;
+  merkleIndex?: number | null;
+}> {
+  return apiFetch(
+    `${API_URL}/api/v1/onboarding/status/${encodeURIComponent(walletAddress)}`,
+    { headers: authHeaders(token) },
+  );
+}
+
+/**
+ * Get a Sumsub WebSDK access token for identity verification.
+ */
+export async function getSumsubToken(
+  token: string,
+  walletAddress: string,
+): Promise<{
+  success: boolean;
+  token: string;
+  externalUserId: string;
+  message: string;
+}> {
+  return apiFetch(`${API_URL}/api/v1/onboarding/sumsub-token`, {
+    method: 'POST',
+    headers: authHeaders(token),
+    body: JSON.stringify({ walletAddress }),
+  });
+}
+
 // ── DeFi / Swap ───────────────────────────────────────────────
 
 export async function executeSwap(

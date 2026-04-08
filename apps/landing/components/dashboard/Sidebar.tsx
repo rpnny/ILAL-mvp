@@ -3,12 +3,13 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Home, Key, BarChart3, Settings, FileText, ArrowLeft, Play, LogOut, Flame, ShieldCheck } from 'lucide-react';
+import { Home, Key, BarChart3, Settings, FileText, ArrowLeft, Play, LogOut, Flame, ShieldCheck, UserCheck } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../hooks/useAuth';
 
 const navigation = [
   { name: 'Overview', href: '/dashboard', icon: Home, exact: true },
+  { name: 'KYC Verification', href: '/dashboard/kyc', icon: UserCheck },
   { name: 'API Keys', href: '/dashboard/api-keys', icon: Key },
   { name: 'Swap', href: '/dashboard/swap', icon: BarChart3 },
   { name: 'Live Exercise', href: '/dashboard/live-exercise', icon: Flame },

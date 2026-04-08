@@ -60,6 +60,11 @@ class BlockchainService {
     transport: http(RPC_URL),
   });
 
+  /** Expose the public client for services that need direct contract reads (e.g. EAS verification). */
+  getPublicClient() {
+    return this.publicClient;
+  }
+
   /** Only available when VERIFIER_PRIVATE_KEY is configured. */
   private walletClient: ReturnType<typeof createWalletClient> | undefined;
   private account: ReturnType<typeof privateKeyToAccount> | undefined;

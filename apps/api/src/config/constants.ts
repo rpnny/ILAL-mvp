@@ -74,6 +74,26 @@ export function getValidMerkleRoots(dynamicRoots?: { current: bigint; previous: 
   return Array.from(set);
 }
 
+// ============ KYC Config ============
+// Controls which KYC sources are enabled: "all" | "sumsub" | "eas" | "mock"
+// "mock" preserves current auto-approve behavior for development
+export const KYC_MODE = (process.env.KYC_MODE || 'mock') as 'all' | 'sumsub' | 'eas' | 'mock';
+
+// Sumsub
+export const SUMSUB_APP_TOKEN = process.env.SUMSUB_APP_TOKEN || '';
+export const SUMSUB_SECRET_KEY = process.env.SUMSUB_SECRET_KEY || '';
+export const SUMSUB_WEBHOOK_SECRET = process.env.SUMSUB_WEBHOOK_SECRET || '';
+export const SUMSUB_LEVEL_NAME = process.env.SUMSUB_LEVEL_NAME || 'basic-kyc-level';
+export const SUMSUB_BASE_URL = process.env.SUMSUB_BASE_URL || 'https://api.sumsub.com';
+
+// Coinbase EAS (mirrors SDK constants from packages/sdk/src/constants/addresses.ts)
+export const EAS_CONTRACT_ADDRESS = '0x4200000000000000000000000000000000000021' as Address;
+export const COINBASE_ATTESTER_ADDRESS = '0x357458739F90461b99789350868CD7CF330Dd7EE' as Address;
+export const EAS_SCHEMA_IDS = {
+  VERIFIED_ACCOUNT: '0xf8b05c79f090979bf4a80270aba232dff11a10d9ca55c4f88de95317970f0de9' as Hex,
+  VERIFIED_COUNTRY: '0x1801901fabd0e6189356b4fb52bb0ab855276d84f7ec140839fbd1f6801ca065' as Hex,
+} as const;
+
 // ============ Rate Limit Config ============
 export const RATE_LIMITS = {
   FREE: {
