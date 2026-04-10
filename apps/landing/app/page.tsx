@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight, Lock, Zap, ShieldCheck, Activity, Terminal, Database } from "lucide-react";
+import { ArrowRight, Lock, Zap, ShieldCheck, Activity, Terminal, Database, ChevronRight, FileCheck, Fingerprint, Timer, Blocks } from "lucide-react";
 import Link from "next/link";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
@@ -159,26 +159,98 @@ export default function Home() {
           </div>
         </section>
 
-        {/* TRUSTED BY / INTEGRATIONS PREVIEW */}
-        <section className="py-24 border-t border-white/5 bg-gradient-to-b from-transparent to-[#050505]">
-          <div className="container mx-auto px-6 text-center">
-            <h3 className="text-sm text-gray-500 uppercase tracking-widest font-medium mb-10">Powering Compliant Markets On</h3>
-
-            <div className="flex flex-wrap justify-center items-center gap-12 md:gap-24 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-full bg-pink-500 flex items-center justify-center"><Database className="w-4 h-4 text-white" /></div>
-                <span className="font-bold text-xl tracking-tight text-white">Uniswap <span className="text-pink-500">V4</span></span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center"><span className="text-white font-bold font-serif italic text-sm">O</span></div>
-                <span className="font-bold text-xl tracking-tight text-white">Base</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-6 h-6 border-2 border-purple-500 flex items-center justify-center"><span className="text-white font-bold text-xs">EAS</span></div>
-                <span className="font-bold text-xl tracking-tight text-white">Attestations</span>
-              </div>
+        {/* HOW IT WORKS — Architecture Flow */}
+        <section className="py-32 border-t border-white/5 relative overflow-hidden">
+          <div className="container mx-auto px-6">
+            <div className="text-center mb-20">
+              <h2 className="font-heading text-3xl md:text-5xl font-bold mb-4">How It Works</h2>
+              <p className="text-gray-400 text-lg font-light max-w-2xl mx-auto">From KYC verification to DeFi execution in four steps. No custody. No intermediaries.</p>
             </div>
 
+            {/* Flow Steps */}
+            <div className="grid md:grid-cols-4 gap-6 relative">
+              {/* Connecting line (desktop) */}
+              <div className="hidden md:block absolute top-16 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-primary/40 via-secondary/40 to-primary/40" />
+
+              {[
+                { step: "01", icon: FileCheck, title: "KYC Verification", desc: "Complete identity verification via Coinbase EAS attestation or Sumsub. Your data stays off-chain.", color: "from-primary/20 to-primary/5", iconColor: "text-primary" },
+                { step: "02", icon: Fingerprint, title: "ZK Proof Generation", desc: "A PLONK zero-knowledge proof is generated, proving compliance without revealing any personal data.", color: "from-secondary/20 to-secondary/5", iconColor: "text-secondary" },
+                { step: "03", icon: Timer, title: "Session Activation", desc: "Your proof is verified on-chain and cached for 24 hours. All subsequent trades use native gas fees.", color: "from-primary/20 to-primary/5", iconColor: "text-primary" },
+                { step: "04", icon: Blocks, title: "Trade on Uniswap V4", desc: "Execute swaps and provide liquidity through ILAL hooks. Non-compliant orders are atomically reverted.", color: "from-secondary/20 to-secondary/5", iconColor: "text-secondary" },
+              ].map((item, i) => (
+                <motion.div
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.15 }}
+                  key={i}
+                  className="relative text-center"
+                >
+                  {/* Step number circle */}
+                  <div className={`w-12 h-12 mx-auto mb-6 rounded-full bg-gradient-to-b ${item.color} border border-white/10 flex items-center justify-center relative z-10 bg-[#0A0A0A]`}>
+                    <item.icon className={`w-5 h-5 ${item.iconColor}`} />
+                  </div>
+
+                  <div className="text-[10px] text-gray-600 uppercase tracking-[0.3em] font-medium mb-2">Step {item.step}</div>
+                  <h3 className="text-lg font-bold mb-2">{item.title}</h3>
+                  <p className="text-sm text-gray-400 font-light leading-relaxed">{item.desc}</p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* BUILT ON — Integration Logos */}
+        <section className="py-20 border-t border-white/5 bg-gradient-to-b from-transparent to-[#050505]">
+          <div className="container mx-auto px-6 text-center">
+            <h3 className="text-sm text-gray-500 uppercase tracking-[0.2em] font-medium mb-12">Built On</h3>
+
+            <div className="flex flex-wrap justify-center items-center gap-10 md:gap-16">
+              {[
+                { name: "Uniswap V4", accent: "bg-[#FF007A]", letter: "U" },
+                { name: "Base", accent: "bg-[#0052FF]", letter: "B" },
+                { name: "EAS", accent: "bg-[#8B5CF6]", letter: "E" },
+                { name: "Circom", accent: "bg-[#22C55E]", letter: "C" },
+                { name: "snarkjs", accent: "bg-[#F59E0B]", letter: "S" },
+              ].map((item, i) => (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.08 }}
+                  key={i}
+                  className="flex items-center space-x-3 group"
+                >
+                  <div className={`w-9 h-9 rounded-lg ${item.accent} flex items-center justify-center opacity-70 group-hover:opacity-100 transition-opacity`}>
+                    <span className="text-white font-bold text-sm">{item.letter}</span>
+                  </div>
+                  <span className="font-semibold text-lg text-gray-400 group-hover:text-white transition-colors">{item.name}</span>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="py-32 relative">
+          <div className="container mx-auto px-6 text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="max-w-2xl mx-auto"
+            >
+              <h2 className="font-heading text-3xl md:text-5xl font-bold mb-6">Ready to Go Compliant?</h2>
+              <p className="text-gray-400 text-lg font-light mb-10">Start trading on Uniswap V4 with full KYC/AML compliance. No intermediaries, no custody risk.</p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-5">
+                <Link href="/dashboard" className="w-full sm:w-auto glass-button glass-button-primary px-8 py-3.5 flex items-center justify-center text-[15px]">
+                  Launch Demo <ArrowRight className="w-4 h-4 ml-2" />
+                </Link>
+                <Link href="/docs" className="w-full sm:w-auto glass-button glass-button-purple px-8 py-3.5 flex items-center justify-center text-[15px]">
+                  Read the Docs
+                </Link>
+              </div>
+            </motion.div>
           </div>
         </section>
 

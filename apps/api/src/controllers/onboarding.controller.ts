@@ -1,9 +1,7 @@
 /**
- * Onboarding Controller — Institution self-service registration + KYC verification
+ * Onboarding Controller — Institution self-service registration
  *
- * POST /onboarding/register              — Register a new institution (pending KYC)
- * POST /onboarding/verify-eas            — Verify via Coinbase EAS attestation
- * POST /onboarding/sumsub-token          — Get Sumsub WebSDK access token
+ * POST /onboarding/register              — Register a new institution (mock KYC auto-approve)
  * POST /onboarding/activate-session      — Server-side ZK proof + on-chain session activation
  * GET  /onboarding/status/:address       — Check onboarding status
  * GET  /onboarding/attestation/:address  — Get IssuerAttestation + Merkle proof
@@ -14,67 +12,17 @@ import { z } from 'zod';
 import { type Address, getAddress } from 'viem';
 import { prisma } from '../config/database.js';
 import { logger } from '../config/logger.js';
-import { KYC_MODE } from '../config/constants.js';
 import * as issuerService from '../services/issuer.service.js';
 import * as merkleService from '../services/merkle.service.js';
 import * as zkproofService from '../services/zkproof.service.js';
-import { blockchainService } from '../services/blockchain.service.js';
-import * as kycApprovalService from '../services/kyc-approval.service.js';
-import { AlreadyApprovedError } from '../services/kyc-approval.service.js';
 import * as easVerificationService from '../services/eas-verification.service.js';
-import * as sumsubService from '../services/sumsub.service.js';
-
-// ── OFAC / UN sanctioned country codes (ISO 3166-1 numeric) ──
-// Sources: OFAC SDN, EU consolidated list, UN Security Council sanctions
-const SANCTIONED_COUNTRIES: ReadonlySet<number> = new Set([
-  408, // North Korea (DPRK)
-  364, // Iran
-  760, // Syria
-  192, // Cuba
-  643, // Russia
-  112, // Belarus
-  // Additional high-risk jurisdictions (FATF blacklist / UN sanctions)
-  728, // South Sudan
-  736, // Sudan (pre-split code, still blocked)
-  716, // Zimbabwe (targeted sanctions)
-  887, // Yemen (Houthi-controlled areas)
-  434, // Libya
-  706, // Somalia
-  140, // Central African Republic
-  178, // Congo (DRC)
-  368, // Iraq (partial)
-  422, // Lebanon (Hezbollah-related)
-  704, // Vietnam (FATF grey list, restricted)
-  104, // Myanmar
-]);
-
-/**
- * Sanitize institution name — whitelist approach.
- * Only allow safe characters: letters, digits, spaces, hyphens, dots, commas,
- * ampersands, parentheses. Everything else is stripped.
- */
-function sanitizeName(raw: string): string {
-  return raw
-    .replace(/[^a-zA-Z0-9\s\-.,&\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
+import { blockchainService } from '../services/blockchain.service.js';
+import { KYC_MODE } from '../config/constants.js';
 
 const registerSchema = z.object({
-  name: z.string().min(1).max(200).transform(sanitizeName)
-    .refine((v) => v.length >= 1, { message: 'Name must not be empty after sanitization' }),
-  walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address').optional(),
-  userAddress:   z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address').optional(),
+  name: z.string().min(1).max(200),
+  walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address'),
   countryCode: z.number().int().min(1).max(999).optional().default(840),
-}).transform((data) => ({
-  ...data,
-  walletAddress: data.walletAddress ?? data.userAddress,
-})).refine((data) => !!data.walletAddress, {
-  message: 'walletAddress (or userAddress) is required',
-  path: ['walletAddress'],
-}).refine((data) => !SANCTIONED_COUNTRIES.has(data.countryCode), {
-  message: 'Registration from sanctioned jurisdictions is prohibited',
-  path: ['countryCode'],
 });
 
 function requireAuthenticatedUserId(req: Request, res: Response): string | null {
@@ -116,7 +64,7 @@ export async function register(req: Request, res: Response): Promise<void> {
     if (!userId) return;
 
     const body = registerSchema.parse(req.body);
-    const walletAddress = getAddress(body.walletAddress!);
+    const walletAddress = getAddress(body.walletAddress);
 
     const existing = await prisma.institution.findUnique({ where: { walletAddress } });
     if (existing) {
@@ -187,86 +135,102 @@ export async function register(req: Request, res: Response): Promise<void> {
       // Re-process a previously pending registration
     }
 
-    // KYC_MODE=mock: preserve legacy auto-approve behavior for development/testing
-    if (KYC_MODE === 'mock') {
-      const timestamp = Math.floor(Date.now() / 1000);
-      const { leafIndex, root } = await merkleService.addLeaf(walletAddress, 1);
-      const attestationData = await issuerService.signAttestation(walletAddress, 1, body.countryCode, timestamp);
-      const proof = merkleService.getProof(leafIndex);
-      const fullAttestation = {
-        ...attestationData,
-        merkleRoot: proof.root,
-        merkleProof: proof.siblings,
-        merkleIndex: leafIndex.toString(),
-      };
+    // KYC_MODE check: if not 'mock', register as pending and require verify-eas
+    if (KYC_MODE !== 'mock') {
+      const institution = existing
+        ? await prisma.institution.update({
+            where: { walletAddress },
+            data: { userId, name: body.name, countryCode: body.countryCode },
+          })
+        : await prisma.institution.create({
+            data: {
+              userId,
+              name: body.name,
+              walletAddress,
+              countryCode: body.countryCode,
+              kycStatus: 0,
+            },
+          });
 
-      if (existing) {
-        await prisma.institution.update({
-          where: { walletAddress },
-          data: {
-            userId, name: body.name, countryCode: body.countryCode,
-            kycStatus: 1, merkleIndex: leafIndex,
-            attestation: JSON.stringify(fullAttestation),
-            approvedAt: new Date().toISOString(),
-            kycSource: 'mock',
-          },
-        });
-      } else {
-        await prisma.institution.create({
-          data: {
-            userId, name: body.name, walletAddress, countryCode: body.countryCode,
-            kycStatus: 1, merkleIndex: leafIndex,
-            attestation: JSON.stringify(fullAttestation),
-            approvedAt: new Date().toISOString(),
-            kycSource: 'mock',
-          },
-        });
-      }
-
-      logger.info('Institution registered (mock KYC)', { walletAddress, leafIndex });
       res.status(201).json({
         success: true,
-        institutionId: existing?.id ?? 'created',
-        name: body.name,
-        status: 'approved',
+        institutionId: institution.id,
+        status: 'pending_kyc',
         walletAddress,
-        merkleRoot: root,
-        leafIndex,
-        message: 'Registration complete (mock KYC). Use GET /onboarding/attestation/:address to retrieve your attestation.',
+        nextSteps: {
+          coinbaseEas: 'POST /onboarding/verify-eas with { walletAddress } if you have a Coinbase EAS attestation on Base Mainnet',
+        },
       });
       return;
     }
 
-    // Real KYC: create institution with kycStatus=0 (pending verification)
+    // Mock KYC: auto-approve
+    const timestamp = Math.floor(Date.now() / 1000);
+
+    // 1. Add to Merkle tree
+    const { leafIndex, root } = await merkleService.addLeaf(walletAddress, 1);
+
+    // 2. Sign attestation
+    const attestationData = await issuerService.signAttestation(
+      walletAddress,
+      1,
+      body.countryCode,
+      timestamp,
+    );
+
+    // 3. Get Merkle proof
+    const proof = merkleService.getProof(leafIndex);
+
+    const fullAttestation = {
+      ...attestationData,
+      merkleRoot: proof.root,
+      merkleProof: proof.siblings,
+      merkleIndex: leafIndex.toString(),
+    };
+
+    // 4. Persist to DB
     if (existing) {
       await prisma.institution.update({
         where: { walletAddress },
-        data: { userId, name: body.name, countryCode: body.countryCode },
+        data: {
+          userId,
+          name: body.name,
+          countryCode: body.countryCode,
+          kycStatus: 1,
+          merkleIndex: leafIndex,
+          attestation: JSON.stringify(fullAttestation),
+          approvedAt: new Date().toISOString(),
+        },
       });
     } else {
       await prisma.institution.create({
-        data: { userId, name: body.name, walletAddress, countryCode: body.countryCode, kycStatus: 0 },
+        data: {
+          userId,
+          name: body.name,
+          walletAddress,
+          countryCode: body.countryCode,
+          kycStatus: 1,
+          merkleIndex: leafIndex,
+          attestation: JSON.stringify(fullAttestation),
+          approvedAt: new Date().toISOString(),
+        },
       });
     }
 
-    logger.info('Institution registered (pending KYC)', { walletAddress });
-
-    const availableMethods: string[] = [];
-    if (KYC_MODE === 'all' || KYC_MODE === 'eas') {
-      availableMethods.push('POST /api/v1/onboarding/verify-eas — verify via Coinbase EAS attestation');
-    }
-    if (KYC_MODE === 'all' || KYC_MODE === 'sumsub') {
-      availableMethods.push('POST /api/v1/onboarding/sumsub-token — start Sumsub identity verification');
-    }
+    logger.info('Institution registered', {
+      walletAddress,
+      leafIndex,
+      root: root.slice(0, 30) + '...',
+    });
 
     res.status(201).json({
       success: true,
       institutionId: existing?.id ?? 'created',
-      name: body.name,
-      status: 'pending_kyc',
+      status: 'approved',
       walletAddress,
-      message: 'Registration complete. Complete KYC verification to activate your institution.',
-      nextSteps: availableMethods,
+      merkleRoot: root,
+      leafIndex,
+      message: 'Registration complete. Use GET /onboarding/attestation/:address to retrieve your attestation for proof generation.',
     });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
@@ -274,185 +238,6 @@ export async function register(req: Request, res: Response): Promise<void> {
       return;
     }
     logger.error('Onboarding register error', { error: error.message });
-    res.status(500).json({ success: false, error: 'Internal Server Error', message: error.message });
-  }
-}
-
-/**
- * POST /api/v1/onboarding/verify-eas
- *
- * Verify a Coinbase EAS attestation on-chain and approve the institution.
- * The institution must already be registered (POST /onboarding/register) with kycStatus=0.
- */
-export async function verifyEas(req: Request, res: Response): Promise<void> {
-  try {
-    if (KYC_MODE !== 'all' && KYC_MODE !== 'eas') {
-      res.status(400).json({
-        success: false,
-        error: 'EAS verification is not enabled',
-        message: `Current KYC_MODE is "${KYC_MODE}". EAS verification requires KYC_MODE="eas" or "all".`,
-      });
-      return;
-    }
-
-    const userId = requireAuthenticatedUserId(req, res);
-    if (!userId) return;
-
-    const body = req.body as { walletAddress?: string; userAddress?: string };
-    const rawAddress = body.walletAddress ?? body.userAddress;
-    if (!rawAddress || !/^0x[a-fA-F0-9]{40}$/.test(rawAddress)) {
-      res.status(400).json({ success: false, error: 'Invalid or missing walletAddress (or userAddress)' });
-      return;
-    }
-    const walletAddress = getAddress(rawAddress) as Address;
-
-    // Check institution exists and is pending
-    const institution = await prisma.institution.findUnique({ where: { walletAddress } });
-    if (!institution) {
-      res.status(404).json({
-        success: false,
-        error: 'Not registered',
-        message: 'Call POST /onboarding/register first.',
-      });
-      return;
-    }
-
-    if (!ensureInstitutionOwner(institution, userId, res)) return;
-
-    if (institution.kycStatus === 1) {
-      res.status(200).json({
-        success: true,
-        status: 'already_approved',
-        institutionId: institution.id,
-        walletAddress,
-        kycSource: institution.kycSource,
-        message: 'Institution is already KYC-approved.',
-      });
-      return;
-    }
-
-    // Verify Coinbase EAS attestation on-chain
-    const easResult = await easVerificationService.verifyCoinbaseAttestation(walletAddress);
-
-    if (!easResult.isValid) {
-      res.status(400).json({
-        success: false,
-        error: 'EAS verification failed',
-        message: easResult.error || 'No valid Coinbase EAS attestation found for this address.',
-        hint: 'Ensure this wallet has been verified through Coinbase and has a valid EAS attestation on Base.',
-      });
-      return;
-    }
-
-    // Approve the institution via the shared pipeline
-    const result = await kycApprovalService.approveInstitution({
-      walletAddress,
-      kycSource: 'coinbase-eas',
-      kycProviderId: easResult.uid!,
-      countryCode: institution.countryCode,
-      metadata: {
-        attester: easResult.attester,
-        schema: easResult.schema,
-        attestationTime: easResult.time?.toString(),
-        expirationTime: easResult.expirationTime?.toString(),
-      },
-    });
-
-    logger.info('Institution approved via Coinbase EAS', {
-      walletAddress,
-      easUid: easResult.uid,
-      merkleIndex: result.merkleIndex,
-    });
-
-    res.json({
-      success: true,
-      status: 'approved',
-      institutionId: result.institutionId,
-      walletAddress,
-      kycSource: 'coinbase-eas',
-      merkleRoot: result.merkleRoot,
-      merkleIndex: result.merkleIndex,
-      attestation: result.attestation,
-      message: 'KYC verified via Coinbase EAS. You can now activate your session.',
-    });
-  } catch (error: any) {
-    if (error instanceof AlreadyApprovedError) {
-      res.status(200).json({
-        success: true,
-        status: 'already_approved',
-        institutionId: error.institutionId,
-        message: 'Institution is already KYC-approved.',
-      });
-      return;
-    }
-    logger.error('verify-eas error', { error: error.message });
-    res.status(500).json({ success: false, error: 'Internal Server Error', message: error.message });
-  }
-}
-
-/**
- * POST /api/v1/onboarding/sumsub-token
- *
- * Generate a Sumsub WebSDK access token for the frontend to embed.
- * The institution must be registered (kycStatus=0, pending verification).
- */
-export async function sumsubToken(req: Request, res: Response): Promise<void> {
-  try {
-    if (KYC_MODE !== 'all' && KYC_MODE !== 'sumsub') {
-      res.status(400).json({
-        success: false,
-        error: 'Sumsub verification is not enabled',
-        message: `Current KYC_MODE is "${KYC_MODE}". Sumsub requires KYC_MODE="sumsub" or "all".`,
-      });
-      return;
-    }
-
-    const userId = requireAuthenticatedUserId(req, res);
-    if (!userId) return;
-
-    const body = req.body as { walletAddress?: string; userAddress?: string };
-    const rawAddress = body.walletAddress ?? body.userAddress;
-    if (!rawAddress || !/^0x[a-fA-F0-9]{40}$/.test(rawAddress)) {
-      res.status(400).json({ success: false, error: 'Invalid or missing walletAddress (or userAddress)' });
-      return;
-    }
-    const walletAddress = getAddress(rawAddress) as Address;
-
-    // Check institution exists
-    const institution = await prisma.institution.findUnique({ where: { walletAddress } });
-    if (!institution) {
-      res.status(404).json({
-        success: false,
-        error: 'Not registered',
-        message: 'Call POST /onboarding/register first.',
-      });
-      return;
-    }
-
-    if (!ensureInstitutionOwner(institution, userId, res)) return;
-
-    if (institution.kycStatus === 1) {
-      res.status(200).json({
-        success: true,
-        status: 'already_approved',
-        message: 'Institution is already KYC-approved. No need for Sumsub verification.',
-      });
-      return;
-    }
-
-    // Generate Sumsub WebSDK token using walletAddress as externalUserId
-    const result = await sumsubService.createAccessToken(walletAddress);
-
-    logger.info('Sumsub token issued', { walletAddress });
-
-    res.json({
-      success: true,
-      token: result.token,
-      externalUserId: walletAddress,
-      message: 'Use this token to initialize the Sumsub WebSDK. The webhook will automatically approve your institution upon successful verification.',
-    });
-  } catch (error: any) {
-    logger.error('sumsub-token error', { error: error.message });
     res.status(500).json({ success: false, error: 'Internal Server Error', message: error.message });
   }
 }
@@ -471,11 +256,9 @@ export async function activateSession(req: Request, res: Response): Promise<void
     const userId = requireAuthenticatedUserId(req, res);
     if (!userId) return;
 
-    const body = req.body as { walletAddress?: string; userAddress?: string; expiry?: number };
-    const rawAddress = body.walletAddress ?? body.userAddress;
-    const expiry = body.expiry ?? 86400;
+    const { walletAddress: rawAddress, expiry = 86400 } = req.body as { walletAddress?: string; expiry?: number };
     if (!rawAddress || !/^0x[a-fA-F0-9]{40}$/.test(rawAddress)) {
-      res.status(400).json({ success: false, error: 'Invalid or missing walletAddress (or userAddress)' });
+      res.status(400).json({ success: false, error: 'Invalid or missing walletAddress' });
       return;
     }
     const walletAddress = getAddress(rawAddress) as Address;
@@ -595,16 +378,13 @@ export async function activateSessionDemo(req: Request, res: Response): Promise<
     const userId = requireAuthenticatedUserId(req, res);
     if (!userId) return;
 
-    const demoBody = req.body as {
+    const { walletAddress: rawAddress, durationHours = 24 } = req.body as {
       walletAddress?: string;
-      userAddress?: string;
       durationHours?: number;
     };
-    const rawAddress = demoBody.walletAddress ?? demoBody.userAddress;
-    const durationHours = demoBody.durationHours ?? 24;
 
     if (!rawAddress || !/^0x[a-fA-F0-9]{40}$/.test(rawAddress)) {
-      res.status(400).json({ success: false, error: 'Invalid or missing walletAddress (or userAddress)' });
+      res.status(400).json({ success: false, error: 'Invalid or missing walletAddress' });
       return;
     }
     const walletAddress = getAddress(rawAddress) as Address;
@@ -696,14 +476,12 @@ export async function getStatus(req: Request, res: Response): Promise<void> {
 
     res.json({
       success: true,
-      status: institution.kycStatus === 1 ? 'approved' : 'pending_kyc',
+      status: institution.kycStatus === 1 ? 'approved' : 'pending',
       institutionId: institution.id,
       name: institution.name,
       walletAddress: institution.walletAddress,
       countryCode: institution.countryCode,
       merkleIndex: institution.merkleIndex,
-      kycSource: institution.kycSource,
-      kycVerifiedAt: institution.kycVerifiedAt,
       approvedAt: institution.approvedAt,
       createdAt: institution.createdAt,
     });
@@ -773,6 +551,120 @@ export async function getAttestation(req: Request, res: Response): Promise<void>
     });
   } catch (error: any) {
     logger.error('Onboarding attestation error', { error: error.message });
+    res.status(500).json({ success: false, error: 'Internal Server Error', message: error.message });
+  }
+}
+
+/**
+ * POST /api/v1/onboarding/verify-eas
+ *
+ * Verify a Coinbase EAS attestation on Base Mainnet, then approve the
+ * institution (add to Merkle tree + sign ILAL attestation).
+ */
+export async function verifyEas(req: Request, res: Response): Promise<void> {
+  try {
+    const userId = requireAuthenticatedUserId(req, res);
+    if (!userId) return;
+
+    const { walletAddress: rawAddress } = req.body as { walletAddress?: string };
+    if (!rawAddress || !/^0x[a-fA-F0-9]{40}$/.test(rawAddress)) {
+      res.status(400).json({ success: false, error: 'Invalid or missing walletAddress' });
+      return;
+    }
+    const walletAddress = getAddress(rawAddress) as Address;
+
+    // 1. Check institution exists
+    const institution = await prisma.institution.findUnique({ where: { walletAddress } });
+    if (!institution) {
+      res.status(404).json({
+        success: false,
+        error: 'Not registered',
+        message: 'Call POST /onboarding/register first',
+      });
+      return;
+    }
+
+    if (!ensureInstitutionOwner(institution, userId, res)) return;
+
+    // Already approved — return existing data
+    if (institution.kycStatus === 1 && institution.merkleIndex != null) {
+      res.json({
+        success: true,
+        status: 'already_approved',
+        walletAddress,
+        merkleIndex: institution.merkleIndex,
+        message: 'EAS already verified. Use GET /onboarding/attestation/:address for your attestation.',
+      });
+      return;
+    }
+
+    // 2. Verify Coinbase EAS attestation on Base Mainnet
+    logger.info('Verifying Coinbase EAS attestation on Base Mainnet', { walletAddress });
+    const easResult = await easVerificationService.verifyCoinbaseAttestation(walletAddress);
+
+    if (!easResult.isValid) {
+      res.status(400).json({
+        success: false,
+        error: 'EAS verification failed',
+        message: easResult.error,
+        details: {
+          hint: 'Ensure your wallet has a valid, non-revoked Coinbase identity attestation on Base Mainnet.',
+          verifyAt: 'https://base.easscan.org',
+        },
+      });
+      return;
+    }
+
+    // 3. Approve: add to Merkle tree + sign ILAL attestation
+    const timestamp = Math.floor(Date.now() / 1000);
+    const { leafIndex, root } = await merkleService.addLeaf(walletAddress, 1);
+    const attestationData = await issuerService.signAttestation(
+      walletAddress,
+      1,
+      institution.countryCode,
+      timestamp,
+    );
+    const proof = merkleService.getProof(leafIndex);
+
+    const fullAttestation = {
+      ...attestationData,
+      merkleRoot: proof.root,
+      merkleProof: proof.siblings,
+      merkleIndex: leafIndex.toString(),
+    };
+
+    // 4. Update DB
+    await prisma.institution.update({
+      where: { walletAddress },
+      data: {
+        kycStatus: 1,
+        merkleIndex: leafIndex,
+        attestation: JSON.stringify(fullAttestation),
+        approvedAt: new Date().toISOString(),
+      },
+    });
+
+    logger.info('Institution approved via Coinbase EAS', {
+      walletAddress,
+      easUid: easResult.uid,
+      leafIndex,
+    });
+
+    res.json({
+      success: true,
+      status: 'approved',
+      walletAddress,
+      merkleRoot: root,
+      leafIndex,
+      easAttestation: {
+        uid: easResult.uid,
+        attester: easResult.attester,
+        schema: easResult.schema,
+      },
+      message: 'Coinbase EAS verified. Use POST /onboarding/activate-session to activate your trading session.',
+    });
+  } catch (error: any) {
+    logger.error('verify-eas error', { error: error.message });
     res.status(500).json({ success: false, error: 'Internal Server Error', message: error.message });
   }
 }

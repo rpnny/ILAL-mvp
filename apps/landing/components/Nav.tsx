@@ -1,11 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ExternalLink, Globe } from "lucide-react";
+import { Globe, Menu, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Nav() {
   const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const links = [
     { href: "/", label: "Home" },
@@ -26,16 +29,15 @@ export default function Nav() {
           <span className="font-heading text-xl font-bold tracking-widest text-white">ILAL</span>
         </Link>
 
-        {/* Middle: Links */}
+        {/* Middle: Desktop Links */}
         <div className="hidden md:flex items-center space-x-8 text-sm font-medium">
           {links.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className={`transition-colors relative hover-lift ${pathname === link.href
-                ? 'text-white'
-                : 'text-gray-400 hover:text-white'
-                }`}
+              className={`transition-colors relative hover-lift ${
+                pathname === link.href ? "text-white" : "text-gray-400 hover:text-white"
+              }`}
             >
               {link.label}
               {pathname === link.href && (
@@ -52,13 +54,61 @@ export default function Nav() {
             <span className="text-xs font-medium">EN</span>
           </button>
 
-          <Link href="/dashboard">
+          <Link href="/dashboard" className="hidden sm:block">
             <button className="glass-button glass-button-primary px-5 py-2 text-sm">
               Try Demo
             </button>
           </Link>
+
+          {/* Mobile Hamburger */}
+          <button
+            className="md:hidden w-10 h-10 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label="Toggle menu"
+          >
+            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
         </div>
       </div>
+
+      {/* Mobile Menu */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="md:hidden border-t border-white/5 bg-[#0A0A0A]/95 backdrop-blur-xl overflow-hidden"
+          >
+            <div className="container mx-auto px-6 py-4 space-y-1">
+              {links.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={`block py-3 px-4 rounded-lg text-sm font-medium transition-colors ${
+                    pathname === link.href
+                      ? "text-primary bg-primary/10"
+                      : "text-gray-400 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <Link
+                href="/dashboard"
+                onClick={() => setMobileOpen(false)}
+                className="block mt-3"
+              >
+                <button className="w-full glass-button glass-button-primary px-5 py-3 text-sm">
+                  Try Demo
+                </button>
+              </Link>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </nav>
   );
 }

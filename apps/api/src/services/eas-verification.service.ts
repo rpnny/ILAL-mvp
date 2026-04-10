@@ -1,15 +1,18 @@
 /**
  * EAS Verification Service — Server-side Coinbase EAS attestation verification
  *
- * Mirrors the SDK's EASModule.checkCoinbaseVerification() but uses the API
- * server's publicClient from blockchain.service.ts. Verifies that a wallet
- * address has a valid, non-revoked, non-expired Coinbase identity attestation
- * on the EAS contract deployed on Base.
+ * Uses the EAS GraphQL API to find attestation UIDs (avoids RPC block-range
+ * limits on public nodes), then verifies on-chain via a dedicated Base Mainnet
+ * publicClient (separate from the Sepolia client in blockchain.service.ts).
  */
 
-import { type Address, type Hex, parseAbiItem } from 'viem';
-import { blockchainService } from './blockchain.service.js';
-import { EAS_CONTRACT_ADDRESS, COINBASE_ATTESTER_ADDRESS, EAS_SCHEMA_IDS } from '../config/constants.js';
+import { createPublicClient, http, type Address, type Hex, parseAbiItem } from 'viem';
+import { base } from 'viem/chains';
+import {
+  BASE_MAINNET_RPC_URL,
+  EAS_CONTRACT_ADDRESS,
+  COINBASE_ATTESTER_ADDRESS,
+} from '../config/constants.js';
 import { logger } from '../config/logger.js';
 
 export interface EASVerificationResult {
@@ -23,52 +26,88 @@ export interface EASVerificationResult {
   error?: string;
 }
 
-const attestedEventAbi = parseAbiItem(
-  'event Attested(address indexed recipient, address indexed attester, bytes32 uid, bytes32 indexed schemaUID)',
-);
+// Dedicated Base Mainnet client for on-chain EAS verification
+const mainnetClient = createPublicClient({
+  chain: base,
+  transport: http(BASE_MAINNET_RPC_URL),
+});
 
 const getAttestationAbi = parseAbiItem(
   'function getAttestation(bytes32 uid) external view returns ((bytes32 uid, bytes32 schema, uint64 time, uint64 expirationTime, uint64 revocationTime, bytes32 refUID, address recipient, address attester, bool revocable, bytes data))',
 );
 
+// EAS GraphQL endpoint for Base Mainnet
+const EAS_GRAPHQL_URL = 'https://base.easscan.org/graphql';
+
 /**
- * Verify that a wallet has a valid Coinbase EAS attestation on Base.
+ * Query the EAS GraphQL API to find the most recent Coinbase attestation UID
+ * for a given recipient address. This avoids eth_getLogs block-range limits.
+ */
+async function findAttestationUid(userAddress: Address): Promise<Hex | null> {
+  const query = `
+    query FindAttestation($recipient: String!, $attester: String!) {
+      attestations(
+        where: {
+          recipient: { equals: $recipient }
+          attester: { equals: $attester }
+          revoked: { equals: false }
+        }
+        orderBy: [{ time: desc }]
+        take: 1
+      ) {
+        id
+      }
+    }
+  `;
+
+  const response = await fetch(EAS_GRAPHQL_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      query,
+      variables: {
+        recipient: userAddress.toLowerCase(),
+        attester: COINBASE_ATTESTER_ADDRESS.toLowerCase(),
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`EAS GraphQL request failed: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json() as any;
+  const attestations = data?.data?.attestations;
+
+  if (!attestations || attestations.length === 0) {
+    return null;
+  }
+
+  return attestations[0].id as Hex;
+}
+
+/**
+ * Verify that a wallet has a valid Coinbase EAS attestation on Base Mainnet.
  *
- * Checks:
- *  1. Attestation exists for the given recipient from the Coinbase attester
- *  2. Attestation has not been revoked
- *  3. Attestation has not expired
- *  4. Attester matches the known Coinbase address
+ * Steps:
+ *  1. Query EAS GraphQL API for the most recent attestation UID
+ *  2. Fetch full attestation data on-chain via getAttestation(uid)
+ *  3. Verify: not revoked, not expired, attester matches Coinbase
  */
 export async function verifyCoinbaseAttestation(userAddress: Address): Promise<EASVerificationResult> {
   try {
-    const client = blockchainService.getPublicClient();
+    // 1. Find attestation UID via GraphQL
+    const uid = await findAttestationUid(userAddress);
 
-    // Query Attested events filtered by recipient + attester
-    const logs = await client.getLogs({
-      address: EAS_CONTRACT_ADDRESS,
-      event: attestedEventAbi,
-      args: {
-        recipient: userAddress,
-        attester: COINBASE_ATTESTER_ADDRESS,
-      },
-      fromBlock: 0n,
-      toBlock: 'latest',
-    });
-
-    if (logs.length === 0) {
+    if (!uid) {
       return {
         isValid: false,
-        error: 'No Coinbase EAS attestation found for this address',
+        error: 'No Coinbase EAS attestation found for this address on Base Mainnet',
       };
     }
 
-    // Use the most recent attestation
-    const latestLog = logs[logs.length - 1];
-    const uid = latestLog.args.uid as Hex;
-
-    // Fetch full attestation data from the EAS contract
-    const attestation = await client.readContract({
+    // 2. Verify on-chain: fetch full attestation data
+    const attestation = await mainnetClient.readContract({
       address: EAS_CONTRACT_ADDRESS,
       abi: [getAttestationAbi],
       functionName: 'getAttestation',
@@ -112,7 +151,7 @@ export async function verifyCoinbaseAttestation(userAddress: Address): Promise<E
       };
     }
 
-    logger.info('EAS attestation verified', {
+    logger.info('EAS attestation verified on Base Mainnet', {
       userAddress,
       uid,
       attester: attestation.attester,
