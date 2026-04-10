@@ -49,6 +49,19 @@ export const DEMO_TOKENS = {
   tUSDC: '0xa486Fb51ED09B970A23F7Fe910bc90089f78424D' as Address,
 };
 
+// ============ EAS (Coinbase Attestation on Base Mainnet) ============
+export const BASE_MAINNET_RPC_URL = process.env.BASE_MAINNET_RPC_URL || 'https://mainnet.base.org';
+export const EAS_CONTRACT_ADDRESS = '0x4200000000000000000000000000000000000021' as Address;
+export const COINBASE_ATTESTER_ADDRESS = '0x357458739F90461b99789350868CD7CF330Dd7EE' as Address;
+export const EAS_SCHEMA_IDS = {
+  VERIFIED_ACCOUNT: '0xf8b05c79f090979bf4a80270aba232dff11a10d9ca55c4f88de95317970f0de9' as Hex,
+  VERIFIED_COUNTRY: '0x1801901fabd0e6189356b4fb52bb0ab855276d84f7ec140839fbd1f6801ca065' as Hex,
+};
+
+// ============ KYC Mode ============
+// 'mock' = auto-approve (dev/demo), 'eas' = require Coinbase EAS, 'all' = eas + sumsub
+export const KYC_MODE = process.env.KYC_MODE || 'mock';
+
 // ============ ZK Verification Config ============
 // Supports multiple Merkle roots for smooth tree rotation.
 // EXPECTED_MERKLE_ROOT is the primary root.

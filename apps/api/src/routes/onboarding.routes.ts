@@ -13,6 +13,7 @@ const router: Router = Router();
 router.use(hybridAuthMiddleware);
 
 router.post('/register', requirePermissionIfApiKey('session'), onboardingController.register);
+router.post('/verify-eas', requirePermissionIfApiKey('session'), onboardingController.verifyEas);
 router.post('/activate-session', requirePermissionIfApiKey('session'), onboardingController.activateSession);
 router.post('/activate-session-demo', requirePermissionIfApiKey('session'), onboardingController.activateSessionDemo);
 router.get('/status/:address', onboardingController.getStatus);
