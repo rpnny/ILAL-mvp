@@ -1,73 +1,74 @@
 import Link from "next/link";
-import { Github, Twitter } from "lucide-react";
 
 export default function Footer() {
-    return (
-        <footer className="border-t border-white/5 py-12 bg-[#0A0A0A]">
-            <div className="container mx-auto px-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8 text-sm">
-                    {/* Brand */}
-                    <div className="col-span-2 md:col-span-1">
-                        <Link href="/" className="flex items-center space-x-3 mb-4 group">
-                            <div className="w-6 h-6 bg-gradient-to-br from-[#00F0FF] to-[#A855F7] rounded flex items-center justify-center opacity-80 group-hover:opacity-100 transition-opacity">
-                                <span className="font-heading font-bold text-white text-[11px] tracking-widest">I</span>
-                            </div>
-                            <span className="font-heading text-lg font-bold tracking-widest text-white">ILAL</span>
-                        </Link>
-                        <p className="text-gray-500 mb-4 pr-4">
-                            Zero-knowledge compliance infrastructure layer for Uniswap V4.
-                        </p>
-                        <div className="flex space-x-3">
-                            <a href="https://github.com/rpnny/ILAL-mvp" target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:border-primary hover:shadow-[0_0_15px_rgba(0,240,255,0.3)] transition-all">
-                                <Github className="w-4 h-4" />
-                            </a>
-                            <a href="https://x.com/ilal_protocol" target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:border-primary hover:shadow-[0_0_15px_rgba(0,240,255,0.3)] transition-all">
-                                <Twitter className="w-4 h-4" />
-                            </a>
-                        </div>
-                    </div>
+  return (
+    <footer className="footer">
+      <div className="footer-grid">
+        {/* Brand */}
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <svg width="24" height="24" viewBox="0 0 28 28" fill="none">
+              <rect x="4" y="4" width="4" height="4" fill="var(--accent)" />
+              <rect x="8" y="4" width="4" height="4" fill="var(--accent)" />
+              <rect x="12" y="4" width="4" height="4" fill="var(--accent)" />
+              <rect x="8" y="8" width="4" height="4" fill="var(--accent)" />
+              <rect x="8" y="12" width="4" height="4" fill="var(--accent)" />
+              <rect x="8" y="16" width="4" height="4" fill="var(--accent)" />
+              <rect x="4" y="20" width="4" height="4" fill="var(--accent)" />
+              <rect x="8" y="20" width="4" height="4" fill="var(--accent)" />
+              <rect x="12" y="20" width="4" height="4" fill="var(--accent)" />
+            </svg>
+            <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16, letterSpacing: "0.12em", color: "var(--text)" }}>
+              ILAL
+            </span>
+          </div>
+          <p className="footer-brand-tagline">
+            Zero-knowledge compliance infrastructure for institutional DeFi.
+          </p>
+        </div>
 
-                    {/* Developers */}
-                    <div>
-                        <h4 className="font-semibold text-white mb-4">Developers</h4>
-                        <ul className="space-y-3 text-gray-400">
-                            <li><Link href="/docs" className="hover:text-primary transition-colors">Documentation</Link></li>
-                            <li><Link href="/technology" className="hover:text-primary transition-colors">Architecture</Link></li>
-                            <li><Link href="/integrations" className="hover:text-primary transition-colors">Integration Guide</Link></li>
-                            <li><a href="https://github.com/rpnny/ILAL-mvp" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">GitHub</a></li>
-                        </ul>
-                    </div>
+        {/* Protocol */}
+        <div className="footer-col">
+          <h4>Protocol</h4>
+          <ul>
+            <li><Link href="/technology">Architecture</Link></li>
+            <li><a href="#">ZK Circuit</a></li>
+            <li><a href="https://sepolia.basescan.org/address/0x54b88a4aAC9E73F6581C19a06a2DC280Eba78a80" target="_blank" rel="noopener noreferrer">Contracts</a></li>
+            <li><a href="#">Audits</a></li>
+          </ul>
+        </div>
 
-                    {/* Ecosystem */}
-                    <div>
-                        <h4 className="font-semibold text-white mb-4">Ecosystem</h4>
-                        <ul className="space-y-3 text-gray-400">
-                            <li><Link href="/about" className="hover:text-primary transition-colors">About</Link></li>
-                            <li><Link href="/roadmap" className="hover:text-primary transition-colors">Roadmap</Link></li>
-                            <li><Link href="/dashboard" className="hover:text-primary transition-colors">Dashboard</Link></li>
-                        </ul>
-                    </div>
+        {/* Developers */}
+        <div className="footer-col">
+          <h4>Developers</h4>
+          <ul>
+            <li><Link href="/docs">API Reference</Link></li>
+            <li><a href="#">SDK</a></li>
+            <li><Link href="/docs/quickstart">Quick Start</Link></li>
+            <li><a href="https://github.com/rpnny/ILAL-mvp" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+          </ul>
+        </div>
 
-                    {/* Legal */}
-                    <div>
-                        <h4 className="font-semibold text-white mb-4">Legal</h4>
-                        <ul className="space-y-3 text-gray-400">
-                            <li><Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
-                            <li><Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link></li>
-                            <li><a href="mailto:contact@ilal.tech" className="hover:text-primary transition-colors">Contact</a></li>
-                        </ul>
-                    </div>
-                </div>
+        {/* Institution */}
+        <div className="footer-col">
+          <h4>Institution</h4>
+          <ul>
+            <li><a href="mailto:contact@ilal.tech">Contact</a></li>
+            <li><a href="#">Careers</a></li>
+            <li><Link href="/terms">Legal</Link></li>
+            <li><a href="#">Press</a></li>
+          </ul>
+        </div>
+      </div>
 
-                <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between text-xs text-gray-600">
-                    <p>&copy; {new Date().getFullYear()} ILAL Protocol. All rights reserved.</p>
-                    <div className="flex space-x-6 mt-4 md:mt-0">
-                        <Link href="/privacy" className="hover:text-gray-400 transition-colors">Privacy</Link>
-                        <Link href="/terms" className="hover:text-gray-400 transition-colors">Terms</Link>
-                        <a href="https://github.com/rpnny/ILAL-mvp/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" className="hover:text-gray-400 transition-colors">Apache-2.0</a>
-                    </div>
-                </div>
-            </div>
-        </footer>
-    );
+      {/* Copyright bar */}
+      <div className="footer-bar">
+        <span>&copy; MMXXVI &middot; ILAL.TECH</span>
+        <span className="footer-status">
+          <span className="footer-status-dot" />
+          All systems operational
+        </span>
+      </div>
+    </footer>
+  );
 }
