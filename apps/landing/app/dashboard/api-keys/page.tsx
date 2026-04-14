@@ -19,7 +19,7 @@ const itemVariants = {
 };
 
 function Skeleton({ className = '' }: { className?: string }) {
-  return <div className={`bg-white/[0.06] rounded-lg animate-pulse ${className}`} />;
+  return <div className={`rounded-lg animate-pulse ${className}`} style={{ background: 'var(--surface)' }} />;
 }
 
 export default function ApiKeysPage() {
@@ -91,13 +91,13 @@ export default function ApiKeysPage() {
       {/* Header */}
       <motion.div variants={itemVariants} className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="font-heading text-3xl font-bold mb-2 flex items-center">
-            <div className="w-9 h-9 bg-[#00F0FF]/15 rounded-lg flex items-center justify-center mr-3">
-              <Key className="w-5 h-5 text-[#00F0FF]" />
+          <h1 className="font-serif text-3xl font-bold mb-2 flex items-center">
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center mr-3" style={{ background: 'var(--surface)', border: '1px solid var(--glass-border)' }}>
+              <Key className="w-5 h-5" style={{ color: 'var(--accent)' }} />
             </div>
             API Keys
           </h1>
-          <p className="text-gray-400">Create and manage your API Keys</p>
+          <p style={{ color: 'var(--text2)' }}>Create and manage your API Keys</p>
         </div>
 
         <motion.button
@@ -105,7 +105,7 @@ export default function ApiKeysPage() {
           whileTap={{ scale: 0.97 }}
           onClick={() => setShowCreateDialog(true)}
           disabled={!canCreateMore}
-          className="px-6 py-3 bg-[#00F0FF] hover:bg-[#00F0FF]/90 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center shadow-lg shadow-[#00F0FF]/20"
+          className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Plus className="w-5 h-5 mr-2" />
           Create API Key
@@ -116,14 +116,14 @@ export default function ApiKeysPage() {
       {limits && (
         <motion.div
           variants={itemVariants}
-          className="mb-6 p-4 bg-[#00F0FF]/[0.06] backdrop-blur-xl border border-[#00F0FF]/20 rounded-xl flex items-start"
+          className="glass mb-6 p-4 flex items-start"
         >
-          <AlertCircle className="w-5 h-5 text-[#00F0FF] mr-3 mt-0.5 flex-shrink-0" />
+          <AlertCircle className="w-5 h-5 mr-3 mt-0.5 flex-shrink-0" style={{ color: 'var(--accent)' }} />
           <div className="text-sm">
-            <div className="text-gray-300 mb-1">
-              You are using <span className="font-semibold text-white">{apiKeys.length}</span> / {limits.maxApiKeys} API Keys
+            <div className="mb-1" style={{ color: 'var(--text)' }}>
+              You are using <span className="font-semibold">{apiKeys.length}</span> / {limits.maxApiKeys} API Keys
             </div>
-            <div className="text-gray-400">
+            <div style={{ color: 'var(--text2)' }}>
               {canCreateMore
                 ? `You can create ${limits.maxApiKeys - apiKeys.length} more API Key(s)`
                 : 'You have reached the API Key limit. Revoke an existing key to create a new one.'}
@@ -139,19 +139,20 @@ export default function ApiKeysPage() {
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.2, type: 'spring' }}
-            className="w-16 h-16 bg-white/[0.04] rounded-full flex items-center justify-center mx-auto mb-4 border border-white/[0.08]"
+            className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+            style={{ background: 'var(--surface)', border: '1px solid var(--glass-border)' }}
           >
-            <Key className="w-8 h-8 text-gray-500" />
+            <Key className="w-8 h-8" style={{ color: 'var(--text2)' }} />
           </motion.div>
-          <h3 className="font-heading text-xl font-semibold mb-2">No API Keys Yet</h3>
-          <p className="text-gray-400 mb-6 max-w-md mx-auto">
+          <h3 className="font-serif text-xl font-semibold mb-2">No API Keys Yet</h3>
+          <p className="mb-6 max-w-md mx-auto" style={{ color: 'var(--text2)' }}>
             Create your first API Key to start using the ILAL API.
           </p>
           <motion.button
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
             onClick={() => setShowCreateDialog(true)}
-            className="px-6 py-3 bg-[#00F0FF] hover:bg-[#00F0FF]/90 rounded-lg font-medium transition-all inline-flex items-center shadow-lg shadow-[#00F0FF]/20"
+            className="btn-primary inline-flex"
           >
             <Plus className="w-5 h-5 mr-2" />
             Create First API Key

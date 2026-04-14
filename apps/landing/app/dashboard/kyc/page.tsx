@@ -46,7 +46,6 @@ export default function KycPage() {
         setStatus('idle');
       }
     } catch {
-      // Not registered yet
       setStatus('idle');
     }
   }
@@ -103,40 +102,42 @@ export default function KycPage() {
       animate="visible"
     >
       <motion.div variants={itemVariants} className="mb-8">
-        <h1 className="font-heading text-3xl font-bold mb-2">KYC Verification</h1>
-        <p className="text-gray-400">
+        <h1 className="font-serif text-3xl font-bold mb-2" style={{ color: 'var(--text)' }}>KYC Verification</h1>
+        <p style={{ color: 'var(--text2)' }}>
           Verify your identity to enable compliant DeFi trading. Complete KYC once to unlock session activation and swap access.
         </p>
       </motion.div>
 
       <motion.div variants={itemVariants} className="max-w-2xl space-y-6">
         {/* Step 1: Registration */}
-        <div className="bg-white/[0.02] backdrop-blur-xl border border-white/[0.08] rounded-xl p-6 shadow-2xl">
-          <h2 className="font-heading font-semibold text-lg mb-4 flex items-center gap-2">
-            <span className="w-6 h-6 rounded-full bg-[#00F0FF]/20 text-[#00F0FF] flex items-center justify-center text-xs font-bold">1</span>
+        <div className="glass p-6">
+          <h2 className="font-serif font-semibold text-lg mb-4 flex items-center gap-2">
+            <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: 'rgba(59,130,246,0.15)', color: 'var(--accent)' }}>1</span>
             Register Institution
           </h2>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1.5">Institution Name</label>
+              <label className="block text-sm mb-1.5" style={{ color: 'var(--text2)' }}>Institution Name</label>
               <input
                 type="text"
                 value={institutionName}
                 onChange={(e) => setInstitutionName(e.target.value)}
                 placeholder="My Institution"
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-[#00F0FF]/40 transition-colors"
+                className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none transition-colors"
+                style={{ background: 'var(--surface)', border: '1px solid var(--glass-border)', color: 'var(--text)' }}
                 disabled={status === 'approved'}
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1.5">Wallet Address</label>
+              <label className="block text-sm mb-1.5" style={{ color: 'var(--text2)' }}>Wallet Address</label>
               <input
                 type="text"
                 value={walletAddress}
                 onChange={(e) => setWalletAddress(e.target.value)}
                 placeholder="0x..."
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-4 py-2.5 text-sm font-mono focus:outline-none focus:border-[#00F0FF]/40 transition-colors"
+                className="w-full rounded-lg px-4 py-2.5 text-sm font-mono focus:outline-none transition-colors"
+                style={{ background: 'var(--surface)', border: '1px solid var(--glass-border)', color: 'var(--text)' }}
                 disabled={status === 'approved'}
               />
             </div>
@@ -145,7 +146,7 @@ export default function KycPage() {
               <button
                 onClick={handleRegister}
                 disabled={!isValidAddress || !institutionName.trim() || status === 'registering' || status === 'approved'}
-                className="px-5 py-2.5 bg-[#00F0FF] hover:bg-[#00D4E0] text-black font-medium rounded-lg text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                className="btn-primary text-sm disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {status === 'registering' ? (
                   <span className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Registering...</span>
@@ -155,7 +156,7 @@ export default function KycPage() {
               {isValidAddress && (
                 <button
                   onClick={handleCheckStatus}
-                  className="px-4 py-2.5 border border-white/[0.1] hover:border-white/[0.2] rounded-lg text-sm text-gray-300 transition-all"
+                  className="btn-ghost text-sm"
                 >
                   Check Status
                 </button>
@@ -169,29 +170,29 @@ export default function KycPage() {
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white/[0.02] backdrop-blur-xl border border-white/[0.08] rounded-xl p-6 shadow-2xl"
+            className="glass p-6"
           >
-            <h2 className="font-heading font-semibold text-lg mb-4 flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-[#A855F7]/20 text-[#A855F7] flex items-center justify-center text-xs font-bold">2</span>
+            <h2 className="font-serif font-semibold text-lg mb-4 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: 'rgba(168,85,247,0.15)', color: 'var(--accent2)' }}>2</span>
               Complete KYC Verification
             </h2>
 
             {/* Coinbase EAS Option */}
-            <div className="border border-white/[0.06] rounded-lg p-5 space-y-4">
+            <div className="rounded-lg p-5 space-y-4" style={{ border: '1px solid var(--glass-border)' }}>
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
                   <ShieldCheck className="w-5 h-5 text-blue-400" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-white">Coinbase EAS Verification</h3>
-                  <p className="text-sm text-gray-400 mt-1">
+                  <h3 className="font-medium" style={{ color: 'var(--text)' }}>Coinbase EAS Verification</h3>
+                  <p className="text-sm mt-1" style={{ color: 'var(--text2)' }}>
                     If you have a verified Coinbase account with an on-chain EAS attestation on Base,
                     click below to verify instantly.
                   </p>
                 </div>
               </div>
 
-              <div className="bg-white/[0.02] border border-white/[0.04] rounded-lg p-4 text-sm text-gray-400 space-y-2">
+              <div className="rounded-lg p-4 text-sm space-y-2" style={{ background: 'var(--surface)', border: '1px solid var(--glass-border)', color: 'var(--text2)' }}>
                 <p className="flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-yellow-500 flex-shrink-0" />
                   <span>Your wallet must have a Coinbase identity attestation on Base chain.</span>
@@ -200,7 +201,8 @@ export default function KycPage() {
                   href="https://www.coinbase.com/onchain-verify"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[#00F0FF] hover:underline"
+                  className="inline-flex items-center gap-1 hover:underline"
+                  style={{ color: 'var(--accent)' }}
                 >
                   Get verified on Coinbase <ExternalLink className="w-3 h-3" />
                 </a>
@@ -227,14 +229,14 @@ export default function KycPage() {
             </div>
 
             {/* Sumsub Option */}
-            <div className="mt-4 border border-white/[0.06] rounded-lg p-5 space-y-4">
+            <div className="mt-4 rounded-lg p-5 space-y-4" style={{ border: '1px solid var(--glass-border)' }}>
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 bg-orange-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
                   <ShieldCheck className="w-5 h-5 text-orange-400" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-white">Document Verification (Sumsub)</h3>
-                  <p className="text-sm text-gray-400 mt-1">
+                  <h3 className="font-medium" style={{ color: 'var(--text)' }}>Document Verification (Sumsub)</h3>
+                  <p className="text-sm mt-1" style={{ color: 'var(--text2)' }}>
                     Verify your identity with an ID document and liveness check.
                     No Coinbase account needed.
                   </p>
@@ -242,13 +244,13 @@ export default function KycPage() {
               </div>
 
               {status === 'sumsub_active' ? (
-                <div className="bg-white/[0.02] border border-white/[0.04] rounded-lg p-6 text-center space-y-3">
+                <div className="rounded-lg p-6 text-center space-y-3" style={{ background: 'var(--surface)', border: '1px solid var(--glass-border)' }}>
                   <Loader2 className="w-8 h-8 animate-spin text-orange-400 mx-auto" />
-                  <p className="text-sm text-gray-300">Sumsub verification in progress...</p>
-                  <p className="text-xs text-gray-500">Complete the verification in the Sumsub widget. Once approved, your status will update automatically.</p>
+                  <p className="text-sm" style={{ color: 'var(--text)' }}>Sumsub verification in progress...</p>
+                  <p className="text-xs" style={{ color: 'var(--text2)' }}>Complete the verification in the Sumsub widget. Once approved, your status will update automatically.</p>
                   <button
                     onClick={handleCheckStatus}
-                    className="px-4 py-2 border border-white/[0.1] hover:border-white/[0.2] rounded-lg text-sm text-gray-300 transition-all"
+                    className="btn-ghost text-sm"
                   >
                     Refresh Status
                   </button>
@@ -261,8 +263,6 @@ export default function KycPage() {
                     setSumsubError('');
                     try {
                       const result = await getSumsubToken(token, walletAddress);
-                      // Open Sumsub in a new tab with the access token
-                      // In production, you would embed the @sumsub/websdk here
                       window.open(
                         `https://cockpit.sumsub.com/checkus#/accessToken=${result.token}`,
                         '_blank',
@@ -305,25 +305,25 @@ export default function KycPage() {
           >
             <div className="flex items-center gap-3 mb-4">
               <CheckCircle2 className="w-6 h-6 text-emerald-400" />
-              <h2 className="font-heading font-semibold text-lg text-emerald-300">KYC Verified</h2>
+              <h2 className="font-serif font-semibold text-lg text-emerald-300">KYC Verified</h2>
             </div>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-400">Wallet</span>
-                <span className="font-mono text-white">{walletAddress.slice(0, 10)}...{walletAddress.slice(-8)}</span>
+                <span style={{ color: 'var(--text2)' }}>Wallet</span>
+                <span className="font-mono" style={{ color: 'var(--text)' }}>{walletAddress.slice(0, 10)}...{walletAddress.slice(-8)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">KYC Source</span>
-                <span className="text-white capitalize">{kycSource?.replace('-', ' ') || 'Unknown'}</span>
+                <span style={{ color: 'var(--text2)' }}>KYC Source</span>
+                <span className="capitalize" style={{ color: 'var(--text)' }}>{kycSource?.replace('-', ' ') || 'Unknown'}</span>
               </div>
               {merkleIndex != null && (
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Merkle Index</span>
-                  <span className="font-mono text-white">{merkleIndex}</span>
+                  <span style={{ color: 'var(--text2)' }}>Merkle Index</span>
+                  <span className="font-mono" style={{ color: 'var(--text)' }}>{merkleIndex}</span>
                 </div>
               )}
             </div>
-            <p className="text-sm text-gray-400 mt-4">
+            <p className="text-sm mt-4" style={{ color: 'var(--text2)' }}>
               You can now activate your compliance session and start trading.
             </p>
           </motion.div>

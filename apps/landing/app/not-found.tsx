@@ -1,24 +1,84 @@
+"use client";
+
+import { useEffect } from "react";
 import Link from "next/link";
 import Nav from "../components/Nav";
 import Footer from "../components/Footer";
 
 export default function NotFound() {
+  useEffect(() => {
+    const els = document.querySelectorAll(".reveal");
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) e.target.classList.add("visible");
+        });
+      },
+      { threshold: 0.15 }
+    );
+    els.forEach((el) => obs.observe(el));
+    return () => obs.disconnect();
+  }, []);
+
   return (
-    <div className="min-h-screen flex flex-col font-sans">
+    <>
+      {/* Background Orbs */}
+      <div className="orb orb--1" />
+      <div className="orb orb--2" />
+      <div className="orb orb--3" />
+
+      {/* Nav */}
       <Nav />
-      <main className="flex-grow flex items-center justify-center px-6">
-        <div className="text-center">
-          <div className="font-heading text-8xl font-bold text-gradient-cyan mb-4">404</div>
-          <h1 className="text-2xl font-bold mb-3">Page Not Found</h1>
-          <p className="text-gray-400 mb-8 max-w-md mx-auto">
+
+      {/* Hero */}
+      <section className="hero">
+        <div className="reveal" style={{ textAlign: "center" }}>
+          <div
+            style={{
+              fontFamily: "var(--font-heading)",
+              fontSize: "clamp(5rem, 15vw, 10rem)",
+              fontWeight: 400,
+              lineHeight: 1,
+              color: "var(--accent)",
+              marginBottom: 16,
+            }}
+          >
+            404
+          </div>
+          <h1
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "clamp(1.4rem, 3vw, 2rem)",
+              fontWeight: 600,
+              color: "var(--text)",
+              margin: "0 0 12px",
+            }}
+          >
+            Page Not Found
+          </h1>
+          <p
+            className="hero-sub"
+            style={{ marginBottom: 36 }}
+          >
             The page you&apos;re looking for doesn&apos;t exist or has been moved.
           </p>
-          <Link href="/" className="glass-button glass-button-primary px-8 py-3 inline-flex items-center text-sm">
+          <Link href="/" className="btn-primary">
             Back to Home
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path
+                d="M3 8h10m0 0L9 4m4 4L9 12"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </Link>
         </div>
-      </main>
+      </section>
+
+      {/* Footer */}
       <Footer />
-    </div>
+    </>
   );
 }

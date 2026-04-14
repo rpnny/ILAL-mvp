@@ -83,7 +83,7 @@ const sections: { title: string; endpoints: Endpoint[] }[] = [
         response: '{ success, institutionId, status: "approved", walletAddress, merkleIndex }'
       },
       {
-        method: 'POST', path: '/onboarding/activate-session-demo', description: '⭐ TESTNET / DEV — Activate a 24h compliance session without a ZK proof. The ILAL relayer pays gas. Call after /onboarding/register. Idempotent — returns existing session info if already active.', auth: 'both',
+        method: 'POST', path: '/onboarding/activate-session-demo', description: 'TESTNET / DEV — Activate a 24h compliance session without a ZK proof. The ILAL relayer pays gas. Call after /onboarding/register. Idempotent — returns existing session info if already active.', auth: 'both',
         body: {
           walletAddress: 'address — wallet to activate',
           durationHours: 'number (optional) — session duration 1–720h, default 24',
@@ -109,7 +109,7 @@ const sections: { title: string; endpoints: Endpoint[] }[] = [
     title: 'Testnet Utilities (Sandbox Only)',
     endpoints: [
       {
-        method: 'POST', path: '/testnet/activate', description: '⭐ TESTNET ONLY — Register + activate session in one call. No ZK proof needed. If wallet is already registered the registration step is skipped; if session is already active the activation step is skipped. Idempotent and safe to call repeatedly.', auth: 'both',
+        method: 'POST', path: '/testnet/activate', description: 'TESTNET ONLY — Register + activate session in one call. No ZK proof needed. If wallet is already registered the registration step is skipped; if session is already active the activation step is skipped. Idempotent and safe to call repeatedly.', auth: 'both',
         body: {
           walletAddress: 'address — wallet to register and activate',
           durationHours: 'number (optional) — session duration 1–720h, default 24',
@@ -131,7 +131,7 @@ const sections: { title: string; endpoints: Endpoint[] }[] = [
     title: 'DeFi — Preflight & Transaction Builder',
     endpoints: [
       {
-        method: 'GET', path: '/preflight/:address', description: '⭐ Environment self-check. Returns session status, token balances, all allowances, and readiness in one call. Use before broadcasting to diagnose issues without on-chain trial-and-error.', auth: 'both',
+        method: 'GET', path: '/preflight/:address', description: 'Environment self-check. Returns session status, token balances, all allowances, and readiness in one call. Use before broadcasting to diagnose issues without on-chain trial-and-error.', auth: 'both',
         response: '{ session: { active, remainingSeconds }, tokens: { WETH: { balance, decimals }, tUSDC: { balance, decimals } }, allowances: { WETH_to_SwapRouter, tUSDC_to_PositionManager, ... }, readiness: { canSwap, canAddLiquidity, issues: [] } }'
       },
       {
@@ -177,91 +177,89 @@ const sections: { title: string; endpoints: Endpoint[] }[] = [
   }
 ];
 
-const authBadge: Record<string, { label: string; color: string }> = {
-  none: { label: 'No Auth', color: 'bg-gray-500/20 text-gray-400' },
-  jwt: { label: 'JWT Required', color: 'bg-blue-500/20 text-blue-400' },
-  'api-key': { label: 'API Key (X-API-Key)', color: 'bg-[#00F0FF]/20 text-[#00F0FF]' },
-  both: { label: 'JWT or API Key', color: 'bg-purple-500/20 text-purple-400' },
+const authBadge: Record<string, { label: string; bg: string; color: string }> = {
+  none: { label: 'No Auth', bg: 'rgba(113,113,122,0.2)', color: 'var(--text2)' },
+  jwt: { label: 'JWT Required', bg: 'rgba(129,140,248,0.2)', color: 'var(--accent2)' },
+  'api-key': { label: 'API Key (X-API-Key)', bg: 'rgba(59,130,246,0.2)', color: 'var(--accent)' },
+  both: { label: 'JWT or API Key', bg: 'rgba(168,85,247,0.2)', color: '#a855f7' },
 };
 
-const methodColor: Record<string, string> = {
-  GET: 'bg-blue-500/20 text-blue-400',
-  POST: 'bg-green-500/20 text-green-400',
-  PATCH: 'bg-yellow-500/20 text-yellow-400',
-  DELETE: 'bg-red-500/20 text-red-400',
+const methodColor: Record<string, { bg: string; color: string }> = {
+  GET: { bg: 'rgba(59,130,246,0.2)', color: '#60a5fa' },
+  POST: { bg: 'rgba(34,197,94,0.2)', color: '#4ade80' },
+  PATCH: { bg: 'rgba(234,179,8,0.2)', color: '#facc15' },
+  DELETE: { bg: 'rgba(239,68,68,0.2)', color: '#f87171' },
 };
 
 export default function EndpointsPage() {
   return (
-    <div className="p-8 max-w-5xl mx-auto">
-      <h1 className="font-heading text-4xl font-bold mb-3">API Endpoints</h1>
-      <p className="text-lg text-gray-400 mb-6">Complete reference for all ILAL API endpoints.</p>
+    <div className="section max-w-5xl mx-auto">
+      <h1 className="font-heading text-4xl font-bold mb-3" style={{ color: 'var(--text)' }}>API Endpoints</h1>
+      <p className="text-lg mb-6" style={{ color: 'var(--text2)' }}>Complete reference for all ILAL API endpoints.</p>
 
-      <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-5 mb-6 flex flex-col sm:flex-row sm:items-center gap-4">
+      <div className="glass p-5 mb-6 flex flex-col sm:flex-row sm:items-center gap-4" style={{ borderRadius: 'var(--card-radius)' }}>
         <div>
-          <div className="text-xs text-gray-500 uppercase tracking-widest mb-1">Base URL</div>
-          <code className="text-[#00F0FF] font-mono">{BASE}</code>
+          <div className="pixel-label mb-1">Base URL</div>
+          <code className="font-mono" style={{ color: 'var(--accent)' }}>{BASE}</code>
         </div>
         <div className="sm:ml-auto flex flex-col gap-2 text-xs font-mono">
           <div className="flex gap-3">
-            <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded">Authorization: Bearer TOKEN</span>
-            <span className="text-gray-500 font-sans">JWT (frontend)</span>
+            <span className="px-2 py-1 rounded" style={{ background: 'rgba(129,140,248,0.2)', color: 'var(--accent2)' }}>Authorization: Bearer TOKEN</span>
+            <span className="font-sans" style={{ color: 'var(--text2)' }}>JWT (frontend)</span>
           </div>
           <div className="flex gap-3">
-            <span className="px-2 py-1 bg-[#00F0FF]/20 text-[#00F0FF] rounded">X-API-Key: YOUR_KEY</span>
-            <span className="text-gray-500 font-sans">API Key (server-to-server)</span>
+            <span className="px-2 py-1 rounded" style={{ background: 'rgba(59,130,246,0.2)', color: 'var(--accent)' }}>X-API-Key: YOUR_KEY</span>
+            <span className="font-sans" style={{ color: 'var(--text2)' }}>API Key (server-to-server)</span>
           </div>
         </div>
       </div>
 
       {/* Rate Limit Reference */}
-      <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-5 mb-10">
-        <div className="text-xs text-gray-500 uppercase tracking-widest mb-3">Rate Limits (per minute, per API key)</div>
+      <div className="glass p-5 mb-10" style={{ borderRadius: 'var(--card-radius)' }}>
+        <div className="pixel-label mb-3">Rate Limits (per minute, per API key)</div>
         <div className="grid grid-cols-3 gap-3 text-sm">
-          <div className="bg-[#0D0D0D] rounded-lg p-3 border border-white/[0.06]">
-            <div className="text-gray-400 text-xs mb-1">FREE</div>
-            <div className="text-white font-mono font-bold text-lg">60 <span className="text-gray-500 text-xs font-normal">req/min</span></div>
-            <div className="text-gray-600 text-xs mt-1">1,000 req/month</div>
-          </div>
-          <div className="bg-[#0D0D0D] rounded-lg p-3 border border-white/[0.06]">
-            <div className="text-[#00F0FF] text-xs mb-1">PRO</div>
-            <div className="text-white font-mono font-bold text-lg">300 <span className="text-gray-500 text-xs font-normal">req/min</span></div>
-            <div className="text-gray-600 text-xs mt-1">50,000 req/month</div>
-          </div>
-          <div className="bg-[#0D0D0D] rounded-lg p-3 border border-white/[0.06]">
-            <div className="text-purple-400 text-xs mb-1">ENTERPRISE</div>
-            <div className="text-white font-mono font-bold text-lg">1,000 <span className="text-gray-500 text-xs font-normal">req/min</span></div>
-            <div className="text-gray-600 text-xs mt-1">Unlimited / month</div>
-          </div>
+          {[
+            { plan: 'FREE', color: 'var(--text2)', rate: '60', monthly: '1,000 req/month' },
+            { plan: 'PRO', color: 'var(--accent)', rate: '300', monthly: '50,000 req/month' },
+            { plan: 'ENTERPRISE', color: '#a855f7', rate: '1,000', monthly: 'Unlimited / month' },
+          ].map(({ plan, color, rate, monthly }) => (
+            <div key={plan} className="glass p-3" style={{ borderRadius: '12px' }}>
+              <div className="text-xs mb-1" style={{ color }}>{plan}</div>
+              <div className="font-mono font-bold text-lg" style={{ color: 'var(--text)' }}>
+                {rate} <span className="text-xs font-normal" style={{ color: 'var(--text2)' }}>req/min</span>
+              </div>
+              <div className="text-xs mt-1" style={{ color: 'var(--text2)' }}>{monthly}</div>
+            </div>
+          ))}
         </div>
-        <p className="text-gray-600 text-xs mt-3">
-          Individual API keys can have a custom limit via <code className="text-gray-400">PATCH /apikeys/:id {'{'} rateLimit {'}'}</code>.
-          Effective limit = max(plan limit, key limit). On 429, the response includes <code className="text-gray-400">retryAfter</code> and the current plan/limit.
+        <p className="text-xs mt-3" style={{ color: 'var(--text2)' }}>
+          Individual API keys can have a custom limit via <code className="font-mono" style={{ color: 'var(--text2)' }}>PATCH /apikeys/:id {'{'} rateLimit {'}'}</code>.
+          Effective limit = max(plan limit, key limit). On 429, the response includes <code className="font-mono" style={{ color: 'var(--text2)' }}>retryAfter</code> and the current plan/limit.
         </p>
       </div>
 
       <div className="space-y-10">
         {sections.map(section => (
           <div key={section.title}>
-            <h2 className="font-heading text-xl font-bold mb-4 text-gray-200">{section.title}</h2>
+            <h2 className="font-heading text-xl font-bold mb-4" style={{ color: 'var(--text)' }}>{section.title}</h2>
             <div className="space-y-4">
               {section.endpoints.map(ep => (
-                <div key={ep.path} className="border border-white/[0.08] rounded-xl overflow-hidden hover:border-white/[0.14] transition-colors">
-                  <div className="bg-white/[0.02] px-5 py-4 border-b border-white/[0.06] flex flex-wrap items-start gap-3">
-                    <span className={`px-2.5 py-1 rounded font-mono text-xs font-bold ${methodColor[ep.method]}`}>{ep.method}</span>
-                    <code className="text-gray-200 text-sm font-mono">{ep.path}</code>
-                    <span className={`ml-auto px-2 py-0.5 rounded-full text-xs ${authBadge[ep.auth].color}`}>{authBadge[ep.auth].label}</span>
+                <div key={ep.path} className="glass overflow-hidden" style={{ borderRadius: '16px' }}>
+                  <div className="px-5 py-4 flex flex-wrap items-start gap-3" style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
+                    <span className="px-2.5 py-1 rounded font-mono text-xs font-bold" style={{ background: methodColor[ep.method].bg, color: methodColor[ep.method].color }}>{ep.method}</span>
+                    <code className="text-sm font-mono" style={{ color: 'var(--text)' }}>{ep.path}</code>
+                    <span className="ml-auto px-2 py-0.5 rounded-full text-xs" style={{ background: authBadge[ep.auth].bg, color: authBadge[ep.auth].color }}>{authBadge[ep.auth].label}</span>
                   </div>
                   <div className="px-5 py-4 space-y-4">
-                    <p className="text-gray-400 text-sm">{ep.description}</p>
+                    <p className="text-sm" style={{ color: 'var(--text2)' }}>{ep.description}</p>
                     {ep.body && (
                       <div>
-                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Request Body</div>
-                        <div className="bg-[#0D0D0D] rounded-lg border border-white/[0.06] p-3 space-y-1">
+                        <div className="pixel-label mb-2">Request Body</div>
+                        <div className="p-3 space-y-1 rounded-lg" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
                           {Object.entries(ep.body).map(([k, v]) => (
                             <div key={k} className="flex gap-3 text-xs font-mono">
-                              <span className="text-[#00F0FF] shrink-0">{k}</span>
-                              <span className="text-gray-500">{v}</span>
+                              <span className="shrink-0" style={{ color: 'var(--accent)' }}>{k}</span>
+                              <span style={{ color: 'var(--text2)' }}>{v}</span>
                             </div>
                           ))}
                         </div>
@@ -269,20 +267,20 @@ export default function EndpointsPage() {
                     )}
                     {ep.params && (
                       <div>
-                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Query Params</div>
-                        <div className="bg-[#0D0D0D] rounded-lg border border-white/[0.06] p-3 space-y-1">
+                        <div className="pixel-label mb-2">Query Params</div>
+                        <div className="p-3 space-y-1 rounded-lg" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
                           {Object.entries(ep.params).map(([k, v]) => (
                             <div key={k} className="flex gap-3 text-xs font-mono">
-                              <span className="text-[#00F0FF] shrink-0">{k}</span>
-                              <span className="text-gray-500">{v}</span>
+                              <span className="shrink-0" style={{ color: 'var(--accent)' }}>{k}</span>
+                              <span style={{ color: 'var(--text2)' }}>{v}</span>
                             </div>
                           ))}
                         </div>
                       </div>
                     )}
                     <div>
-                      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Response</div>
-                      <code className="text-xs text-gray-400 font-mono">{ep.response}</code>
+                      <div className="pixel-label mb-2">Response</div>
+                      <code className="text-xs font-mono" style={{ color: 'var(--text2)' }}>{ep.response}</code>
                     </div>
                   </div>
                 </div>
@@ -294,24 +292,24 @@ export default function EndpointsPage() {
 
       {/* Status Codes */}
       <div className="mt-12">
-        <h2 className="font-heading text-xl font-bold mb-4 text-gray-200">HTTP Status Codes</h2>
+        <h2 className="font-heading text-xl font-bold mb-4" style={{ color: 'var(--text)' }}>HTTP Status Codes</h2>
         <div className="grid sm:grid-cols-2 gap-3">
           {[
-            { code: '200 OK', desc: 'Request succeeded', color: 'text-green-400', ok: true },
-            { code: '201 Created', desc: 'Resource created successfully', color: 'text-green-400', ok: true },
-            { code: '400 Bad Request', desc: 'Invalid or missing parameters', color: 'text-yellow-400', ok: false },
-            { code: '401 Unauthorized', desc: 'Missing or invalid API key / JWT — check the "code" field', color: 'text-red-400', ok: false },
-            { code: '403 Forbidden', desc: 'Insufficient permissions or plan limit', color: 'text-red-400', ok: false },
-            { code: '404 Not Found', desc: 'Resource does not exist', color: 'text-orange-400', ok: false },
-            { code: '412 Precondition Failed', desc: 'Compliance session not active (when requireActiveSession=true)', color: 'text-orange-400', ok: false },
-            { code: '429 Too Many Requests', desc: 'Rate limit exceeded', color: 'text-orange-400', ok: false },
-            { code: '500 Internal Server Error', desc: 'Unexpected server error', color: 'text-red-400', ok: false },
+            { code: '200 OK', desc: 'Request succeeded', color: '#4ade80', ok: true },
+            { code: '201 Created', desc: 'Resource created successfully', color: '#4ade80', ok: true },
+            { code: '400 Bad Request', desc: 'Invalid or missing parameters', color: '#facc15', ok: false },
+            { code: '401 Unauthorized', desc: 'Missing or invalid API key / JWT — check the "code" field', color: '#f87171', ok: false },
+            { code: '403 Forbidden', desc: 'Insufficient permissions or plan limit', color: '#f87171', ok: false },
+            { code: '404 Not Found', desc: 'Resource does not exist', color: '#fb923c', ok: false },
+            { code: '412 Precondition Failed', desc: 'Compliance session not active (when requireActiveSession=true)', color: '#fb923c', ok: false },
+            { code: '429 Too Many Requests', desc: 'Rate limit exceeded', color: '#fb923c', ok: false },
+            { code: '500 Internal Server Error', desc: 'Unexpected server error', color: '#f87171', ok: false },
           ].map(({ code, desc, color, ok }) => (
-            <div key={code} className="border border-white/[0.06] rounded-lg p-3 flex items-center gap-3">
+            <div key={code} className="glass p-3 flex items-center gap-3" style={{ borderRadius: '12px' }}>
               {ok ? <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" /> : <XCircle className="w-4 h-4 text-red-400 shrink-0" />}
               <div>
-                <code className={`text-sm font-mono ${color}`}>{code}</code>
-                <div className="text-xs text-gray-500">{desc}</div>
+                <code className="text-sm font-mono" style={{ color }}>{code}</code>
+                <div className="text-xs" style={{ color: 'var(--text2)' }}>{desc}</div>
               </div>
             </div>
           ))}
@@ -319,10 +317,10 @@ export default function EndpointsPage() {
       </div>
 
       <div className="mt-10 flex gap-4">
-        <Link href="/docs/quickstart" className="inline-flex items-center gap-2 text-sm text-[#00F0FF] hover:underline">
+        <Link href="/docs/quickstart" className="inline-flex items-center gap-2 text-sm hover:underline" style={{ color: 'var(--accent)' }}>
           <ArrowRight className="w-4 h-4" /> Quick Start guide
         </Link>
-        <Link href="/docs/sdk" className="inline-flex items-center gap-2 text-sm text-[#00F0FF] hover:underline">
+        <Link href="/docs/sdk" className="inline-flex items-center gap-2 text-sm hover:underline" style={{ color: 'var(--accent)' }}>
           <ArrowRight className="w-4 h-4" /> DeFi transaction guide
         </Link>
       </div>

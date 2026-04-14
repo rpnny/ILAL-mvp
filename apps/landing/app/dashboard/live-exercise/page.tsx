@@ -46,7 +46,7 @@ const DEFAULT_CONFIG: LiveExerciseConfig = {
         decimals: 18,
     },
     notes: [
-        'This pool has the ComplianceHook attached — only wallets with an active ZK session can swap.',
+        'This pool has the ComplianceHook attached -- only wallets with an active ZK session can swap.',
         'mUSD and mTBILL are mock tokens deployed on Base Sepolia for demonstration.',
         'Use the Compliance Demo page to check your session status before swapping.',
     ],
@@ -74,22 +74,22 @@ export default function LiveExercisePage() {
         >
             <div className="max-w-6xl mx-auto grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-8">
                 <div className="space-y-6">
-                    <div className="bg-white/[0.02] border border-white/[0.08] rounded-2xl p-6">
-                        <div className="text-xs uppercase tracking-[0.22em] text-[#00F0FF] mb-3">
+                    <div className="glass p-6">
+                        <div className="font-pixel text-xs tracking-[0.2em] uppercase mb-3" style={{ color: 'var(--accent)' }}>
                             Live Exercise
                         </div>
-                        <h1 className="font-heading text-3xl font-bold mb-3">
+                        <h1 className="font-serif text-3xl font-bold mb-3" style={{ color: 'var(--text)' }}>
                             Full-Chain Permit Swap
                         </h1>
-                        <p className="text-gray-400 leading-7">
+                        <p className="leading-7" style={{ color: 'var(--text2)' }}>
                             This page targets the freshly created testnet pool and signs a real
                             EIP-712 permit in the browser before calling the ILAL-bound Uniswap v4 router.
                         </p>
                     </div>
 
-                    <div className="bg-white/[0.02] border border-white/[0.08] rounded-2xl p-6">
-                        <h2 className="font-heading text-lg font-semibold mb-4">What This Verifies</h2>
-                        <div className="space-y-3 text-sm text-gray-300">
+                    <div className="glass p-6">
+                        <h2 className="font-serif text-lg font-semibold mb-4" style={{ color: 'var(--text)' }}>What This Verifies</h2>
+                        <div className="space-y-3 text-sm" style={{ color: 'var(--text2)' }}>
                             <div>1. Frontend signs a real permit with the connected wallet.</div>
                             <div>2. `ComplianceHook` resolves the user from `hookData &gt;= 148 bytes`.</div>
                             <div>3. Session-gated permissioning is enforced against the signed user.</div>
@@ -97,44 +97,44 @@ export default function LiveExercisePage() {
                         </div>
                     </div>
 
-                    <div className="bg-white/[0.02] border border-white/[0.08] rounded-2xl p-6">
-                        <h2 className="font-heading text-lg font-semibold mb-4">Pool Details</h2>
+                    <div className="glass p-6">
+                        <h2 className="font-serif text-lg font-semibold mb-4" style={{ color: 'var(--text)' }}>Pool Details</h2>
                         {config ? (
-                            <div className="space-y-3 text-sm text-gray-300">
+                            <div className="space-y-3 text-sm" style={{ color: 'var(--text2)' }}>
                                 <div className="flex justify-between gap-4">
-                                    <span className="text-gray-500">Network</span>
-                                    <span>{config.network}</span>
-                                </div>
-                                <div className="flex justify-between gap-4">
-                                    <span className="text-gray-500">Mode</span>
-                                    <span>Frontend Permit Mode</span>
+                                    <span style={{ color: 'var(--text2)' }}>Network</span>
+                                    <span style={{ color: 'var(--text)' }}>{config.network}</span>
                                 </div>
                                 <div className="flex justify-between gap-4">
-                                    <span className="text-gray-500">Pair</span>
-                                    <span>{config.tokenA.symbol} / {config.tokenB.symbol}</span>
+                                    <span style={{ color: 'var(--text2)' }}>Mode</span>
+                                    <span style={{ color: 'var(--text)' }}>Frontend Permit Mode</span>
                                 </div>
                                 <div className="flex justify-between gap-4">
-                                    <span className="text-gray-500">Fee</span>
-                                    <span>{config.pool.fee}</span>
+                                    <span style={{ color: 'var(--text2)' }}>Pair</span>
+                                    <span style={{ color: 'var(--text)' }}>{config.tokenA.symbol} / {config.tokenB.symbol}</span>
                                 </div>
                                 <div className="flex justify-between gap-4">
-                                    <span className="text-gray-500">Tick Spacing</span>
-                                    <span>{config.pool.tickSpacing}</span>
+                                    <span style={{ color: 'var(--text2)' }}>Fee</span>
+                                    <span style={{ color: 'var(--text)' }}>{config.pool.fee}</span>
                                 </div>
-                                <div className="pt-3 border-t border-white/[0.06] space-y-2">
-                                    <div className="text-xs text-gray-500">Token Addresses</div>
-                                    <div className="font-mono text-xs break-all">{config.tokenA.symbol}: {config.tokenA.address}</div>
-                                    <div className="font-mono text-xs break-all">{config.tokenB.symbol}: {config.tokenB.address}</div>
-                                    <div className="font-mono text-xs break-all">Hook: {config.pool.hook}</div>
+                                <div className="flex justify-between gap-4">
+                                    <span style={{ color: 'var(--text2)' }}>Tick Spacing</span>
+                                    <span style={{ color: 'var(--text)' }}>{config.pool.tickSpacing}</span>
                                 </div>
-                                <div className="pt-3 border-t border-white/[0.06] space-y-2">
+                                <div className="pt-3 space-y-2" style={{ borderTop: '1px solid var(--glass-border)' }}>
+                                    <div className="text-xs" style={{ color: 'var(--text2)' }}>Token Addresses</div>
+                                    <div className="font-mono text-xs break-all" style={{ color: 'var(--text)' }}>{config.tokenA.symbol}: {config.tokenA.address}</div>
+                                    <div className="font-mono text-xs break-all" style={{ color: 'var(--text)' }}>{config.tokenB.symbol}: {config.tokenB.address}</div>
+                                    <div className="font-mono text-xs break-all" style={{ color: 'var(--text)' }}>Hook: {config.pool.hook}</div>
+                                </div>
+                                <div className="pt-3 space-y-2" style={{ borderTop: '1px solid var(--glass-border)' }}>
                                     {config.notes.map((note) => (
-                                        <div key={note} className="text-xs text-gray-400">- {note}</div>
+                                        <div key={note} className="text-xs" style={{ color: 'var(--text2)' }}>- {note}</div>
                                     ))}
                                 </div>
                             </div>
                         ) : (
-                            <div className="text-sm text-gray-400">
+                            <div className="text-sm" style={{ color: 'var(--text2)' }}>
                                 {error || 'Waiting for live exercise config...'}
                             </div>
                         )}
@@ -149,7 +149,7 @@ export default function LiveExercisePage() {
                             mode="permit"
                         />
                     ) : (
-                        <div className="bg-white/[0.02] border border-white/[0.08] rounded-2xl p-6 text-sm text-gray-400">
+                        <div className="glass p-6 text-sm" style={{ color: 'var(--text2)' }}>
                             {error || 'Run the live integration script first to generate this pool config.'}
                         </div>
                     )}

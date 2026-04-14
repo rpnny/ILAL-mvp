@@ -141,56 +141,58 @@ print(response.json())`;
     return (
         <motion.div className="p-8" variants={containerVariants} initial="hidden" animate="visible">
             <motion.div variants={itemVariants} className="mb-8">
-                <h1 className="font-heading text-3xl font-bold mb-2 flex items-center">
-                    <div className="w-9 h-9 bg-[#00F0FF]/15 rounded-lg flex items-center justify-center mr-3">
-                        <Play className="w-5 h-5 text-[#00F0FF]" />
+                <h1 className="font-serif text-3xl font-bold mb-2 flex items-center">
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center mr-3" style={{ background: 'var(--surface)', border: '1px solid var(--glass-border)' }}>
+                        <Play className="w-5 h-5" style={{ color: 'var(--accent)' }} />
                     </div>
                     API Playground
                 </h1>
-                <p className="text-gray-400">
+                <p style={{ color: 'var(--text2)' }}>
                     Test ILAL API endpoints with the configured backend base{' '}
-                    <code className="text-[#00F0FF]/70 text-xs">{API_BASE || 'same-origin /api proxy'}</code>
+                    <code className="font-mono text-xs" style={{ color: 'var(--accent)' }}>{API_BASE || 'same-origin /api proxy'}</code>
                 </p>
             </motion.div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Request Panel */}
                 <motion.div variants={itemVariants} className="space-y-4">
-                    <div className="bg-white/[0.02] backdrop-blur-xl border border-white/[0.08] rounded-xl p-4">
-                        <label className="block text-sm text-gray-400 mb-2">API Key</label>
+                    <div className="glass p-4">
+                        <label className="block text-sm mb-2" style={{ color: 'var(--text2)' }}>API Key</label>
                         {loadingKeys ? (
-                            <div className="flex items-center text-sm text-gray-500"><Loader2 className="w-4 h-4 mr-2 animate-spin" />Loading...</div>
+                            <div className="flex items-center text-sm" style={{ color: 'var(--text2)' }}><Loader2 className="w-4 h-4 mr-2 animate-spin" />Loading...</div>
                         ) : apiKeys.length === 0 ? (
                             <div className="text-sm text-yellow-400 flex items-center gap-2">
                                 <AlertTriangle className="w-4 h-4" />
-                                Create a key on the <a href="/dashboard/api-keys" className="text-[#00F0FF] hover:underline">API Keys</a> page first
+                                Create a key on the <a href="/dashboard/api-keys" className="hover:underline" style={{ color: 'var(--accent)' }}>API Keys</a> page first
                             </div>
                         ) : (
                             <select value={selectedKeyIndex} onChange={(e) => setSelectedKeyIndex(Number(e.target.value))}
-                                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#00F0FF]/50 transition-all appearance-none cursor-pointer"
+                                className="w-full rounded-lg px-4 py-2.5 text-sm focus:outline-none transition-all appearance-none cursor-pointer"
+                                style={{ background: 'var(--surface)', border: '1px solid var(--glass-border)', color: 'var(--text)' }}
                             >
-                                {apiKeys.map((key, i) => <option key={key.id} value={i} className="bg-[#1A1A1A]">{key.name} ({key.keyPrefix}...)</option>)}
+                                {apiKeys.map((key, i) => <option key={key.id} value={i} style={{ background: 'var(--bg)' }}>{key.name} ({key.keyPrefix}...)</option>)}
                             </select>
                         )}
                     </div>
 
-                    <div className="bg-white/[0.02] backdrop-blur-xl border border-white/[0.08] rounded-xl p-4">
-                        <label className="block text-sm text-gray-400 mb-2">Endpoint</label>
+                    <div className="glass p-4">
+                        <label className="block text-sm mb-2" style={{ color: 'var(--text2)' }}>Endpoint</label>
                         <div className="space-y-2">
                             {endpoints.map((ep, i) => (
                                 <motion.button
                                     key={i}
                                     whileHover={{ x: 4 }}
                                     onClick={() => setSelectedEndpoint(i)}
-                                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm transition-all text-left ${selectedEndpoint === i
-                                        ? 'bg-[#00F0FF]/10 border border-[#00F0FF]/30'
-                                        : 'border border-white/[0.06] hover:border-white/[0.12] hover:bg-white/[0.02]'
-                                        }`}
+                                    className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm transition-all text-left border"
+                                    style={selectedEndpoint === i
+                                        ? { background: 'rgba(59,130,246,0.08)', borderColor: 'rgba(59,130,246,0.25)' }
+                                        : { borderColor: 'var(--glass-border)' }
+                                    }
                                 >
                                     <span className={`px-2 py-0.5 rounded font-mono text-xs font-semibold border ${methodColors[ep.method]}`}>{ep.method}</span>
                                     <div className="min-w-0">
-                                        <code className="text-gray-300 text-xs block truncate">{ep.path}</code>
-                                        <span className="text-gray-500 text-xs">{ep.description}</span>
+                                        <code className="text-xs block truncate" style={{ color: 'var(--text)' }}>{ep.path}</code>
+                                        <span className="text-xs" style={{ color: 'var(--text2)' }}>{ep.description}</span>
                                     </div>
                                 </motion.button>
                             ))}
@@ -198,10 +200,11 @@ print(response.json())`;
                     </div>
 
                     {endpoint.method === 'POST' && (
-                        <div className="bg-white/[0.02] backdrop-blur-xl border border-white/[0.08] rounded-xl p-4">
-                            <label className="block text-sm text-gray-400 mb-2">Request Body (JSON)</label>
+                        <div className="glass p-4">
+                            <label className="block text-sm mb-2" style={{ color: 'var(--text2)' }}>Request Body (JSON)</label>
                             <textarea value={requestBody} onChange={(e) => setRequestBody(e.target.value)} rows={8}
-                                className="w-full bg-[#111] border border-white/[0.08] rounded-lg p-4 text-sm font-mono text-gray-300 focus:outline-none focus:border-[#00F0FF]/50 transition-all resize-none"
+                                className="w-full rounded-lg p-4 text-sm font-mono focus:outline-none transition-all resize-none"
+                                style={{ background: 'var(--surface)', border: '1px solid var(--glass-border)', color: 'var(--text)' }}
                                 spellCheck={false}
                             />
                         </div>
@@ -212,26 +215,24 @@ print(response.json())`;
                         whileTap={{ scale: 0.98 }}
                         onClick={handleSend}
                         disabled={loading || (endpoint.requiresAuth && apiKeys.length === 0)}
-                        className="w-full py-3 bg-[#00F0FF] hover:bg-[#00F0FF]/90 rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-lg shadow-[#00F0FF]/20 relative overflow-hidden group"
+                        className="btn-primary w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        <div className="absolute inset-0 bg-gradient-to-r from-[#00F0FF] to-[#A855F7] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        <span className="relative z-10 flex items-center space-x-2">
-                            {loading ? (<><Loader2 className="w-5 h-5 animate-spin" /><span>Sending...</span></>) :
-                                (<><Play className="w-5 h-5" /><span>Send Request</span></>)}
-                        </span>
+                        {loading ? (<><Loader2 className="w-5 h-5 animate-spin" /><span>Sending...</span></>) :
+                            (<><Play className="w-5 h-5" /><span>Send Request</span></>)}
                     </motion.button>
                 </motion.div>
 
                 {/* Response Panel */}
-                <motion.div variants={itemVariants} className="bg-white/[0.02] backdrop-blur-xl border border-white/[0.08] rounded-xl overflow-hidden">
-                    <div className="flex items-center border-b border-white/[0.06] overflow-x-auto">
+                <motion.div variants={itemVariants} className="glass overflow-hidden">
+                    <div className="flex items-center overflow-x-auto" style={{ borderBottom: '1px solid var(--glass-border)' }}>
                         {(['response', 'curl', 'js', 'python'] as const).map((tab) => (
                             <button key={tab} onClick={() => setActiveTab(tab)}
-                                className={`px-5 py-3 text-sm font-medium whitespace-nowrap transition-colors relative ${activeTab === tab ? 'text-[#00F0FF]' : 'text-gray-400 hover:text-white'}`}
+                                className="px-5 py-3 text-sm font-medium whitespace-nowrap transition-colors relative"
+                                style={{ color: activeTab === tab ? 'var(--accent)' : 'var(--text2)' }}
                             >
                                 {tab === 'response' ? 'Response' : tab === 'curl' ? 'cURL' : tab === 'js' ? 'JavaScript' : 'Python'}
                                 {activeTab === tab && (
-                                    <motion.div layoutId="playground-tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#00F0FF]" transition={{ type: 'spring', stiffness: 300, damping: 30 }} />
+                                    <motion.div layoutId="playground-tab" className="absolute bottom-0 left-0 right-0 h-0.5" style={{ background: 'var(--accent)' }} transition={{ type: 'spring', stiffness: 300, damping: 30 }} />
                                 )}
                             </button>
                         ))}
@@ -245,7 +246,8 @@ print(response.json())`;
                                 const text = activeTab === 'response' ? (response || '') : activeTab === 'curl' ? curlCode : activeTab === 'js' ? jsCode : pythonCode;
                                 handleCopy(text);
                             }}
-                            className="absolute top-3 right-3 p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors z-10"
+                            className="absolute top-3 right-3 p-2 rounded-lg transition-colors z-10"
+                            style={{ color: 'var(--text2)' }}
                         >
                             {copied ? <CheckCircle2 className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
                         </motion.button>
@@ -263,16 +265,16 @@ print(response.json())`;
                                             : responseStatus >= 400 ? 'bg-red-500/20 text-red-400 border-red-500/20' : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/20'
                                             }`}>{responseStatus || 'ERR'}</span>
                                         {responseTime !== null && (
-                                            <span className="text-xs text-gray-500">{responseTime}ms</span>
+                                            <span className="text-xs" style={{ color: 'var(--text2)' }}>{responseTime}ms</span>
                                         )}
                                     </motion.div>
                                 )}
-                                <pre className="bg-[#111] rounded-lg p-4 text-sm font-mono text-gray-300 overflow-auto max-h-[500px] min-h-[300px] border border-white/[0.04]">
+                                <pre className="rounded-lg p-4 text-sm font-mono overflow-auto max-h-[500px] min-h-[300px]" style={{ background: 'var(--surface)', border: '1px solid var(--glass-border)', color: 'var(--text)' }}>
                                     <code>{response || '// Click "Send Request" to see the response'}</code>
                                 </pre>
                             </div>
                         ) : (
-                            <pre className="p-4 bg-[#111] m-4 rounded-lg text-sm font-mono text-gray-300 overflow-auto max-h-[500px] min-h-[300px] border border-white/[0.04]">
+                            <pre className="p-4 m-4 rounded-lg text-sm font-mono overflow-auto max-h-[500px] min-h-[300px]" style={{ background: 'var(--surface)', border: '1px solid var(--glass-border)', color: 'var(--text)' }}>
                                 <code>{activeTab === 'curl' ? curlCode : activeTab === 'js' ? jsCode : pythonCode}</code>
                             </pre>
                         )}

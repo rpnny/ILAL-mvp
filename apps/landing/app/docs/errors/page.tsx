@@ -177,25 +177,34 @@ const errorCodes = [
     },
 ];
 
+function statusBadgeStyle(status: number) {
+    if (status >= 500) return { background: 'rgba(239,68,68,0.2)', color: '#f87171' };
+    if (status === 429) return { background: 'rgba(251,146,60,0.2)', color: '#fb923c' };
+    if (status === 412) return { background: 'rgba(234,179,8,0.2)', color: '#facc15' };
+    if (status === 403) return { background: 'rgba(168,85,247,0.2)', color: '#a855f7' };
+    if (status === 200) return { background: 'rgba(34,197,94,0.2)', color: '#4ade80' };
+    return { background: 'rgba(239,68,68,0.2)', color: '#f87171' };
+}
+
 export default function ErrorsPage() {
     return (
-        <div className="p-8 max-w-5xl mx-auto">
-            <h1 className="font-heading text-4xl font-bold mb-4">Error Codes Reference</h1>
-            <p className="text-xl text-gray-400 mb-6">
+        <div className="section max-w-5xl mx-auto">
+            <h1 className="font-heading text-4xl font-bold mb-4" style={{ color: 'var(--text)' }}>Error Codes Reference</h1>
+            <p className="text-xl mb-6" style={{ color: 'var(--text2)' }}>
                 Complete reference for all ILAL API error codes, organized by failure phase.
             </p>
 
             {/* Response Format */}
-            <div className="bg-white/[0.02] border border-white/10 rounded-xl p-6 mb-10">
-                <h2 className="font-heading text-lg font-semibold mb-3 flex items-center">
-                    <Info className="w-5 h-5 mr-2 text-[#00F0FF]" />
+            <div className="glass p-6 mb-10" style={{ borderRadius: 'var(--card-radius)' }}>
+                <h2 className="font-heading text-lg font-semibold mb-3 flex items-center" style={{ color: 'var(--text)' }}>
+                    <Info className="w-5 h-5 mr-2" style={{ color: 'var(--accent)' }} />
                     Unified Error Response Format
                 </h2>
-                <p className="text-sm text-gray-400 mb-4">
+                <p className="text-sm mb-4" style={{ color: 'var(--text2)' }}>
                     All error responses follow a consistent envelope with machine-readable codes and developer-actionable hints:
                 </p>
-                <pre className="bg-[#1A1A1A] border border-white/10 rounded-lg p-4 text-sm overflow-x-auto">
-                    <code className="text-gray-300">{`{
+                <pre className="p-4 text-sm overflow-x-auto rounded-xl" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                    <code className="font-mono" style={{ color: 'var(--text)' }}>{`{
   "error": "Bad Request",              // HTTP status text
   "code": "UNSUPPORTED_TOKEN",         // Machine-readable error code
   "message": "tokenIn 0xabc... is not a supported token",
@@ -205,13 +214,13 @@ export default function ErrorsPage() {
 }`}</code>
                 </pre>
                 <div className="mt-4 grid sm:grid-cols-2 gap-3 text-xs">
-                    <div className="bg-white/[0.03] rounded-lg p-3">
-                        <div className="text-gray-500 mb-1">Phases</div>
-                        <code className="text-gray-300">validation</code> → <code className="text-gray-300">auth</code> → <code className="text-gray-300">preflight</code> → <code className="text-gray-300">build</code> → <code className="text-gray-300">broadcast</code>
+                    <div className="p-3 rounded-lg" style={{ background: 'var(--surface)' }}>
+                        <div className="mb-1" style={{ color: 'var(--text2)' }}>Phases</div>
+                        <code className="font-mono" style={{ color: 'var(--text)' }}>validation</code> → <code className="font-mono" style={{ color: 'var(--text)' }}>auth</code> → <code className="font-mono" style={{ color: 'var(--text)' }}>preflight</code> → <code className="font-mono" style={{ color: 'var(--text)' }}>build</code> → <code className="font-mono" style={{ color: 'var(--text)' }}>broadcast</code>
                     </div>
-                    <div className="bg-white/[0.03] rounded-lg p-3">
-                        <div className="text-gray-500 mb-1">Switch on</div>
-                        Use the <code className="text-[#00F0FF]">code</code> field for programmatic handling; <code className="text-[#00F0FF]">hint</code> for developer display.
+                    <div className="p-3 rounded-lg" style={{ background: 'var(--surface)' }}>
+                        <div className="mb-1" style={{ color: 'var(--text2)' }}>Switch on</div>
+                        Use the <code className="font-mono" style={{ color: 'var(--accent)' }}>code</code> field for programmatic handling; <code className="font-mono" style={{ color: 'var(--accent)' }}>hint</code> for developer display.
                     </div>
                 </div>
             </div>
@@ -220,43 +229,38 @@ export default function ErrorsPage() {
             <div className="space-y-10">
                 {errorCodes.map((category) => (
                     <div key={category.category}>
-                        <h2 className="font-heading text-2xl font-bold mb-6">{category.category}</h2>
+                        <h2 className="font-heading text-2xl font-bold mb-6" style={{ color: 'var(--text)' }}>{category.category}</h2>
                         <div className="space-y-4">
                             {category.errors.map((error) => (
                                 <div
                                     key={error.code}
-                                    className="border border-white/10 rounded-xl overflow-hidden hover:border-white/20 transition-colors"
+                                    className="glass overflow-hidden"
+                                    style={{ borderRadius: '16px' }}
                                 >
-                                    <div className="bg-white/[0.02] px-6 py-4 border-b border-white/10">
+                                    <div className="px-6 py-4" style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
                                         <div className="flex items-center justify-between flex-wrap gap-2">
                                             <div className="flex items-center space-x-3">
-                                                <code className="text-[#00F0FF] font-mono font-semibold text-sm">
+                                                <code className="font-mono font-semibold text-sm" style={{ color: 'var(--accent)' }}>
                                                     {error.code}
                                                 </code>
-                                                <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${error.status >= 500 ? 'bg-red-500/20 text-red-400' :
-                                                        error.status === 429 ? 'bg-orange-500/20 text-orange-400' :
-                                                            error.status === 412 ? 'bg-yellow-500/20 text-yellow-400' :
-                                                                error.status === 403 ? 'bg-purple-500/20 text-purple-400' :
-                                                                    error.status === 200 ? 'bg-green-500/20 text-green-400' :
-                                                                        'bg-red-500/20 text-red-400'
-                                                    }`}>
+                                                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold" style={statusBadgeStyle(error.status)}>
                                                     {error.status}
                                                 </span>
-                                                <span className="text-xs text-gray-500 font-mono bg-white/[0.04] px-2 py-0.5 rounded">
+                                                <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ background: 'var(--surface)', color: 'var(--text2)' }}>
                                                     {error.phase}
                                                 </span>
-                                                <span className="font-semibold">{error.title}</span>
+                                                <span className="font-display font-semibold" style={{ color: 'var(--text)' }}>{error.title}</span>
                                             </div>
                                         </div>
                                     </div>
 
                                     <div className="px-6 py-4 space-y-3">
                                         <div>
-                                            <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">Description</div>
-                                            <p className="text-sm text-gray-300">{error.description}</p>
+                                            <div className="pixel-label mb-1">Description</div>
+                                            <p className="text-sm" style={{ color: 'var(--text)' }}>{error.description}</p>
                                         </div>
                                         <div>
-                                            <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">How to Fix</div>
+                                            <div className="pixel-label mb-1">How to Fix</div>
                                             <div className="flex items-start space-x-2">
                                                 <CheckCircle2 className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
                                                 <p className="text-sm text-green-300">{error.solution}</p>
@@ -271,42 +275,42 @@ export default function ErrorsPage() {
             </div>
 
             {/* Deprecated Token Notice */}
-            <div className="mt-10 bg-red-500/10 border border-red-500/20 rounded-xl p-6">
+            <div className="mt-10 glass p-6" style={{ borderColor: 'rgba(239,68,68,0.2)', borderRadius: 'var(--card-radius)' }}>
                 <h3 className="font-heading text-lg font-semibold mb-3 text-red-400">Deprecated Configurations</h3>
-                <div className="space-y-2 text-sm text-gray-400">
-                    <p><code className="text-red-400">0x036CbD53842c5426634e7929541eC2318f3dCF7e</code> — Circle USDC (pool drained, replaced by tUSDC)</p>
-                    <p><code className="text-red-400">0xe633220f15932428FcA60A1A2C2C48797A180A80</code> — ComplianceHook v1 (deprecated)</p>
-                    <p><code className="text-red-400">0xdD37A28e15A9592eAAd3f7Df0Ad36e374Af68A80</code> — ComplianceHook v2 (deprecated)</p>
-                    <p className="mt-2 text-gray-500">If your code references any of the above addresses, update to the current configuration shown on the <a href="/docs" className="text-[#00F0FF] hover:underline">docs overview page</a>.</p>
+                <div className="space-y-2 text-sm" style={{ color: 'var(--text2)' }}>
+                    <p><code className="font-mono text-red-400">0x036CbD53842c5426634e7929541eC2318f3dCF7e</code> — Circle USDC (pool drained, replaced by tUSDC)</p>
+                    <p><code className="font-mono text-red-400">0xe633220f15932428FcA60A1A2C2C48797A180A80</code> — ComplianceHook v1 (deprecated)</p>
+                    <p><code className="font-mono text-red-400">0xdD37A28e15A9592eAAd3f7Df0Ad36e374Af68A80</code> — ComplianceHook v2 (deprecated)</p>
+                    <p className="mt-2" style={{ color: 'var(--text2)' }}>If your code references any of the above addresses, update to the current configuration shown on the <a href="/docs" style={{ color: 'var(--accent)' }} className="hover:underline">docs overview page</a>.</p>
                 </div>
             </div>
 
             {/* Best Practices */}
-            <div className="mt-10 bg-[#00F0FF]/10 border border-[#00F0FF]/20 rounded-xl p-6">
-                <h3 className="font-heading text-xl font-semibold mb-4 flex items-center">
-                    <AlertTriangle className="w-6 h-6 mr-2 text-[#00F0FF]" />
+            <div className="mt-10 glass p-6" style={{ borderColor: 'rgba(59,130,246,0.2)', borderRadius: 'var(--card-radius)' }}>
+                <h3 className="font-heading text-xl font-semibold mb-4 flex items-center" style={{ color: 'var(--text)' }}>
+                    <AlertTriangle className="w-6 h-6 mr-2" style={{ color: 'var(--accent)' }} />
                     Error Handling Best Practices
                 </h3>
-                <ul className="space-y-3 text-sm text-gray-300">
+                <ul className="space-y-3 text-sm" style={{ color: 'var(--text)' }}>
                     <li className="flex items-start">
-                        <span className="text-[#00F0FF] mr-2">1.</span>
-                        <span>Switch on the <code className="text-[#00F0FF]">code</code> field (e.g. <code>SESSION_NOT_ACTIVE</code>) — not the HTTP status or <code>message</code></span>
+                        <span className="mr-2" style={{ color: 'var(--accent)' }}>1.</span>
+                        <span>Switch on the <code className="font-mono" style={{ color: 'var(--accent)' }}>code</code> field (e.g. <code className="font-mono">SESSION_NOT_ACTIVE</code>) — not the HTTP status or <code className="font-mono">message</code></span>
                     </li>
                     <li className="flex items-start">
-                        <span className="text-[#00F0FF] mr-2">2.</span>
-                        <span>Check <code className="text-[#00F0FF]">phase</code> to know which stage failed: <code>validation → auth → preflight → build → broadcast</code></span>
+                        <span className="mr-2" style={{ color: 'var(--accent)' }}>2.</span>
+                        <span>Check <code className="font-mono" style={{ color: 'var(--accent)' }}>phase</code> to know which stage failed: <code className="font-mono">validation → auth → preflight → build → broadcast</code></span>
                     </li>
                     <li className="flex items-start">
-                        <span className="text-[#00F0FF] mr-2">3.</span>
-                        <span>Show the <code className="text-[#00F0FF]">hint</code> field to developers/operators — it contains actionable next steps</span>
+                        <span className="mr-2" style={{ color: 'var(--accent)' }}>3.</span>
+                        <span>Show the <code className="font-mono" style={{ color: 'var(--accent)' }}>hint</code> field to developers/operators — it contains actionable next steps</span>
                     </li>
                     <li className="flex items-start">
-                        <span className="text-[#00F0FF] mr-2">4.</span>
-                        <span>For 429 errors, wait for the <code>retryAfter</code> value before retrying</span>
+                        <span className="mr-2" style={{ color: 'var(--accent)' }}>4.</span>
+                        <span>For 429 errors, wait for the <code className="font-mono">retryAfter</code> value before retrying</span>
                     </li>
                     <li className="flex items-start">
-                        <span className="text-[#00F0FF] mr-2">5.</span>
-                        <span>Before broadcasting, call <code className="text-[#00F0FF]">GET /defi/preflight/:address</code> to check session, balances, and allowances in one call</span>
+                        <span className="mr-2" style={{ color: 'var(--accent)' }}>5.</span>
+                        <span>Before broadcasting, call <code className="font-mono" style={{ color: 'var(--accent)' }}>GET /defi/preflight/:address</code> to check session, balances, and allowances in one call</span>
                     </li>
                 </ul>
             </div>

@@ -29,39 +29,39 @@ export default function SwapPage() {
             animate="visible"
         >
             <motion.div variants={itemVariants} className="mb-8">
-                <h1 className="font-heading text-3xl font-bold mb-2">DeFi Swap</h1>
-                <p className="text-gray-400">Execute compliant token swaps shielded by ZK verifications.</p>
+                <h1 className="font-serif text-3xl font-bold mb-2" style={{ color: 'var(--text)' }}>DeFi Swap</h1>
+                <p style={{ color: 'var(--text2)' }}>Execute compliant token swaps shielded by ZK verifications.</p>
             </motion.div>
 
             <motion.div variants={itemVariants} className="max-w-4xl mx-auto flex flex-col lg:flex-row gap-8 items-start">
                 {/* Left Side: Info panel */}
                 <div className="flex-1 space-y-6 lg:sticky lg:top-8">
-                    <div className="bg-white/[0.02] backdrop-blur-xl border border-white/[0.08] rounded-xl p-6 shadow-2xl">
-                        <h3 className="font-heading font-semibold text-[#00F0FF] mb-3 flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-[#00F0FF] animate-pulse" />
+                    <div className="glass p-6">
+                        <h3 className="font-serif font-semibold mb-3 flex items-center gap-2" style={{ color: 'var(--accent)' }}>
+                            <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: 'var(--accent)' }} />
                             Live Network
                         </h3>
-                        <div className="space-y-4 text-sm text-gray-300">
-                            <div className="flex justify-between border-b border-white/[0.04] pb-2">
-                                <span className="text-gray-500">Chain</span>
-                                <span className="font-medium text-white">Base Sepolia</span>
+                        <div className="space-y-4 text-sm">
+                            <div className="flex justify-between pb-2" style={{ borderBottom: '1px solid var(--glass-border)' }}>
+                                <span style={{ color: 'var(--text2)' }}>Chain</span>
+                                <span className="font-medium" style={{ color: 'var(--text)' }}>Base Sepolia</span>
                             </div>
-                            <div className="flex justify-between border-b border-white/[0.04] pb-2">
-                                <span className="text-gray-500">Compliance Hook</span>
+                            <div className="flex justify-between pb-2" style={{ borderBottom: '1px solid var(--glass-border)' }}>
+                                <span style={{ color: 'var(--text2)' }}>Compliance Hook</span>
                                 <span className="font-mono text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded">Active</span>
                             </div>
-                            <div className="flex justify-between border-b border-white/[0.04] pb-2">
-                                <span className="text-gray-500">Router Version</span>
-                                <span className="font-medium text-white">v2.0 (Mode 2 + Slippage)</span>
+                            <div className="flex justify-between pb-2" style={{ borderBottom: '1px solid var(--glass-border)' }}>
+                                <span style={{ color: 'var(--text2)' }}>Router Version</span>
+                                <span className="font-medium" style={{ color: 'var(--text)' }}>v2.0 (Mode 2 + Slippage)</span>
                             </div>
                         </div>
 
-                        <div className="mt-6 pt-5 border-t border-white/[0.06] text-xs text-gray-500 leading-relaxed">
-                            This interface uses the <span className="text-white font-medium">SimpleSwapRouter</span> integrated with ILAL's <span className="text-white font-medium">ComplianceHook</span>.
+                        <div className="mt-6 pt-5 text-xs leading-relaxed" style={{ borderTop: '1px solid var(--glass-border)', color: 'var(--text2)' }}>
+                            This interface uses the <span className="font-medium" style={{ color: 'var(--text)' }}>SimpleSwapRouter</span> integrated with ILAL&apos;s <span className="font-medium" style={{ color: 'var(--text)' }}>ComplianceHook</span>.
                             Transactions will only succeed if you hold a valid on-chain ZK compliance session.
                             <br /><br />
-                            <Link href="/dashboard" className="text-[#00F0FF] hover:underline">
-                                → View your session status
+                            <Link href="/dashboard" className="hover:underline" style={{ color: 'var(--accent)' }}>
+                                &rarr; View your session status
                             </Link>
                         </div>
                     </div>
